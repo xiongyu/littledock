@@ -1,0 +1,33 @@
+# Dependencies and generated artifacts
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Local configuration and runtime data
+.env
+.env.*
+!.env.example
+/data/
+/backend/data/
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Local credentials
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Operating system files
+.DS_Store
+Thumbs.db
