@@ -1,0 +1,17 @@
+{
+  "name": "webnav",
+  "private": true,
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "node --experimental-strip-types scripts/dev.mjs",
+    "dev:ui": "pnpm --filter @webnav/frontend dev:ui",
+    "build": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend build && pnpm --filter @webnav/frontend build",
+    "typecheck": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend typecheck && pnpm --filter @webnav/frontend typecheck",
+    "test": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend test && pnpm --filter @webnav/frontend test",
+    "start": "pnpm --filter @webnav/backend start",
+    "preview": "pnpm --filter @webnav/frontend preview"
+  }
+}

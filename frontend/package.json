@@ -1,0 +1,27 @@
+{
+  "name": "@webnav/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --experimental-strip-types ../scripts/dev.mjs",
+    "dev:ui": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort"
+  },
+  "dependencies": {
+    "@phosphor-icons/vue": "2.2.1",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "vue": "3.5.44",
+    "@webnav/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.10",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vue-tsc": "3.3.13"
+  }
+}

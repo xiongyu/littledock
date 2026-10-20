@@ -1,134 +1,80 @@
-# WebSocket 通信协议设计
+# WebSocket 协议 v1
 
-本文是待实现的协议约定，配合 [架构方案](architecture.md) 使用。当前仓库没有运行中的 WS 服务。
+本文记录当前实现。一个页面一个 /ws 业务通道，每个 SSH 终端一个 /ws/terminal。HTTP 只提供静态页面、Cookie 与升级握手，没有 REST 业务 API。
 
-## 1. 通信边界
+## 本机访问
 
-所有前后端业务通信使用 WS：配置查询与修改、连接启动、配对、订阅、导入导出和终端数据。HTTP 只负责页面、静态文件、初始会话 Cookie 和 WS 升级握手；没有 REST 业务接口。
+仅监听 127.0.0.1，校验 Host 和精确 Origin。生产只允许当前服务 Origin；开发启动器允许配置的 Vite Origin（默认 http://127.0.0.1:5173）。页面响应自动建立 HttpOnly / SameSite=Strict 本机会话 Cookie，名称包含服务端口，用于识别 SSH 会话拥有者。
 
-| 通道 | 数量 | 负载 |
-| --- | --- | --- |
-| `/ws` | 每个页面一个 | JSON RPC 请求/响应、状态订阅、服务端推送 |
-| `/ws/terminal` | 每个 SSH 会话一个 | 绑定及流控等 JSON 控制消息、二进制终端字节流 |
+没有配对码或人工授权流程。有效本机会话默认 30 天，业务 WS 建立后直接查询状态与目录；若设置了主密码，须先统一解锁。旧版未完成配对的有效会话自动升级；不存在或过期的会话由页面响应重建。终端绑定仍校验拥有者和一次性票据。
 
-使用浏览器原生 WebSocket 和 Node.js 的 ws。业务通道与终端通道使用同一端口、不同升级路径。分离通道可避免终端输出占据业务连接的发送队列，但仍须限制整个进程的并发和缓冲总量。
+开发入口的 HTML 请求通过 Vite 中间件取得后端的会话 Cookie，因此可直接打开 5173。握手失败时前端自动重新请求页面以补齐 Cookie，然后重连 WS；这不是 REST 业务接口。只有目录快照成功到达后才展示数量和空目录；此前显示“目录尚未加载”。连接中断保留本页快照并暂停目录操作。
 
-前端统一封装 `rpc.call(method, params)` 与订阅对象；组件只操作已声明的业务方法。后端通过项目自定义的 Cordis `rpc`、`subscriptions` 服务注册处理器和发布公开事件。这些服务由本项目实现，并非 Cordis 内置协议。
+## 信封与请求
 
-## 2. 配对与握手
+服务发 hello：{v:1,type:'hello',epoch,authorized,limits}。epoch 是当前服务运行标识。
 
-1. 获取页面时，服务端为没有有效会话的浏览器设置随机高熵 Cookie，标记 `HttpOnly`、`SameSite=Strict`、`Path=/` 和有效期，不设置宽域。页面响应使用 `Cache-Control: no-store`；已有有效会话不被重新加载的页面覆盖。
-2. 新会话尚未授权。客户端连接 `/ws`，升级时校验 Host、精确 Origin、Cookie 格式和服务端会话记录；只为已创建的未授权会话开放受限配对连接。
-3. 服务端发送 `hello`，包含协议版本 `v`、本次启动随机标识 `epoch`、授权状态及消息大小限制。客户端版本不兼容时立即停止业务通信。
-4. 未配对通道只接受 `auth.pair`、`auth.status`，不允许查询目录、订阅或启动连接。用户输入本机启动窗口显示的短时一次性码；校验成功后服务端提升当前会话的授权状态，配对码失效。
-5. 后续 WS 连接依赖浏览器自动携带的 Cookie 验证身份；授权状态仍以服务端记录为准。终端 WS 升级必须已授权，不能用来完成配对。
+请求：{v:1,type:'request',epoch,id,method,params,operationId?}。
+成功：{v:1,type:'response',id,ok:true,result}。
+失败：{v:1,type:'response',id,ok:false,error:{code,message}}。
 
-未授权连接设置数量、空闲时间和配对尝试上限。所有升级拒绝不匹配或缺失的 Origin。开发服务来源单独列入精确允许列表，并统一使用 `127.0.0.1`，避免混用 localhost 导致会话行为不同。
+请求 ID 仅用于匹配响应。有副作用的方法必须带 operationId；相同拥有者、操作 ID 和内容返回原结果，不再次执行；内容不一致返回 OPERATION_CONFLICT。内容摘要使用进程随机密钥的 HMAC，记录最多 1,000 项，完成后保留至少 10 分钟，重启后失效。客户端超时或断线不自动重放写入、连接或终端输入。operations.get 可查询本次进程的操作状态，unknown 不表示失败。
 
-开发模式的访问入口同样先经过后端页面响应，建立或校验会话 Cookie，再重定向到配置中允许的同主机 Vite 页面地址；前端业务 WS 连接后端端口。直接访问 Vite 且没有会话时，界面引导返回后端入口，不另建认证 HTTP 接口。
+业务连接最多 8 个并行请求、消息最大 2 MiB；服务最多 64 个 WS 连接，15 秒 ping/pong 检测断线。
 
-业务 WS 无法通过消息设置 HttpOnly Cookie；因此 Cookie 的首次设置明确属于页面 HTTP 响应，认证动作本身走 WS。秘密不进入 URL、WebSocket 子协议名称、浏览器持久化存储或普通日志。会话过期或撤销时关闭其全部通道并释放 SSH 资源。
+## 当前 RPC
 
-## 3. 业务消息
-
-采用小型 JSON 信封，不宣称兼容 JSON-RPC 2.0。所有消息均校验版本、类型和字段；方法参数与结果使用运行时 schema，并与 TypeScript 类型保持同源。
-
-```json
-{"v":1,"type":"request","id":"req-1","epoch":"boot-a","operationId":"op-1","method":"servers.update","params":{"id":"server-1","name":"开发服务器","expectedRevision":12}}
-{"v":1,"type":"response","id":"req-1","ok":true,"result":{"id":"server-1","name":"开发服务器","revision":13}}
-{"v":1,"type":"event","subscriptionId":"sub-1","event":"catalog.changed","epoch":"boot-a","revision":13,"data":{"servers":{"upsert":[{"id":"server-1","name":"开发服务器"}],"remove":[]}}}
-```
-
-上例表示消息形态，实际变更对象必须满足完整 DTO schema。失败响应使用同一个请求 ID：
-
-```json
-{"v":1,"type":"response","id":"req-1","ok":false,"error":{"code":"REVISION_CONFLICT","message":"配置已更新，请同步后重试"}}
-```
-
-- `id` 仅用于匹配本次请求与响应；每个页面的未完成请求 ID 不重复。
-- `operationId` 用于有副作用的调用去重，与请求 ID 分离；只读方法可省略。
-- `epoch` 绑定当前后端运行实例，旧实例的请求不得在新实例自动执行。
-- 方法返回成功/失败响应；推送不复用请求 ID，通过 `subscriptionId` 定位订阅。
-- 请求响应和状态事件的到达顺序不能作为状态先后的依据，按版本号去重和应用。
-- 错误码包括 `UNAUTHORIZED`、`INVALID_ARGUMENT`、`NOT_FOUND`、`REVISION_CONFLICT`、`OPERATION_CONFLICT`、`STALE_EPOCH` 和 `BUSY`；错误信息脱敏。
-
-## 4. 首版方法与推送
-
-| RPC 方法 | 作用 |
+| 方法 | 参数与结果 |
 | --- | --- |
-| `auth.pair`、`auth.status` | 完成配对、读取当前授权状态 |
-| `catalog.watch`、`catalog.unwatch` | 返回一致目录快照并订阅后续变更、取消订阅 |
-| `groups.create/update/delete` | 管理分组 |
-| `servers.create/update/delete` | 管理服务器、标签、收藏及排序 |
-| `connections.create/update/delete` | 管理连接入口 |
-| `connections.open` | 根据连接 ID 启动 SSH、RDP 或返回网页入口 |
-| `sessions.watch/unwatch`、`sessions.close` | 获取并订阅有权限的会话状态、主动断开 |
-| `sessions.hostKeyDecision` | 对实际握手产生的待确认指纹提交决定 |
-| `sessions.authenticate` | 为待认证会话提交临时密码或私钥口令，仅后端内存使用 |
-| `operations.get` | 查询指定操作 ID 的已知执行状态 |
-| `imports.preview/apply` | 导入校验与预览、事务应用已确认预览 |
-| `exports.config`、`rdp.export` | 返回配置 JSON 或受控的 RDP 文件文本 |
+| auth.status | 查询当前本机会话是否有效；无配对方法 |
+| catalog.watch | 返回 {subscriptionId,epoch,revision,snapshot}，初始化一致快照并订阅 |
+| catalog.unwatch | 停止目录推送 |
+| catalog.replace | {catalog,expectedRevision,rdpPasswords?}，事务提交，冲突拒绝覆盖；可携带最多 12 项 RDP 密码更新，与目录原子提交 |
+| imports.preview | {catalog}，校验并返回 token、目录和警告 |
+| ssh.importPreview | 读取本机 SSH 配置，返回 token、目录、别名数、私钥引用数与警告 |
+| imports.apply | {token}，应用预览与凭据引用；5 分钟有效，目录改变时拒绝 |
+| exports.config | 返回不含秘密的 JSON 文本及文件名 |
+| vault.status / vault.watch | 返回 {configured:true,mode,unlocked,unlockMinutes,expiresAt}；watch 同时订阅全局状态 |
+| vault.update | {mode:'local'或'master',password?,unlockMinutes}；原子迁移所有秘密或仅更新有效期，已启用主密码时省略 password 保持原值 |
+| vault.configure / vault.changeMode | 兼容旧版 {mode,password?}；新界面只调用 vault.update，不要求首次配置 |
+| vault.unlock / vault.lock | 主密码解锁 / 锁定，不关闭已认证的 SSH |
+| credentials.describe | {serverId,connectionId}，只返回 kind/path/hasSecret 等描述 |
+| credentials.save | SSH 独立认证保存：{serverId,connectionId,kind,path?,secret?}，不传 secret 保持已保存值 |
+| connections.open | {serverId,connectionId}，SSH 返回 sessionId/attachToken；RDP 返回 client-started |
+| sessions.close | {sessionId}，关闭所属 SSH 会话 |
+| sessions.hostKeyDecision | {sessionId,fingerprint,accept,verifiedChange?}，指纹变化接受时必须显式核验 |
+| history.sessions | {serverId}，最近 100 个已保存会话 |
+| history.open | {sessionId}，固定 lower/upper 范围，返回 id/capturedAt；每个业务连接一个快照 |
+| history.page | {snapshotId,after?,search?}，返回 rows/after/done/incomplete |
+| history.close | 幂等释放查询快照 |
+| operations.get | {operationId}，查询成功、失败、执行中或未知 |
 
-方法中的斜杠是文档合写，例如 `groups.create/update/delete` 表示三个独立方法，不是实际方法名称。每个方法均经过身份、权限与参数校验。
+目录事件为 {v:1,type:'event',event:'catalog.changed',subscriptionId,epoch,revision,snapshot}，只向已订阅并仍授权的客户端发送已提交的完整快照。当前每次推送都带完整目录，因此版本跳跃可以直接用较新快照替换；不应用旧版本。重连重新 watch，不恢复事件回放。
 
-首版公开推送主题包括 `catalog.changed`、`sessions.changed`；会话变更覆盖连接中、待确认指纹、待认证、已连接、失败及关闭等状态。推送只包含对应订阅有权读取的数据，凭据和终端正文不走业务广播。
+配置 DTO 和校验在 shared/；所有普通配置响应均不含密码和私钥。当前没有通用 sessions.changed 主题，会话状态在各自终端通道发送。
 
-## 5. 一致快照与订阅
+全局状态事件为 `{v:1,type:'event',event:'vault.changed',epoch,status}`，只发送给会话有效且调用过 `vault.watch` 的页面；事件携带完整状态，无增量合并，重连重新订阅。`unlockMinutes` 是 0–525,600 的整数，0 表示服务运行期间永不过期；`expiresAt` 为当前解锁截止时间的 Unix 毫秒数，永不过期或未解锁时为 null。主密码和派生密钥不在状态中返回。默认 local，无首次选择流程。
 
-`catalog.watch` 返回 `{ subscriptionId, epoch, revision, snapshot }`。必须将订阅登记与快照读取作为一致操作：在读取快照期间缓存后续变更，先将快照响应排入发送队列，再推送版本大于快照的事件，避免“先查询再订阅”丢失变更。
+页面先 watch 全局状态，解锁后才 catalog.watch。主密码锁定时业务请求返回 VAULT_LOCKED，仅允许全局状态查询/订阅、解锁，以及会话关闭、历史关闭、取消目录订阅等资源清理；目录推送暂停。后端到期计时器会主动清除密钥，每次请求也检查时间。锁定不关闭健康的 SSH 终端；重启后 master 模式一定锁定。
 
-目录变更在事务提交后发布；目录版本与配置更新在同一事务中提交。会话视图按授权主体及可见范围生成独立、连续递增的版本序列，不将包含其他主体事件的全局序列过滤后直接发送，以免正常过滤产生伪缺口。实现时显式协调快照、版本递增、订阅缓冲及发布，不能仅依赖 WebSocket 自身的消息顺序。
+`catalog.replace.rdpPasswords` 为可选数组，每项 `{serverId,connectionId,secret}`。入口必须存在于本次提交的目录且类型为 RDP，同一入口不得重复；非空字符串设置密码，`null` 删除应用保存的密码，不提供此项则保持原密码。提交时遵循全局保存方式，设置了主密码则须已解锁。目录版本检查、目录与凭据写入在同一个事务中完成，提交成功后才推送公开目录快照，响应、订阅事件和导出不包含此参数或密码。RPC 操作去重同样适用，不自动重放失败未知的保存。
 
-客户端忽略重复或旧版本；发现版本缺口、订阅缓冲溢出或 epoch 改变时，丢弃旧订阅并重新获取快照。首版不保存用于断线回放的事件日志。订阅随连接关闭而释放，客户端销毁订阅视图时主动取消。
+## 终端
 
-后端只暴露有限的公开主题，不允许客户端订阅任意 Cordis 内部事件名。
+首次消息 {type:'terminal.attach',sessionId,attachToken,cols,rows}；票据绑定拥有者、30 秒有效、仅使用一次。WS 建立后 10 秒内绑定；开始 SSH 连接后 120 秒连接/认证等待超时。最多 8 个 SSH 会话。
 
-## 6. 超时、去重和重连
+后端控制消息：terminal.hostkey（实际 SHA256 指纹与 previous/changed）、terminal.ready、terminal.notice、terminal.error、terminal.exit。指纹确认走业务 RPC。SSH 成功创建 PTY 后才发送 ready。
 
-- 每个请求具有超时和并发上限；超时表示结果未知，不表示后端已取消或没有执行。客户端展示“结果待确认”并查询操作状态或重新同步相关数据。
-- 每次用户意图生成一个操作 ID。服务端按授权主体与操作 ID 去重，并校验方法和规范化参数摘要；同一 ID 携带不同内容返回 `OPERATION_CONFLICT`。
-- 首版采用有上限的内存操作记录：运行中的记录不得淘汰，已结束记录至少保留 10 分钟；容量不足时拒绝新的副作用操作，不静默破坏保留约定。记录不保存密码、私钥、终端正文或可供离线猜测秘密的普通摘要；含临时秘密的方法不自动重发，必要摘要使用进程内随机密钥的 HMAC。
-- 缓存内的重复调用返回同一状态或结果，不重复执行。`operations.get` 返回 `running`、`succeeded`、`failed` 或 `unknown`；记录丢失、保留期结束及后端重启后只能返回 `unknown`，不能解释成“未执行”。
-- 外部进程启动与记录结果之间可能发生崩溃，无法保证跨重启的恰好一次执行。对未知结果禁止自动重放；用户核对后重新发起操作才生成新操作 ID。
-- 业务通道异常断开后退避重连并加入随机抖动，退避间隔设上限。确认 epoch 和授权状态后重新订阅并应用快照；服务端明确报告未授权或协议版本不兼容时停止循环重试并提示处理。
-- 浏览器无法从升级握手失败可靠区分鉴权错误与网络错误。首版连续失败达到 5 次或持续 30 秒（先到者为准）即停止自动尝试，提示检查本地服务并重新加载后端页面入口，以重新建立 Cookie 或配对；不通过不存在的 HTTP 认证接口探测错误。用户可手动重试。
-- 断线期间不积压写请求；待确认的旧请求保持未知状态。终端输入、SSH 创建、RDP 启动和其他结果未知的变更均不自动重发。
+双向终端数据均为二进制原始字节，输出帧最大 16 KiB，未确认窗口 256 KiB。前端仅在 xterm.write 完成回调后发送 {type:'terminal.ack',parsedBytes}，累计原始字节严格单调、不得超过已发送字节；错误即断开。后端在窗口耗尽时暂停 SSH channel，受控队列总量超过 1 MiB 或长期未确认则结束会话。输入单帧 16 KiB、每秒 128 KiB，禁止自动重发。
 
-心跳由服务端 WS ping/pong 检测链路，超时回收连接；浏览器原生客户端会处理协议级 pong。首版无需额外消息代理。
+尺寸变更：{type:'terminal.resize',cols,rows}，列 20–400、行 5–200。业务 WS 短暂断开不关闭健康的终端；终端 WS 关闭清理 SSH。网页刷新后创建新会话，不恢复旧 Shell。RDP 进程不随网页或后端关闭而被终止。
 
-## 7. SSH 终端通道
+## 历史查询
 
-`connections.open` 创建待绑定会话，返回 `sessionId` 和短时一次性 `attachToken`；只返回给发起者。客户端另建 `/ws/terminal`，在首条 JSON 消息 `terminal.attach` 中提交票据与会话 ID，不把票据放进 URL。
+快照 30 分钟有效，新打开或刷新替换旧范围，不订阅后续输出。每次扫描最多 400 块，返回最多 100 块、200 KiB 序列化正文预算；search 最多 256 个 UTF-16 单元。done:false 即便没有命中，也可以按返回的 after 继续查询。正文为纯文本，搜索返回命中行，跨存储块保留有限重叠文本。
 
-绑定必须校验 Cookie 身份、会话归属、票据有效期和未使用状态，拒绝重复接管。每个会话只允许一个有效终端连接。创建后未及时绑定、绑定失败或等待认证超时都应回收会话；绑定成功后才开始 SSH 握手。
+前端仅保留当前页、至多 100 个翻页游标；关闭释放快照，迟到响应按代次丢弃。保留范围被清理时提示刷新；历史不写回实时终端，不进入浏览器持久存储。详见[历史设计](terminal-history.md)。
 
-| 消息 | 内容 |
-| --- | --- |
-| JSON `terminal.attach / ready` | 会话绑定和通道就绪确认 |
-| JSON `terminal.resize` | 行列数及可选像素尺寸，校验范围 |
-| JSON `terminal.ack` | 确认已由 xterm.js 解析器处理的累计输出 payload 字节数 `parsedBytes`，用于额度控制；不代表屏幕已绘制 |
-| JSON `terminal.exit / error` | 退出或流控错误，不包含秘密 |
-| 二进制帧：客户端 → 服务端 | 用户输入的原始字节 |
-| 二进制帧：服务端 → 客户端 | SSH 输出的原始字节 |
+## 已验证与边界
 
-保留原始字节分块，由 xterm.js 正确处理 UTF-8 和转义序列。首版对业务消息、终端帧、输入速率、每连接缓冲和全局缓冲分别设上限。
-
-浏览器传统 WebSocket 不提供自动的接收背压。客户端在 `terminal.write` 的解析完成回调中累计确认字节数，不在接收 WS 数据或绘制事件时确认。服务端校验累计 ACK，不重复增加额度、不接受超出已发送字节数的确认；按窗口额度发送，额度耗尽暂停 SSH channel 的读取，恢复后再继续。发送前检查排队量，约束每块大小；持续过慢、超时或越界的终端应明确报错并释放资源，不无限堆积，也不静默丢弃终端字节。
-
-已解析的旧历史通过 xterm.js `scrollback` 有界淘汰；这与未解析字节流的背压分开处理。首版历史容量为 2,000 行，输出帧最大 16 KiB，未确认窗口 256 KiB；完整预算、滚动语义、累计 ACK 和压测要求见 [终端历史淘汰与持续输出控制](terminal-performance.md)。参数尚待实现及压测。
-
-业务 WS 暂时断开不销毁已经绑定且健康的终端，终端 resize 和流控仍走自身通道；需要指纹决定或认证的待连接会话等待业务恢复并受超时限制。终端 WS 断开则关闭对应 SSH 会话，不尝试恢复 Shell。刷新页面关闭全部通道；关闭一个终端不影响业务通道及其他终端。授权撤销属于例外，必须关闭所属全部通道。
-
-## 8. 文件与诊断
-
-首版只通过 WS 传输受大小限制的配置文件和 `.rdp` 文本。浏览器读取导入文件，超限时发送前拒绝；服务端仍独立校验大小、格式和内容。预览通过后使用操作 ID 与预览版本提交，事务应用。
-
-导出返回文件名、MIME 类型和文本内容，由前端创建 Blob 下载并及时释放对象 URL；不新增 HTTP 下载接口。大文件传输和 SFTP 留待后续定义分块协议。
-
-日志记录请求 ID、非敏感方法名、耗时、错误码及连接生命周期，不记录请求正文或终端内容。验证重点包括：未配对访问被拒绝、请求匹配及超时、重复操作、订阅初始化期间发生变更、重连丢事件检测、慢终端隔离、通道关闭清理。
-
-## 9. 技术依据
-
-- [ws 官方文档](https://github.com/websockets/ws)：升级握手、身份校验、二进制消息及心跳示例。
-- [MDN WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)：浏览器 WS 行为、缓冲量与接收背压限制。
-- [xterm.js 安全指南](https://xtermjs.org/docs/guides/security/)：终端数据与 WebSocket 来源校验。
+集成测试覆盖鉴权、Host/Origin、导入、去重、目录订阅、主机指纹、密码/私钥认证、ACK、背压、跨重启保存与历史查询。尚未完成长时高并发、磁盘限额及 8 个高输出终端的容量验收。

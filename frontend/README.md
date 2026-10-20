@@ -1,23 +1,22 @@
 # 前端
 
-此目录承载 WebNav 的浏览器界面，计划采用 Vue 3、Vite 和 TypeScript。目前只有 `src/` 目录占位，尚未初始化依赖或启动脚本。
+Vue 3、Vite、TypeScript。导航、管理、固定宽度卡片和皮肤布局保留；目录由业务 WS 同步并保存到后端 SQLite，初始为空，示例只存在 tests/fixtures/。
 
-## 职责
+根目录或本目录运行 `npm run dev` / `pnpm dev` 即同时启动前后端，直接打开 5173。开发页面响应自动建立 HttpOnly 本机会话，无配对操作；`dev:ui` 只供已有后端时单独调试。未加载目录与真实空目录分别显示；断开时保留已加载列表并暂停操作。只打开静态 preview 无法提供业务服务。
 
-- 首页分组、搜索、收藏、最近使用和服务器多连接入口。
-- 服务器、分组、连接配置与导入预览界面。
-- xterm.js 网页终端、多会话标签和连接状态展示。
-- 每终端默认保留 2,000 行历史，使用 xterm.js `scrollback` 淘汰旧内容；可见区由终端渲染器绘制，Vue 不保存或渲染全量历史。
-- 通过显式客户端注册表组织各协议的配置表单与展示视图。
+## 代码入口
 
-所有业务通信使用 WebSocket：一个业务通道提供带类型的 RPC 调用与状态订阅，每个 SSH 终端使用独立的字节流通道。统一在计划中的 `src/transport/` 封装请求匹配、超时、订阅和重连，组件调用业务方法，无需自行维护 socket。
+- src/App.vue：导航、编辑抽屉、终端标签与弹窗。
+- src/backend.ts：单个业务 WS、自动会话恢复、请求匹配、超时、重连、目录版本与快照。
+- components/ManagementPage.vue：目录 CRUD、分组、批量操作、WS 导入预览与导出。
+- components/ServerEditor.vue：编辑草稿；保存已有 SSH 入口后可进入认证设置、查看历史。
+- components/VaultPanel.vue：右上角全局设置，主密码与解锁有效期；VaultUnlock.vue：页面统一解锁，刷新和新标签共用后端有效期。CredentialPanel.vue 只负责 SSH 认证信息，不包含单独的保存方式设置。秘密不进入浏览器持久存储。
+- components/TerminalPane.vue：按需加载 xterm.js，2,000 行 scrollback，独立终端 WS；write 回调后累计 ACK，隐藏标签仍解析，关闭释放。
+- components/WorkspaceTabs.vue、TerminalWindow.vue：默认整块右侧终端、自适应标签、多窗口悬浮与拖动缩放，收回时复用现有连接。
+- components/HistoryPanel.vue：独立只读对话框，固定范围查询、搜索、刷新和分页；只保留当前页与最多 100 个游标。
+- src/catalog.ts、catalog-management.ts：转导出 shared/ 的公开 DTO 和运行时校验。
+- src/appearance.ts、styles.css：外观、左右独立背景与语义 CSS 变量；外观仅保存在当前浏览器。
 
-配置变更通过事件推送更新界面；重连重新订阅并应用一致快照，处理版本缺口，不自动重放有副作用的请求。前端不直接访问 SQLite、读取私钥或调用本机进程。活动终端状态与导航页面状态分开管理，切换页面不应意外销毁会话。
+卡片右侧 88×88 圆角正方形目前仍为画面占位；没有接入真实截图。首版最近使用仅本页保留，不恢复 Shell。RDP 密码随配置事务保存，启动时交接给 Windows 客户端。
 
-导入由浏览器读取限量文件后经 WS 提交；JSON 导出和 `.rdp` 文件内容经 WS 返回，再通过 Blob 生成浏览器下载。
-
-向上翻阅时不强制跳回最新输出，显示“有新输出 / 回到最新”；达到历史上限仍淘汰最旧内容。`terminal.write` 解析完成后才确认累计字节数；隐藏终端继续有界解析，不积压待切回重放的输出。Terminal 实例避免深层响应式包装，关闭时释放实例、addons 和全部监听资源。详见 [终端性能与历史策略](../docs/terminal-performance.md)。
-
-生产构建产物计划由本地后端同源提供。开发时从后端页面入口建立会话 Cookie，再跳转到同主机 Vite 地址，业务 WS 仍连接后端；连续握手失败达到协议上限后提示返回后端入口。开发服务地址与构建命令在脚手架实际建立后补充。
-
-详见 [架构方案](../docs/architecture.md)、[WS 协议](../docs/websocket-protocol.md) 与 [开发约定](../AGENTS.md)。
+pnpm --filter @webnav/frontend test 运行 24 项目录、弹窗和预览规则测试。后端集成测试及浏览器验证范围见[根 README](../README.md)。

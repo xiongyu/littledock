@@ -1,69 +1,60 @@
 # WebNav
 
-运行在本机的轻量服务器导航页。通过分组、搜索和收藏管理服务器，在同一个入口打开网页 SSH、Windows 远程桌面及服务器管理网站。
+运行在本机的轻量服务器导航页。使用分组、搜索和收藏管理服务器，在浏览器打开 SSH 终端，或启动本机 Windows 远程桌面。
 
-## 当前状态
+## 当前功能
 
-项目目前已建立设计文档和前后端目录骨架，尚未实现应用代码、安装依赖或配置启动脚本。本文中的功能和技术选型是开发目标，不代表已经实现。
+- Vue 3 导航与独立管理页：服务器多入口、批量操作、最多 5 层分组、固定宽度卡片、主题与左右独立背景。
+- Cordis 本地服务，Hono 提供页面，业务通信全部使用 WS。目录保存在 SQLite，刷新与重启后保留；初始目录为空，不加载演示服务器。
+- 管理中心“导入本机 SSH”：读取当前用户的 ~/.ssh/config，预览后事务替换目录，保存用户名、端口和私钥文件引用；不自动连接，不猜测操作系统或自动添加 RDP。
+- SSH 使用 ssh2 + xterm.js，保存密码或私钥口令，主机指纹确认、默认整块右侧工作区与自适应标签；可同时悬浮多个终端、拖动缩放并收回标签页。默认 2,000 行滚动历史和累计字节 ACK。
+- 右上角“全局设置”统一管理主密码：默认 Base64 可逆编码，设置主密码后所有已存密码统一迁移为 scrypt + AES-256-GCM 加密。首次访问统一解锁，有效期支持分钟、小时、天或服务运行期间永不过期；刷新与新标签共享有效期。私钥文件保持原路径。
+- 独立“查看历史”对话框：选择会话、固定查询范围、搜索、分页和手动刷新。后端保存纯文本，不保存原始终端录像。
+- Windows RDP 在编辑入口中直接填写密码，与服务器配置一起事务保存；启动时向 Windows 传递已保存凭据并用 mstsc.exe 打开，只报告“客户端已启动”。网页入口使用已校验的 HTTP(S) URL。
 
-计划访问地址为 `http://127.0.0.1:3030`，端口可配置。正式运行时，由一个本地 Node.js 进程提供前端静态资源和 WebSocket。所有前后端业务通信统一走 WS，HTTP 仅负责页面、静态资源及 WS 升级握手，不提供 REST 业务接口。
+VNC、真实卡片截图、.rdp 下载、跳板机与 SFTP 尚未实现。最近使用暂为本页状态。8 个终端上限与历史存储额度不代表已完成容量压测。
 
-## 文档
+## 运行
 
-- [架构与实施方案](docs/architecture.md)：产品范围、插件设计、数据模型、连接流程、实施阶段和验收要求。
-- [WebSocket 通信协议](docs/websocket-protocol.md)：RPC、实时订阅、鉴权、重连及终端数据通道。
-- [终端历史与性能](docs/terminal-performance.md)：历史淘汰、滚动行为、输出缓冲和持续输出验证。
-- [开发约定](AGENTS.md)：目录职责、编码规则和验证要求。
-- [前端说明](frontend/README.md)
-- [后端说明](backend/README.md)
+已验证 Node.js 24.16.0、pnpm 12.4.2。首次运行：
 
-## 目录
+~~~powershell
+pnpm install
+pnpm build
+pnpm start
+~~~
 
-```text
-webnav/
-├── AGENTS.md
-├── README.md
-├── docs/
-│   ├── architecture.md
-│   ├── websocket-protocol.md
-│   └── terminal-performance.md
-├── frontend/
-│   ├── README.md
-│   └── src/
-└── backend/
-    ├── README.md
-    └── src/
-```
+打开 http://127.0.0.1:3030/ ，页面自动连接本机服务，无需配对。没有设置主密码时直接进入；设置了主密码且尚未解锁时输入主密码。
 
-`src/` 暂用 `.gitkeep` 保留空目录。后续业务代码分别放入 `frontend/` 和 `backend/`。
+开发只需一个终端：
 
-## 功能目标
+~~~powershell
+pnpm dev
+~~~
 
-- 服务器分组、标签、搜索、收藏和最近使用。
-- 一台服务器配置多个连接入口，分别保存协议、端口、用户名和凭据引用。
-- 浏览器 SSH 终端，支持多个独立会话。
-- 本机 Windows RDP 启动及 `.rdp` 文件下载。
-- 服务器、分组和连接配置管理，支持导入预览和备份导出。
+根目录与 `frontend/` 下的 `npm run dev` 也启动同一个前后端启动器，不会只启动静态页面。直接打开 http://127.0.0.1:5173/ 即可，管理中心地址为 /#manage。页面自动建立本机会话并通过 WS 加载目录，不需要先访问其他端口、输入配对码或手动授权。开发后端使用 Node 原生 TypeScript 执行，不自动热重载；修改后端需重启启动命令。Ctrl+C 关闭本次启动的前后端；兼容且已运行的后端会复用，不随启动器退出而关闭。`pnpm dev:ui` 仅用于已有后端的前端单独调试。
 
-## 技术选型
+数据未加载时显示“目录尚未加载”，不显示 0 台或“还没有服务器”；连接中断时保留本页上次读取的目录，并暂停目录操作。浏览器缓存不是数据库，数据默认始终在 `%LOCALAPPDATA%/WebNav/webnav.sqlite`，与从哪个代码目录启动无关。
 
-| 部分 | 计划采用 |
-| --- | --- |
-| 运行时 | Node.js LTS、TypeScript、ESM |
-| 后端组织 | Cordis 插件与服务 |
-| 页面与握手 | Hono、Node adapter |
-| 业务通信 | 浏览器原生 WebSocket、后端 ws；RPC + 事件订阅 |
-| 前端 | Vue 3、Vite、TypeScript |
-| SSH | xterm.js、ssh2 |
-| RDP | Windows `mstsc.exe` |
-| 数据存储 | SQLite、better-sqlite3 |
+~~~powershell
+pnpm typecheck
+pnpm test
+pnpm build
+~~~
 
-首版面向单用户 Windows 本机使用。后台以当前登录用户身份运行，仅监听回环地址。SSH 主机指纹、浏览器会话鉴权和凭据处理属于首版连接能力的一部分。
+数据默认在 %LOCALAPPDATA%/WebNav/，可用 WEBNAV_DATA_DIR 改变；WEBNAV_PORT 默认 3030，WEBNAV_UI_PORT 为开发页面端口，默认 5173。生产静态资源与业务 WS 同源，服务器只监听 127.0.0.1。
 
-每个页面使用一个业务 WS 处理配置读写、连接启动和状态推送；每个 SSH 终端使用独立 WS 传输字节流。配置变更主动推送，前端无需轮询。重连后恢复订阅并获取一致快照；有副作用的请求不得因超时或断线自动重放。
+## 目录与文档
 
-## 开发与运行
+- frontend/：Vue、管理表单、业务 WS 客户端、xterm 终端与历史对话框。
+- backend/：Cordis 装配、HTTP/WS、SQLite、凭据、SSH/RDP 与历史留存。
+- shared/：公开目录 DTO、格式校验，不包含后端实现或凭据。
+- docs/：设计与实施说明；设计图在 docs/design/。
 
-目前没有可执行的开发、构建或测试命令。实现阶段采用 pnpm 管理前后端工作区，确认兼容的依赖版本后提交锁文件，并在本节补充经过实际验证的命令。
+[架构](docs/architecture.md) · [管理页](docs/management.md) · [凭据](docs/credentials.md) · [WS 协议](docs/websocket-protocol.md) · [终端性能](docs/terminal-performance.md) · [输出历史](docs/terminal-history.md) · [主题](docs/ui-design.md) · [卡片预览](docs/session-preview.md) · [开发约定](AGENTS.md)
 
-实施顺序为：工程脚手架与本地服务 → 导航及配置管理 → SSH 与 RDP → 自启、备份和使用体验完善。跳板机、SFTP 和网页 RDP 作为后续扩展。
+## 验证范围
+
+自动测试覆盖目录校验、事务与版本冲突、WS 鉴权/Origin/Host、操作去重、目录订阅、跨重启保存、统一开发启动与自动连接、全局凭据迁移及回滚、共享解锁有效期、模拟 SSH 密码/私钥认证、指纹变化阻断、字节 ACK/背压、历史固定范围/跨页搜索/清理提示、遮罩拖选关闭保护，以及 RDP 密码事务与 Windows 凭据交接。前端 24 项、后端 13 项测试通过（Windows 原生交接测试在非 Windows 平台跳过）。
+
+浏览器用独立本机模拟 SSH 服务验证 4,500 行输出、有限滚动历史、历史查找、多终端和关闭。未使用真实远端服务器进行连接测试，未验证 RDP 远端登录，也未进行长时内存或磁盘容量压测。真实目录、凭据和数据库不进入 Git。
