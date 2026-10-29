@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.webBookmarks')
+
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { PhGlobeHemisphereWest, PhKey, PhPencilSimple, PhArrowClockwise } from '@phosphor-icons/vue'
 import type { WebBookmark } from '@webnav/shared'
@@ -28,18 +31,18 @@ onBeforeUnmount(() => { generation++; observer?.disconnect(); image.value = unde
 
 <template>
   <article ref="card" class="web-bookmark-card">
-    <a :href="bookmark.url" target="_blank" rel="noopener noreferrer" :title="`${bookmark.name}\n${bookmark.url}`" :aria-label="`打开网站 ${bookmark.name}（新标签页）`">
+    <a :href="bookmark.url" target="_blank" rel="noopener noreferrer" :title="`${bookmark.name}\n${bookmark.url}`" :aria-label="i18nT('m361fdca91bf2', { p0: (bookmark.name) })">
       <div class="web-bookmark-preview">
-        <img v-if="image" :src="image" :alt="`${bookmark.name}的网页截图`" />
-        <div v-else class="web-bookmark-placeholder"><PhGlobeHemisphereWest :size="30" /><span>{{ pending ? '正在生成截图' : bookmark.previewState === 'failed' ? '截图未能生成' : '网页预览' }}</span></div>
-        <span v-if="image && pending" class="web-bookmark-badge">更新中</span>
+        <img v-if="image" :src="image" :alt="i18nT('m494c3d1bd697', { p0: (bookmark.name) })" />
+        <div v-else class="web-bookmark-placeholder"><PhGlobeHemisphereWest :size="30" /><span>{{ pending ? i18nT('m0674f458af24') : bookmark.previewState === 'failed' ? i18nT('m6c51a555a646') : i18nT('m07a1166b5022') }}</span></div>
+        <span v-if="image && pending" class="web-bookmark-badge">{{ i18nT('maa06c367f0d8') }}</span>
       </div>
       <strong>{{ bookmark.name }}</strong>
     </a>
     <div class="web-bookmark-actions">
-      <button class="icon-button small" :disabled="!bookmark.hasLogin" :aria-label="`查看${bookmark.name}的账号密码`" :title="bookmark.hasLogin ? '查看账号密码' : '尚未保存账号密码'" @click="emit('reveal')"><PhKey :size="16" /></button>
-      <button class="icon-button small" :aria-label="`编辑网页收藏 ${bookmark.name}`" title="编辑收藏" @click="emit('edit')"><PhPencilSimple :size="16" /></button>
-      <button class="icon-button small" :disabled="pending" :aria-label="`刷新${bookmark.name}的截图`" title="刷新截图" @click="emit('refresh')"><PhArrowClockwise :size="16" /></button>
+      <button class="icon-button small" :disabled="!bookmark.hasLogin" :aria-label="i18nT('m35824b173fbc', { p0: (bookmark.name) })" :title="bookmark.hasLogin ? i18nT('m08c3d6fbbb52') : i18nT('mbbc0d033cd81')" @click="emit('reveal')"><PhKey :size="16" /></button>
+      <button class="icon-button small" :aria-label="i18nT('m9268247bda57', { p0: (bookmark.name) })" :title="i18nT('mc8edd776b553')" @click="emit('edit')"><PhPencilSimple :size="16" /></button>
+      <button class="icon-button small" :disabled="pending" :aria-label="i18nT('m78f29c15d513', { p0: (bookmark.name) })" :title="i18nT('m62bfb1c1a1c3')" @click="emit('refresh')"><PhArrowClockwise :size="16" /></button>
     </div>
   </article>
 </template>

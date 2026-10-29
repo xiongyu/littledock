@@ -9,6 +9,7 @@ import semver from 'semver'
 import { PLUGIN_API_VERSION, PLUGIN_MARKET_REPOSITORY, WEBNAV_VERSION, parsePluginIndex, parsePluginManifest, pluginId, pluginRepository, serviceCapabilities, type InstalledPlugin, type PluginHost, type PluginManifest, type PluginPreview, type PluginMarket, type PluginState, type PluginCategory, type PluginBuiltin, type PluginDetails } from '@webnav/shared'
 import { AppError, integer, record, string } from '../core/errors.ts'
 import { fetchRepository, gitText, gitIcon, hasCommand, installStep, releaseFile, runFile, resumePluginCommands, stopPluginCommands } from './git.ts'
+import { readPluginLocales } from './locales.ts'
 import { updatePreview } from './update-preview.ts'
 import { loadBundledPlugins } from './bundled.ts'
 
@@ -16,7 +17,7 @@ interface Registry { revision: number; installed: InstalledPlugin[]; providers: 
 interface Job { id: string; owner: string; state: 'running' | 'succeeded' | 'failed'; message: string; result?: unknown; error?: string; expires: number }
 type Staged = PluginPreview & { owner: string; directory: string }
 const builtinCategories: Record<string, PluginCategory> = { sessions: 'terminal', desktops: 'desktop', freeRdp: 'desktop', rdp: 'desktop', terminalHistory: 'terminal', terminalThemes: 'appearance', webBookmarks: 'bookmarks', sshInspector: 'monitoring', taskManager: 'monitoring', sshFiles: 'files', remoteEditor: 'development', local: 'terminal', adb: 'desktop', wdb: 'desktop', configSync: 'backup' }
-export const builtins = [...Object.entries(serviceCapabilities).map(([id, name]) => ({ id: 'builtin.' + id, name, capability: 'service:' + id, category: builtinCategories[id]! })), { id: 'builtin.appearance', name: 'WebNav 默认主题', capability: 'theme:appearance', category: 'themes' as const }, {id:'builtin.mcp',name:'MCP 工作台接入',capability:'extension:mcp',category:'automation' as const}]
+export const builtins = [...Object.entries(serviceCapabilities).map(([id, name]) => ({ id: 'builtin.' + id, name, capability: 'service:' + id, category: builtinCategories[id]! })), { id: 'builtin.appearance', name: '小站默认主题', capability: 'theme:appearance', category: 'themes' as const }, {id:'builtin.mcp',name:'MCP 工作台接入',capability:'extension:mcp',category:'automation' as const}]
 export class PluginManager {
   readonly root: string
   readonly host: PluginHost = { os: process.platform, arch: process.arch, release: release(), node: process.versions.node, webnav: WEBNAV_VERSION, apiVersion: PLUGIN_API_VERSION }
@@ -92,6 +93,13 @@ export class PluginManager {
   }
   async close() { await stopPluginCommands(this.root); await Promise.allSettled([...this.tasks, ...this.metadataReads.values(), ...this.sourceLocks.values()]) }
   path(plugin: Pick<InstalledPlugin, 'manifest' | 'commit'>) { return join(this.root, 'releases', plugin.manifest.id, plugin.commit) }
+  async locales(id: string, commit?: string) {
+    const builtin = this.builtinDetails.find(item => item.id === id)
+    if (builtin) return readPluginLocales(fileURLToPath(new URL('../../plugins/' + id + '/', import.meta.url)), builtin.manifest)
+    const plugin = [this.running.get(id), ...this.registry.installed].find(item => item?.manifest.id === id && (!commit || item.commit === commit))
+    if (!plugin) throw new AppError('NOT_FOUND', '插件尚未安装。')
+    return readPluginLocales(this.path(plugin), plugin.manifest)
+  }
   async retainedTheme(id: string, commit: string): Promise<Pick<InstalledPlugin, 'manifest' | 'commit'> | undefined> {
     try {
       pluginId(id)
@@ -103,10 +111,10 @@ export class PluginManager {
   }
   async compatibility(manifest: PluginManifest, installed = this.registry.installed): Promise<string[]> {
     const reasons: string[] = [], platform = manifest.platforms.find(p => p.os === this.host.os && p.arch === this.host.arch)
-    if (!platform) reasons.push(`不支持当前宿主 ${this.host.os} / ${this.host.arch}。这是运行 WebNav 的电脑，与远程服务器系统无关。`)
+    if (!platform) reasons.push(`不支持当前宿主 ${this.host.os} / ${this.host.arch}。这是运行小站的电脑，与远程服务器系统无关。`)
     else if (platform.minRelease) { const current = semver.coerce(this.host.release), minimum = semver.coerce(platform.minRelease); if (!current || !minimum || semver.lt(current, minimum)) reasons.push(`需要系统版本 ${platform.minRelease} 或更新。`) }
     if (!semver.valid(manifest.version)) reasons.push('插件版本必须符合语义化版本规范。')
-    if (!semver.validRange(manifest.webnav) || !semver.satisfies(this.host.webnav, manifest.webnav)) reasons.push(`需要 WebNav ${manifest.webnav}，当前 ${this.host.webnav}。`)
+    if (!semver.validRange(manifest.webnav) || !semver.satisfies(this.host.webnav, manifest.webnav)) reasons.push(`需要小站 ${manifest.webnav}，当前 ${this.host.webnav}。`)
     if (!semver.validRange(manifest.node) || !semver.satisfies(this.host.node, manifest.node)) reasons.push(`需要 Node.js ${manifest.node}，当前 ${this.host.node}。`)
     for (const [id, range] of Object.entries(manifest.dependencies ?? {})) {
       const dependency = installed.find(p => p.manifest.id === id && p.enabled)
@@ -213,6 +221,7 @@ export class PluginManager {
         if (JSON.stringify(manifest) !== JSON.stringify(preview.manifest)) throw new AppError('PLUGIN_CHANGED', '安装步骤修改了插件声明，请作者修正后重新安装。')
         for (const path of [manifest.backend, manifest.frontend, manifest.contributes?.settings?.entry, manifest.icon, ...(manifest.styles ?? []), ...(manifest.contributes?.settings?.styles ?? []), ...(manifest.contributes?.tools.map(tool => tool.icon) ?? []), ...Object.values(manifest.theme?.backgrounds ?? {})].filter((p): p is string => !!p)) await releaseFile(temporary, path)
         // A previously installed immutable release can be reused (rollback / reinstall).
+        await readPluginLocales(temporary, manifest)
         try { await rename(temporary, target) } catch (error) { if (!['EEXIST', 'ENOTEMPTY', 'EPERM'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error; const existing = parsePluginManifest(JSON.parse(await readFile(join(target, 'webnav.plugin.json'), 'utf8'))); if (JSON.stringify(existing) !== JSON.stringify(manifest)) throw error; await rm(temporary, { recursive: true, force: true }) }
         const reusable = Object.fromEntries(Object.entries(retained?.config ?? {}).filter(([key, value]) => manifest.configFields?.some(field => field.key === key && field.type === typeof value)))
         const plugin: InstalledPlugin = { manifest, repository: preview.repository, ref: preview.ref, commit: preview.commit, installedAt: Date.now(), enabled: old?.enabled ?? (!manifest.theme && !manifest.configFields?.some(field => field.required)), config: this.parseConfig(manifest, old?.config ?? reusable), ...(old ? { previousCommit: old.commit } : {}) }

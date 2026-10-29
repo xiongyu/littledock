@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.adb')
+
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import JMuxer from 'jmuxer'
 import { PhArrowSquareOut, PhArrowsOut, PhCursor, PhEye, PhHouse, PhArrowBendUpLeft, PhSquaresFour, PhPower, PhKeyboard, PhX } from '@phosphor-icons/vue'
@@ -7,7 +10,7 @@ import { devicePoint, wdbKey } from '../device-input'
 const props=defineProps<{sessionId:string;attachToken:string;protocol:'adb'|'wdb';active:boolean;floating?:boolean}>()
 const emit=defineEmits<{status:[value:string];running:[value:boolean];frame:[blob:Blob];float:[];reconnect:[]}>()
 const pane=ref<HTMLElement>(),stage=ref<HTMLElement>(),canvas=ref<HTMLCanvasElement>(),video=ref<HTMLVideoElement>()
-const connected=ref(false),control=ref(false),bound=ref(false),notice=ref('正在连接…'),width=ref(0),height=ref(0),text=ref(''),textOpen=ref(false),failed=ref(false)
+const connected=ref(false),control=ref(false),bound=ref(false),notice=ref(i18nT('m8be0ea36a9bb')),width=ref(0),height=ref(0),text=ref(''),textOpen=ref(false),failed=ref(false)
 const codecType=ref<'png'|'h264'>(props.protocol==='wdb'?'h264':'png'),enhanced=ref(false),displayFps=ref(0)
 let frames=0,lastMeasure=performance.now(),frameCallback=0
 let socket:WebSocket|undefined,muxer:JMuxer|undefined,disposed=false,muxerReady=false,codec:Uint8Array|undefined,lastPts:number|undefined,needKeyframe=true,queued=0
@@ -17,8 +20,8 @@ const visible=()=>props.active&&!document.hidden
 function send(message:Record<string,unknown>){if(socket?.readyState===WebSocket.OPEN&&socket.bufferedAmount<64*1024)socket.send(JSON.stringify(message))}
 function focus(){stage.value?.focus()}
 defineExpose({focus})
-function ready(){if(disposed||failed.value)return;clearTimeout(connectTimer);connected.value=true;notice.value='已连接';emit('status','已连接');emit('running',true)}
-function end(message:string){if(disposed||failed.value)return;failed.value=true;bound.value=false;connected.value=false;control.value=false;text.value='';notice.value=message;emit('status','已断开');emit('running',false);clearTimeout(connectTimer);socket?.close();muxer?.destroy();muxer=undefined;clearInterval(playbackTimer)}
+function ready(){if(disposed||failed.value)return;clearTimeout(connectTimer);connected.value=true;notice.value=i18nT('m5be0323e8adc');emit('status',i18nT('m5be0323e8adc'));emit('running',true)}
+function end(message:string){if(disposed||failed.value)return;failed.value=true;bound.value=false;connected.value=false;control.value=false;text.value='';notice.value=message;emit('status',i18nT('m1f0ac6953e04'));emit('running',false);clearTimeout(connectTimer);socket?.close();muxer?.destroy();muxer=undefined;clearInterval(playbackTimer)}
 function release(){if(control.value)send({type:'release_all'});control.value=false;pointer=undefined}
 function stageBlur(event:FocusEvent){
   if(event.relatedTarget instanceof Node&&pane.value?.contains(event.relatedTarget)){
@@ -87,12 +90,12 @@ function h264(bytes:Uint8Array){
   const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength)
   let offset=0
   while(offset<bytes.length){
-    if(offset+12>bytes.length)throw new Error('视频头不完整')
+    if(offset+12>bytes.length)throw new Error(i18nT('m24ab3a256174'))
     const flags=view.getBigUint64(offset),length=view.getUint32(offset+8);offset+=12
-    if(!length||offset+length>bytes.length)throw new Error('视频长度不正确')
+    if(!length||offset+length>bytes.length)throw new Error(i18nT('mc51ea436025c'))
     const payload=bytes.subarray(offset,offset+length);offset+=length
     const isConfig=!!(flags&(1n<<63n)),keyframe=!!(flags&(1n<<62n)),pts=Number(flags&((1n<<62n)-1n))
-    if(isConfig){if(payload.length>256*1024)throw new Error('视频配置过大');if(codec&&lastPts!==undefined&&(codec.length!==payload.length||codec.some((v,i)=>v!==payload[i]))){resetMuxer();return}codec=payload.slice();continue}
+    if(isConfig){if(payload.length>256*1024)throw new Error(i18nT('m2f4aa4a1a66b'));if(codec&&lastPts!==undefined&&(codec.length!==payload.length||codec.some((v,i)=>v!==payload[i]))){resetMuxer();return}codec=payload.slice();continue}
     if(needKeyframe&&!keyframe)continue
     let data=payload
     if(keyframe&&codec){data=new Uint8Array(codec.length+payload.length);data.set(codec);data.set(payload,codec.length)}
@@ -102,14 +105,14 @@ function h264(bytes:Uint8Array){
     // final NAL for JMuxer 2.1, including the very first SPS/PPS + IDR packet.
     const complete=new Uint8Array(data.length+6);complete.set(data);complete.set([0,0,0,1,9,240],data.length)
     const append=muxer.bufferControllers?.video,track=muxer.remuxController?.tracks.video
-    if((append?.queue?.byteLength??0)+(track?.mp4track.len??0)+(track?.remainingData.byteLength??0)+complete.byteLength>8*1024*1024)throw new Error('视频解码接收过慢')
+    if((append?.queue?.byteLength??0)+(track?.mp4track.len??0)+(track?.remainingData.byteLength??0)+complete.byteLength>8*1024*1024)throw new Error(i18nT('mdc4d6537a08f'))
     muxer.feed({video:complete,duration})
     if(muxer.bufferControllers?.video)muxer.bufferControllers.video.cleanOffset=2
   }
 }
 async function frame(buffer:ArrayBuffer){
   if(disposed||failed.value)return
-  if(buffer.byteLength<5||buffer.byteLength>16*1024*1024+4)throw new Error('画面数据过大')
+  if(buffer.byteLength<5||buffer.byteLength>16*1024*1024+4)throw new Error(i18nT('m71f433002265'))
   const sequence=new DataView(buffer).getUint32(0),bytes=new Uint8Array(buffer,4)
   if(codecType.value==='h264')h264(bytes)
   else if(visible()){
@@ -135,70 +138,70 @@ function connect(){
     if(disposed||failed.value)return
     if(event.data instanceof ArrayBuffer){
       const buffer=event.data;queued+=buffer.byteLength
-      if(queued>20*1024*1024){end('设备画面超过缓冲上限。');return}
-      chain=chain.then(()=>frame(buffer)).catch(()=>end('设备画面解码失败。')).finally(()=>{queued-=buffer.byteLength});return
+      if(queued>20*1024*1024){end(i18nT('m844de2ff6e9d'));return}
+      chain=chain.then(()=>frame(buffer)).catch(()=>end(i18nT('m98471c7a75c3'))).finally(()=>{queued-=buffer.byteLength});return
     }
     try{
       const m=JSON.parse(event.data)
-      if(m.type==='device.ready'){bound.value=true;notice.value='已连接，等待画面…';send({type:'device.visible',visible:visible()});if(visible()&&codecType.value==='h264')send({type:'device.keyframe'})}
+      if(m.type==='device.ready'){bound.value=true;notice.value=i18nT('mbec258a11f33');send({type:'device.visible',visible:visible()});if(visible()&&codecType.value==='h264')send({type:'device.keyframe'})}
       else if(m.type==='device.info'){if(m.width>0&&m.width<=8192)width.value=m.width;if(m.height>0&&m.height<=8192)height.value=m.height;if(m.mode==='scrcpy')enhanced.value=true;if(m.codec==='h264'&&codecType.value!=='h264'){codecType.value='h264';void setupMuxer()}}
       else if(m.type==='device.control'){control.value=m.enabled===true;if(control.value)focus()}
       else if(m.type==='device.reset')resetMuxer()
       else if(m.type==='device.notice')notice.value=String(m.message)
-      else if(m.type==='device.exit'||m.type==='device.error')end(String(m.message??'连接结束。'))
-    }catch{end('设备消息格式不正确。')}
+      else if(m.type==='device.exit'||m.type==='device.error')end(String(m.message??i18nT('m3570ddf53dd9')))
+    }catch{end(i18nT('m1baa35028be6'))}
   }
-  socket.onclose=()=>end('设备通道已断开，请手动重新连接。')
-  socket.onerror=()=>end('设备通道连接失败。')
+  socket.onclose=()=>end(i18nT('m6263242009ae'))
+  socket.onerror=()=>end(i18nT('m177a8b3b2117'))
 }
 async function setupMuxer(){
     await nextTick()
     if(disposed||muxer)return
-    if(!window.MediaSource||!video.value){end('当前浏览器不支持 H.264 Media Source，请使用 Edge 或 Chrome。');return}
+    if(!window.MediaSource||!video.value){end(i18nT('m42accc313ff0'));return}
     try{
-      muxer=new JMuxer({node:video.value,mode:'video',fps:30,flushingTime:50,maxDelay:300,clearBuffer:true,debug:false,onReady:()=>{muxerReady=true;if(!socket)connect();else if(bound.value&&visible())send({type:'device.keyframe'})},onError:()=>end('设备视频播放失败，请重新连接。'),onUnsupportedCodec:()=>end('浏览器不支持这台设备的 H.264 编码。')})
+      muxer=new JMuxer({node:video.value,mode:'video',fps:30,flushingTime:50,maxDelay:300,clearBuffer:true,debug:false,onReady:()=>{muxerReady=true;if(!socket)connect();else if(bound.value&&visible())send({type:'device.keyframe'})},onError:()=>end(i18nT('mec7f15f73936')),onUnsupportedCodec:()=>end(i18nT('mfbe205f4a614'))})
       playbackTimer=setInterval(()=>{
         const now=performance.now();if(now-lastMeasure>=1000){displayFps.value=Math.round(frames*1000/(now-lastMeasure));frames=0;lastMeasure=now}
         const element=video.value;if(!element||!visible()||!element.buffered.length)return
         const endTime=element.buffered.end(element.buffered.length-1)
         if(endTime-element.currentTime>1.5)element.currentTime=Math.max(0,endTime-0.15)
-        if(element.paused)void element.play().catch(()=>{notice.value='点击画面以播放视频'})
+        if(element.paused)void element.play().catch(()=>{notice.value=i18nT('m50b995e11fdd')})
       },500)
       const measure=()=>{if(disposed||!video.value)return;frames++;frameCallback=video.value.requestVideoFrameCallback(measure)}
       frameCallback=video.value.requestVideoFrameCallback(measure)
-    }catch{end('无法创建设备视频播放器。')}
+    }catch{end(i18nT('mc5f3cdc48eec'))}
 }
 onMounted(async()=>{
-  try{if(!attachmentToken)attachmentToken=(await rpc<{attachToken:string}>('devices.attachTicket',{sessionId:props.sessionId})).attachToken}catch(cause){end(cause instanceof Error?cause.message:'无法恢复设备画面。');return}
+  try{if(!attachmentToken)attachmentToken=(await rpc<{attachToken:string}>('devices.attachTicket',{sessionId:props.sessionId})).attachToken}catch(cause){end(cause instanceof Error?cause.message:i18nT('m9ed974773d43'));return}
   if(disposed)return
-  connectTimer=setTimeout(()=>end('等待设备画面超时，请检查设备的采集状态后重新连接。'),35_000)
+  connectTimer=setTimeout(()=>end(i18nT('m2d563292271d')),35_000)
   document.addEventListener('visibilitychange',visibility);window.addEventListener('blur',release)
   previewTimer=setInterval(capture,5000)
   if(props.protocol==='wdb')await setupMuxer();else connect()
 })
 onBeforeUnmount(()=>{release();disposed=true;video.value?.cancelVideoFrameCallback(frameCallback);clearTimeout(connectTimer);clearInterval(previewTimer);clearInterval(playbackTimer);socket?.close();muxer?.destroy();codec=undefined;text.value='';document.removeEventListener('visibilitychange',visibility);window.removeEventListener('blur',release)})
-async function fullscreen(){try{if(document.fullscreenElement===pane.value)await document.exitFullscreen();else await pane.value?.requestFullscreen()}catch{notice.value='浏览器未允许全屏。'}}
+async function fullscreen(){try{if(document.fullscreenElement===pane.value)await document.exitFullscreen();else await pane.value?.requestFullscreen()}catch{notice.value=i18nT('m733c138f0bfb')}}
 </script>
 <template>
   <div ref="pane" class="device-pane" @focusout="paneBlur">
-    <div class="terminal-status device-toolbar"><span role="status">{{notice}}</span><small v-if="width&&height">{{width}} × {{height}} <template v-if="codecType==='png'">· 截图预览</template><template v-else>· {{enhanced?'scrcpy · ':''}}{{displayFps}} FPS</template></small><div class="terminal-actions">
-      <button class="button device-mode" :disabled="!bound" :aria-pressed="control" :title="control?'停止控制':'开启控制'" @click="mode"><PhCursor v-if="control" :size="16"/><PhEye v-else :size="16"/>{{control?'控制中':'仅查看'}}</button>
+    <div class="terminal-status device-toolbar"><span role="status">{{notice}}</span><small v-if="width&&height">{{width}} × {{height}} <template v-if="codecType==='png'">{{ i18nT('m66287527438a') }}</template><template v-else>· {{enhanced?'scrcpy · ':''}}{{displayFps}} FPS</template></small><div class="terminal-actions">
+      <button class="button device-mode" :disabled="!bound" :aria-pressed="control" :title="control?i18nT('m4945989bf28a'):i18nT('m5db62b1edc50')" @click="mode"><PhCursor v-if="control" :size="16"/><PhEye v-else :size="16"/>{{control?i18nT('mef91aacdcf5e'):i18nT('m39395c1df20e')}}</button>
       <template v-if="protocol==='adb'">
-        <button class="icon-button" :disabled="!control" title="返回" aria-label="安卓返回" @click="androidKey(4)"><PhArrowBendUpLeft :size="18"/></button>
-        <button class="icon-button" :disabled="!control" title="主页" aria-label="安卓主页" @click="androidKey(3)"><PhHouse :size="18"/></button>
-        <button class="icon-button" :disabled="!control" title="最近任务" aria-label="安卓最近任务" @click="androidKey(187)"><PhSquaresFour :size="18"/></button>
-        <button class="icon-button" :disabled="!control" title="唤醒屏幕" aria-label="安卓唤醒屏幕" @click="androidKey(224)"><PhPower :size="18"/></button>
-        <button class="icon-button" :disabled="!control" title="输入文字" aria-label="安卓输入文字" @click="textOpen?closeText():textOpen=true"><PhKeyboard :size="18"/></button>
+        <button class="icon-button" :disabled="!control" :title="i18nT('m572cf45ba436')" :aria-label="i18nT('mea0d39d2e486')" @click="androidKey(4)"><PhArrowBendUpLeft :size="18"/></button>
+        <button class="icon-button" :disabled="!control" :title="i18nT('m3e0d676d2d85')" :aria-label="i18nT('m21b7d4939f60')" @click="androidKey(3)"><PhHouse :size="18"/></button>
+        <button class="icon-button" :disabled="!control" :title="i18nT('me69968577d33')" :aria-label="i18nT('mffe4186176c2')" @click="androidKey(187)"><PhSquaresFour :size="18"/></button>
+        <button class="icon-button" :disabled="!control" :title="i18nT('m6614e30e04e3')" :aria-label="i18nT('me76c2b635e8b')" @click="androidKey(224)"><PhPower :size="18"/></button>
+        <button class="icon-button" :disabled="!control" :title="i18nT('m7159815dd39f')" :aria-label="i18nT('mac794eaac6bc')" @click="textOpen?closeText():textOpen=true"><PhKeyboard :size="18"/></button>
       </template>
-      <button v-if="failed" class="button" @click="emit('reconnect')">重新连接</button>
-      <button class="icon-button" title="全屏" aria-label="设备全屏" @click="fullscreen"><PhArrowsOut :size="18"/></button>
-      <button v-if="!floating" class="icon-button" title="悬浮窗口" aria-label="悬浮设备" @click="emit('float')"><PhArrowSquareOut :size="18"/></button>
+      <button v-if="failed" class="button" @click="emit('reconnect')">{{ i18nT('m68891ab35cab') }}</button>
+      <button class="icon-button" :title="i18nT('m22ea3f47fee8')" :aria-label="i18nT('mef6d3224859d')" @click="fullscreen"><PhArrowsOut :size="18"/></button>
+      <button v-if="!floating" class="icon-button" :title="i18nT('mf561772757ea')" :aria-label="i18nT('mb8a697561156')" @click="emit('float')"><PhArrowSquareOut :size="18"/></button>
     </div></div>
-    <form v-if="textOpen&&protocol==='adb'" class="device-text" @submit.prevent="sendText"><input v-model="text" maxlength="512" aria-label="发送到安卓的文字" :placeholder="enhanced?'通过手机剪贴板粘贴文字（支持中文）':'英文、数字和符号'"/><button class="button" :disabled="!control||!text">发送</button><button type="button" class="icon-button" aria-label="关闭文字输入" @click="closeText"><PhX :size="18"/></button></form>
-    <div ref="stage" class="device-stage" :class="{controlling:control}" tabindex="0" :aria-label="protocol==='adb'?'安卓设备画面':'WDB 远程画面'" @keydown="key($event,true)" @keyup="key($event,false)" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="release" @blur="stageBlur" @contextmenu.prevent @wheel="wheel" @click="video?.play().catch(()=>{})">
+    <form v-if="textOpen&&protocol==='adb'" class="device-text" @submit.prevent="sendText"><input v-model="text" maxlength="512" :aria-label="i18nT('mbea94be17d6d')" :placeholder="enhanced?i18nT('mfac12569f968'):i18nT('m7b7474af8932')"/><button class="button" :disabled="!control||!text">{{ i18nT('medecf0ae6e51') }}</button><button type="button" class="icon-button" :aria-label="i18nT('m2e7a039d0903')" @click="closeText"><PhX :size="18"/></button></form>
+    <div ref="stage" class="device-stage" :class="{controlling:control}" tabindex="0" :aria-label="protocol==='adb'?i18nT('m3e5c1199f195'):i18nT('m947d619b5879')" @keydown="key($event,true)" @keyup="key($event,false)" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="release" @blur="stageBlur" @contextmenu.prevent @wheel="wheel" @click="video?.play().catch(()=>{})">
       <canvas v-show="codecType==='png'" ref="canvas"/>
       <video v-show="codecType==='h264'" ref="video" autoplay muted playsinline disablepictureinpicture @loadeddata="ready" @resize="width=video?.videoWidth??width;height=video?.videoHeight??height"/>
-      <div v-if="!connected" class="device-placeholder"><strong>{{protocol==='adb'?'安卓设备':'WDB 远程画面'}}</strong><span>{{notice}}</span></div>
+      <div v-if="!connected" class="device-placeholder"><strong>{{protocol==='adb'?i18nT('m96a53968e115'):i18nT('m947d619b5879')}}</strong><span>{{notice}}</span></div>
     </div>
   </div>
 </template>

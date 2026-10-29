@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('core')
+
 import { PhDesktop, PhPencilSimple, PhStar, PhHardDrives } from '@phosphor-icons/vue'
 import SessionPreview from './SessionPreview.vue'
 import { connectorViews } from '../connectors'
@@ -24,8 +27,8 @@ defineEmits<{ favorite: [id: string]; connect: [server: Server, connection: Conn
     </div>
     <div :class="card ? 'card-preview' : 'row-actions'">
       <SessionPreview v-if="card" :server-name="server.name" :sessions="previewSessions" :last-frame="lastFrame" />
-      <button :class="['icon-button', 'favorite-button', { 'is-favorite': server.favorite, 'preview-favorite': card }]" :aria-label="`${server.favorite ? '取消收藏' : '收藏'}${server.name}`" :title="server.favorite ? '取消收藏' : '收藏'" :aria-pressed="server.favorite" @click="$emit('favorite', server.id)"><PhStar :size="19" :weight="server.favorite ? 'fill' : 'regular'" /></button>
-      <button v-if="!card" class="icon-button" :aria-label="`编辑${server.name}`" title="编辑" @click="$emit('edit', server)"><PhPencilSimple :size="18" /></button>
+      <button :class="['icon-button', 'favorite-button', { 'is-favorite': server.favorite, 'preview-favorite': card }]" :aria-label="`${server.favorite ? i18nT('mdca60869e7d2') : i18nT('m60a53514eb92')}${server.name}`" :title="server.favorite ? i18nT('mdca60869e7d2') : i18nT('m60a53514eb92')" :aria-pressed="server.favorite" @click="$emit('favorite', server.id)"><PhStar :size="19" :weight="server.favorite ? 'fill' : 'regular'" /></button>
+      <button v-if="!card" class="icon-button" :aria-label="i18nT('mba50ba8e6057', { p0: (server.name) })" :title="i18nT('m051836569928')" @click="$emit('edit', server)"><PhPencilSimple :size="18" /></button>
     </div>
   </article>
 </template>

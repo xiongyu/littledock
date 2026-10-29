@@ -1,6 +1,6 @@
 # DeepSeek Harness 更新与插件调研
 
-调研日期：2026-10-27。范围是官方 `deepseek-ai/deepseek-harness` 的公开源码与发布文档；没有安装或执行 Harness，也没有验证其生产更新服务器。本文区分上游事实、WebNav 已有实现、本轮修改与后续方案。
+调研日期：2026-10-27。范围是官方 `deepseek-ai/deepseek-harness` 的公开源码与发布文档；没有安装或执行 Harness，也没有验证其生产更新服务器。本文区分上游事实、小站已有实现、本轮修改与后续方案。
 
 ## 1. 版本与证据
 
@@ -32,7 +32,7 @@ Harness Desktop 使用 Electron，业务 Host 是独立子进程。更新由壳�
 
 ### Cordis + profile + bundle
 
-Harness 与 WebNav 都以 Cordis 装配服务。Harness 的 profile 是独立 npm 项目，组合包通过 `dsh.bundle.patch` 提供配置层，profile 记录有序 bundle 选择与自己的 patch；禁用选择并不删除包。启动器提供包管理运行时，Desktop 随包附带 pnpm，避免依赖用户 PATH 中的 pnpm。[应用装配](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/packages/boot/app-boot/README.zh.md)
+Harness 与小站都以 Cordis 装配服务。Harness 的 profile 是独立 npm 项目，组合包通过 `dsh.bundle.patch` 提供配置层，profile 记录有序 bundle 选择与自己的 patch；禁用选择并不删除包。启动器提供包管理运行时，Desktop 随包附带 pnpm，避免依赖用户 PATH 中的 pnpm。[应用装配](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/packages/boot/app-boot/README.zh.md)
 
 安装、启停、卸载共用管理服务，网页和 `plugin_manager` 工具只是不同入口。保存的 `enabled` 不等于成功运行；失败条目仍可见。插件在宿主进程执行，能力声明、版本检查都不是沙箱。官方按需插件跟随运行中的 DSH 版本，开发环境则指向对应源码工作区，不根据当前目录猜安装位置。[rc.3 插件管理](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/packages/boot/plugin-manager/README.zh.md)
 
@@ -48,9 +48,9 @@ HMR 将模块替换、Include 刷新、profile 重组串行协调；包安装在
 
 在固定主线中，`listVersions` 有界查询第三方 registry 包的新版本及兼容性；`updateBundle` 只接受更高的精确版本，先检查兼容。启用 HMR 时先移除旧版再安装新版，新版失败/取消/激活失败则尝试重装旧版，单独返回恢复结果；恢复也失败时会留下未安装状态。没有 HMR 时覆盖安装并提示重启。这部分不能归到已发布 rc.3 上。[主线升级源码](https://github.com/deepseek-ai/deepseek-harness/blob/22ddee3792402c3e70ec5f86a63c3e3e895a2f60/packages/boot/plugin-manager/src/index.ts#L665)
 
-## 4. 对 WebNav 的取舍
+## 4. 对小站的取舍
 
-| 方面 | WebNav 当前基础 | 本次决定 |
+| 方面 | 小站当前基础 | 本次决定 |
 | --- | --- | --- |
 | 进程管理 | 每用户单实例 supervisor、托盘、重复启动打开已有网页 | 保留并作为整包更新控制层，不引入 Electron |
 | 插件来源 | 公开 Git、具体提交、独立版本目录、确认后运行安装步骤 | 保留，不改成运行目录内 `git pull` 或直接覆盖依赖 |
@@ -61,7 +61,7 @@ HMR 将模块替换、Include 刷新、profile 重组串行协调；包安装在
 | AI 接入 | 可选 automation 声明、统一 MCP、权限与任务生命周期 | 保留；未声明的插件正常运行，声明不自动授予 AI 权限 |
 | 主程序更新 | 调研时从源码/构建目录启动 | 后续已实现安装包、稳定入口、签名更新和恢复，见 [在线更新](online-updates.md)；正式附件未发布 |
 
-不照搬任意 YAML JavaScript 表达式、Node 内部模块缓存替换、强制更新策略或多 profile 体系。这些没有解决 WebNav 当前单用户本机工作台的必要问题，反而扩大维护范围。
+不照搬任意 YAML JavaScript 表达式、Node 内部模块缓存替换、强制更新策略或多 profile 体系。这些没有解决小站当前单用户本机工作台的必要问题，反而扩大维护范围。
 
 ## 5. 本轮已实施
 
@@ -88,7 +88,7 @@ HMR 将模块替换、Include 刷新、profile 重组串行协调；包安装在
 
 提供检查、下载、取消下载、安装、查询状态五类经过鉴权的 WS 操作。候选由控制层保存，网页只提交目标标识和操作 ID，不能指定任意下载地址或可执行命令。状态至少包括：检查中、可更新、下载中、校验中、就绪、等待任务结束、安装中、失败及恢复结果。
 
-后台只检查版本；初始建议每 6 小时 ±20% 抖动、失败退避至 24 小时，手动检查复用同一在途请求。下载失败显示原因并等待手动重试。下载授权与重启安装授权分开，普通退出不自动安装。这些是 WebNav 的建议值，不是上游参数或已完成测量。
+后台只检查版本；初始建议每 6 小时 ±20% 抖动、失败退避至 24 小时，手动检查复用同一在途请求。下载失败显示原因并等待手动重试。下载授权与重启安装授权分开，普通退出不自动安装。这些是小站的建议值，不是上游参数或已完成测量。
 
 ### 校验、任务保护与切换
 

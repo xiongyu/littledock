@@ -1,0 +1,14 @@
+{
+  "mdf3d58c7d84b": "Settings",
+  "m394be2aae7b9": "Counter title",
+  "mb3ff92049bec": "Read current value",
+  "m7873c4d026fd": "Counter settings",
+  "m5201427b3831": "Collaboration Counter",
+  "metadata.name": "Collaboration Counter",
+  "metadata.description": "Demonstrates tools, settings, fonts, and service registration",
+  "configFields.label.label": "Counter title",
+  "tools.main.title": "Collaboration Counter",
+  "fonts.value.name": "Current count",
+  "fonts.value.group": "Main panel",
+  "settings.title": "Counter settings"
+}

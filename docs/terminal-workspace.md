@@ -50,7 +50,7 @@ SSH 独立页使用同源新页面和随机握手标识，把现有 Vue 终端�
 
 ## 单入口配色快捷配置验证（2026-10-29）
 
-前端生产构建（含 Vue / TypeScript 类型检查）通过，前端终端工作区专项 7/7 通过；后端 `terminal palettes` 专项 1/1 通过，覆盖持久化重启、版本冲突、订阅与锁定。
+前端生产构建（含 Vue / TypeScript 类型检查）、`pnpm i18n:generate` / `pnpm i18n:check` 通过。前端终端工作区与多语言专项 13/13 通过；后端 `terminal palettes` 专项 1/1 通过，覆盖持久化重启、版本冲突、订阅与锁定。
 
 在 `backend/` 执行 `node --experimental-strip-types tests/terminal-colors-browser.mjs`，使用隔离目录、本机模拟 SSH 和 Edge，最终通过：
 

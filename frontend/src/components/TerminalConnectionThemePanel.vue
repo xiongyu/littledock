@@ -2,8 +2,10 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { builtInTerminalThemes, resolveTerminalTheme } from '@webnav/shared'
 import { catalogLoaded, connectionState, groups, saveCatalog, saving, servers, terminalThemes } from '../backend'
+import { pluginI18n } from '../i18n.ts'
 import TerminalThemePreview from './TerminalThemePreview.vue'
 
+const { t: i18nT } = pluginI18n('builtin.terminalThemes')
 const props = defineProps<{ serverId: string; connectionId: string }>()
 const emit = defineEmits<{ manage: [] }>()
 const server = computed(() => servers.value.find(item => item.id === props.serverId))
@@ -21,7 +23,7 @@ const changedElsewhere = computed(() => !!connection.value && (connection.value.
 async function save() {
   if (busy.value || saving.value || unavailable.value) return false
   error.value = ''; saved.value = false
-  if (changedElsewhere.value) { error.value = '该入口的配色已在其他页面修改，请关闭后重新打开。'; return false }
+  if (changedElsewhere.value) { error.value = i18nT('connection.conflict'); return false }
   if (!dirty.value) return true
   busy.value = true
   const themeId = selected.value
@@ -34,7 +36,7 @@ async function save() {
     baseline.value = themeId; saved.value = true
     return true
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '保存失败。'
+    error.value = cause instanceof Error ? cause.message : i18nT('mcf1487e7aa89')
     return false
   } finally { busy.value = false }
 }
@@ -48,29 +50,29 @@ defineExpose({ dirty, save, busy })
 <template>
   <form class="terminal-themes-panel connection-theme-panel" :aria-busy="busy" @submit.prevent="save">
     <div class="theme-toolbar">
-      <button type="button" class="button" :disabled="busy" @click="emit('manage')">管理配色方案</button>
-      <button class="button primary" :disabled="busy || saving || unavailable || changedElsewhere">{{ busy ? '保存中…' : '保存当前连接配色' }}</button>
+      <button type="button" class="button" :disabled="busy" @click="emit('manage')">{{ i18nT('connection.manage') }}</button>
+      <button class="button primary" :disabled="busy || saving || unavailable || changedElsewhere">{{ busy ? i18nT('mff509c9ba052') : i18nT('connection.save') }}</button>
     </div>
     <p class="connection-theme-target">{{ server?.name }} · {{ connection?.name }}</p>
-    <p class="field-hint">配色按连接入口保存，同一入口的终端一起更新。不同 SSH 可分别选择，保存后立即生效，保留连接和输出。</p>
+    <p class="field-hint">{{ i18nT('connection.hint') }}</p>
     <label class="form-field">
-      <span>当前连接配色</span>
-      <select v-model="selected" aria-label="当前连接配色" :disabled="busy || unavailable">
-        <option value="">{{ '跟随全局默认（' + resolveTerminalTheme(terminalThemes).name + '）' }}</option>
+      <span>{{ i18nT('connection.choice') }}</span>
+      <select v-model="selected" :aria-label="i18nT('connection.choice')" :disabled="busy || unavailable">
+        <option value="">{{ i18nT('connection.followDefault', { name: resolveTerminalTheme(terminalThemes).name }) }}</option>
         <option v-for="item in all" :key="item.id" :value="item.id">{{ item.name }}</option>
-        <option v-if="missingTheme" :value="selected">配色已移除，使用全局默认</option>
+        <option v-if="missingTheme" :value="selected">{{ i18nT('connection.missingTheme') }}</option>
       </select>
     </label>
-    <div class="theme-presets" aria-label="终端配色方案">
+    <div class="theme-presets" :aria-label="i18nT('mbd7416c03901')">
       <button v-for="item in all" :key="item.id" type="button" :class="{ selected: selected === item.id }" :aria-pressed="selected === item.id" :disabled="busy || unavailable" @click="selected = item.id">
         <span class="theme-chip" :style="{ background: item.colors.background, color: item.colors.foreground }">Aa <i :style="{ background: item.colors.green }"></i><i :style="{ background: item.colors.blue }"></i></span>
         <span>{{ item.name }}</span>
       </button>
     </div>
     <TerminalThemePreview :theme="theme" />
-    <p v-if="unavailable" class="field-error" role="alert">{{ connection ? '请先恢复服务连接或解锁，再保存配色。' : '该连接入口已不存在，请关闭后重新选择。' }}</p>
-    <p v-else-if="changedElsewhere" class="field-error" role="alert">该入口的配色已在其他页面修改，请关闭后重新打开。</p>
+    <p v-if="unavailable" class="field-error" role="alert">{{ connection ? i18nT('connection.offline') : i18nT('connection.missing') }}</p>
+    <p v-else-if="changedElsewhere" class="field-error" role="alert">{{ i18nT('connection.conflict') }}</p>
     <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-    <p v-else-if="saved && !dirty" role="status">已保存到当前连接，终端配色已更新。</p>
+    <p v-else-if="saved && !dirty" role="status">{{ i18nT('connection.saved') }}</p>
   </form>
 </template>

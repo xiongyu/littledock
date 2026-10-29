@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('core')
+
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { pluginMenus, type PluginMenuBinding, type MenuVisualItem } from '../plugin-menus'
 import { pluginUi } from '../plugin-ui'
@@ -56,7 +59,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <Teleport :to="target">
-    <div ref="element" class="context-menu" role="menu" :aria-label="label ?? '操作菜单'" :style="{ left: `${position.left}px`, top: `${position.top}px` }" @keydown="keyboard" @contextmenu.prevent.stop>
+    <div ref="element" class="context-menu" role="menu" :aria-label="label ?? i18nT('mfb44d588be71')" :style="{ left: `${position.left}px`, top: `${position.top}px` }" @keydown="keyboard" @contextmenu.prevent.stop>
       <template v-for="item in displayed" :key="item.id">
         <hr v-if="item.separator" role="separator" />
         <button role="menuitem" :disabled="item.disabled" :class="{ danger: item.danger }" :aria-label="item.source ? item.label + ' · ' + item.source : undefined" @click="invoke(item.id)"><span>{{ item.label }}<small v-if="item.source" class="context-menu-source" :title="item.sourceId">{{ item.source }}</small></span><kbd v-if="item.shortcut">{{ item.shortcut }}</kbd></button>

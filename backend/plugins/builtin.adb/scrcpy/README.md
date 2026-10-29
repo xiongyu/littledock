@@ -1,6 +1,6 @@
 # scrcpy server 3.3.4
 
-本目录随 WebNav 内置 ADB 插件分发官方 server；APK 格式的 Java 包以 `.jar` 名称保存，通过 `app_process` 临时运行，不安装到手机应用列表。
+本目录随小站内置 ADB 插件分发官方 server；APK 格式的 Java 包以 `.jar` 名称保存，通过 `app_process` 临时运行，不安装到手机应用列表。
 
 - 来源：[Genymobile/scrcpy v3.3.4](https://github.com/Genymobile/scrcpy/releases/tag/v3.3.4)
 - 原始文件：[scrcpy-server-v3.3.4](https://github.com/Genymobile/scrcpy/releases/download/v3.3.4/scrcpy-server-v3.3.4)

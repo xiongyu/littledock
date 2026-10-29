@@ -20,7 +20,7 @@ switch ($request.action) {
         $shortcut.TargetPath = Join-Path $PSHOME 'powershell.exe'
         $shortcut.Arguments = '-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $request.bootstrap + '" -ConfigFile "' + $request.launchFile + '"'
         $shortcut.WindowStyle = 7
-        $shortcut.Description = 'WebNav'
+        $shortcut.Description = '小站 · LittleDock'
         $shortcut.Save()
         [Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) | Out-Null
     }

@@ -257,7 +257,7 @@ export class TaskManagerEngine {
     if (p.force !== undefined && typeof p.force !== 'boolean') throw new AppError('INVALID_ARGUMENT', '结束方式无效。')
     const force = p.force === true, process = monitor.snapshot?.processes.find(process => process.pid === identity.pid && process.startedAt === identity.startedAt)
     if (!process || Date.now() - (monitor.snapshotAt ?? 0) > 10_000) throw new AppError('PROCESS_CHANGED', '进程资料已经过期，请刷新后重新选择。')
-    if (monitor.state.target.kind === 'local' && (identity.pid === globalThis.process.pid || identity.pid === globalThis.process.ppid)) throw new AppError('PROTECTED_PROCESS', '不能结束 WebNav 或承载它的进程。')
+    if (monitor.state.target.kind === 'local' && (identity.pid === globalThis.process.pid || identity.pid === globalThis.process.ppid)) throw new AppError('PROTECTED_PROCESS', '不能结束小站或承载它的进程。')
     if (!monitor.hello!.capabilities.includes(force ? 'terminate-force' : 'terminate-graceful')) throw new AppError('UNSUPPORTED', force ? '此目标不支持强制结束进程。' : '此目标不支持常规退出；如需强制结束，请明确选择该操作。')
     for (const [key, plan] of monitor.plans) if (plan.value.expiresAt < Date.now() && !plan.result) monitor.plans.delete(key)
     if (monitor.plans.size >= 32) throw new AppError('BUSY', '本次监控的操作记录已满，请重新连接后再操作。')
@@ -367,7 +367,7 @@ export class TaskManagerEngine {
       monitor.plans.clear(); monitor.recordingOperations.clear(); monitor.snapshot = undefined; monitor.fs?.sftp.end(); monitor.fs = undefined; monitor.channel?.close(); monitor.channel = undefined
       const child = monitor.child
       if (child && child.exitCode === null && child.signalCode === null) await new Promise<void>(resolve => {
-        const kill = setTimeout(() => child.kill('SIGKILL'), 1500), deadline = setTimeout(() => { clearTimeout(kill); monitor.state.message = '采集器未能按时退出，插件仍保留资源；请核对后重启 WebNav。'; resolve() }, 4000)
+        const kill = setTimeout(() => child.kill('SIGKILL'), 1500), deadline = setTimeout(() => { clearTimeout(kill); monitor.state.message = '采集器未能按时退出，插件仍保留资源；请核对后重启小站。'; resolve() }, 4000)
         child.once('close', () => { clearTimeout(kill); clearTimeout(deadline); resolve() }); child.stdin.end()
       })
       else if (monitor.child === child) monitor.child = undefined

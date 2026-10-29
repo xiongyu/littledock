@@ -1,0 +1,17 @@
+{
+  "m6bf7d902ff0e": "另一个插件提供的标签内容",
+  "ma6ffab078764": "示例操作 {p0}",
+  "m03719879130a": "跨插件面板：{p0}",
+  "m7d799f0a638f": "已完成菜单 → 查找当前详情实例 → 打开扩展标签。此示例没有附加调试器。",
+  "mba398612bb32": "目标：{p0} · {p1}",
+  "mb708d75911ca": "进程诊断示例",
+  "m335abbda3f50": "进程详情已失效，请重新选择进程。",
+  "metadata.name": "进程诊断示例",
+  "metadata.description": "进程诊断示例，仅演示公开界面扩展，不执行调试或进程操作",
+  "menuItems.inspect.title": "打开扩展诊断",
+  "menuItems.host-inspect.title": "打开扩展详情",
+  "uiItems.process-details.title": "扩展诊断",
+  "uiItems.host-summary.title": "跨插件内容",
+  "uiItems.host-action.title": "示例操作",
+  "uiItems.host-details.title": "扩展详情"
+}

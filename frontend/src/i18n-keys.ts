@@ -1,0 +1,21 @@
+// Generated from each plugin's default dictionary; do not edit.
+export interface LocaleNamespaceMap {
+  'core': keyof typeof import('./locales/zh-CN.json')
+  'builtin.adb': keyof typeof import('../../backend/plugins/builtin.adb/locales/zh-CN.json')
+  'builtin.appearance': keyof typeof import('../../backend/plugins/builtin.appearance/locales/zh-CN.json')
+  'builtin.configSync': keyof typeof import('../../backend/plugins/builtin.configSync/locales/zh-CN.json')
+  'builtin.desktops': keyof typeof import('../../backend/plugins/builtin.desktops/locales/zh-CN.json')
+  'builtin.freeRdp': keyof typeof import('../../backend/plugins/builtin.freeRdp/locales/zh-CN.json')
+  'builtin.local': keyof typeof import('../../backend/plugins/builtin.local/locales/zh-CN.json')
+  'builtin.mcp': keyof typeof import('../../backend/plugins/builtin.mcp/locales/zh-CN.json')
+  'builtin.rdp': keyof typeof import('../../backend/plugins/builtin.rdp/locales/zh-CN.json')
+  'builtin.remoteEditor': keyof typeof import('../../backend/plugins/builtin.remoteEditor/locales/zh-CN.json')
+  'builtin.sessions': keyof typeof import('../../backend/plugins/builtin.sessions/locales/zh-CN.json')
+  'builtin.sshFiles': keyof typeof import('../../backend/plugins/builtin.sshFiles/locales/zh-CN.json')
+  'builtin.sshInspector': keyof typeof import('../../backend/plugins/builtin.sshInspector/locales/zh-CN.json')
+  'builtin.taskManager': keyof typeof import('../../backend/plugins/builtin.taskManager/locales/zh-CN.json')
+  'builtin.terminalHistory': keyof typeof import('../../backend/plugins/builtin.terminalHistory/locales/zh-CN.json')
+  'builtin.terminalThemes': keyof typeof import('../../backend/plugins/builtin.terminalThemes/locales/zh-CN.json')
+  'builtin.wdb': keyof typeof import('../../backend/plugins/builtin.wdb/locales/zh-CN.json')
+  'builtin.webBookmarks': keyof typeof import('../../backend/plugins/builtin.webBookmarks/locales/zh-CN.json')
+}

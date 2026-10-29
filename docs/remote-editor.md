@@ -40,13 +40,13 @@ Windows 安装关闭 PowerShell 进度输出，安装命令持续消费 stdout/s
 浏览器编辑器页面 → 本机独立回环端口 → SSH forwardOut → 远端 127.0.0.1:动态端口
 ```
 
-`remoteEditor` 是独立 Cordis 服务，依赖 `sshFiles`、`sessions`、`credentials`、`auth`。准备、安装、查询和停止均为业务 WS RPC；编辑器自带的网页资源、文件协议和 WebSocket 经专用代理原样传输，不把第三方编辑器改造成 WebNav REST 接口。前端安装面板每 1.5 秒通过 WS 查询状态，关闭即停止查询。
+`remoteEditor` 是独立 Cordis 服务，依赖 `sshFiles`、`sessions`、`credentials`、`auth`。准备、安装、查询和停止均为业务 WS RPC；编辑器自带的网页资源、文件协议和 WebSocket 经专用代理原样传输，不把第三方编辑器改造成小站 REST 接口。前端安装面板每 1.5 秒通过 WS 查询状态，关闭即停止查询。
 
-远端仅监听回环；本机代理亦仅监听回环，校验 Host、页面会话和主密码状态，写请求与 WS 另校验 Origin。WebNav 的 Cookie 不发送到远端。Windows 连接令牌由后端生成，通过 SFTP 文件交给服务器；上游 HTTP 使用专用 `vscode-tkn` Cookie，避免根页面 `?tkn=` 反复重定向。编辑器页面的官方 bootstrap 配置另携带本次令牌，用于 VS Code 应用层 WebSocket 握手；仅在页面内存中使用，不写本机持久存储或共享 localhost Cookie，不放入 WebNav 返回的入口 URL。含令牌的 HTML 禁止缓存并限制为 1 MiB；其他资源和 WS 持续转发。
+远端仅监听回环；本机代理亦仅监听回环，校验 Host、页面会话和主密码状态，写请求与 WS 另校验 Origin。小站的 Cookie 不发送到远端。Windows 连接令牌由后端生成，通过 SFTP 文件交给服务器；上游 HTTP 使用专用 `vscode-tkn` Cookie，避免根页面 `?tkn=` 反复重定向。编辑器页面的官方 bootstrap 配置另携带本次令牌，用于 VS Code 应用层 WebSocket 握手；仅在页面内存中使用，不写本机持久存储或共享 localhost Cookie，不放入小站返回的入口 URL。含令牌的 HTML 禁止缓存并限制为 1 MiB；其他资源和 WS 持续转发。
 
-Windows `folder` 保留 `/C:/...` 形式，让工作台识别为远端文件系统路径。当前固定发行包从 CDN 获取的中文语言资源在实测中存在索引错位，Windows 网页编辑器暂用随包英文界面；中文文件名和内容正常读写，WebNav 界面仍为中文。
+Windows `folder` 保留 `/C:/...` 形式，让工作台识别为远端文件系统路径。当前固定发行包从 CDN 获取的中文语言资源在实测中存在索引错位，Windows 网页编辑器暂用随包英文界面；中文文件名和内容正常读写，小站界面仍为中文。
 
-Windows 官方扩展市场的查询使用同源路径 `/_webnav/marketplace/extensionquery`：浏览器 → 已鉴权的本机编辑器代理 → 微软官方 HTTPS 市场。代理仅重写已知微软市场的 `serviceUrl`，固定请求目标、拒绝重定向，不转发页面 Cookie、认证头或编辑器令牌；自定义市场与 Linux code-server 的 Open VSX 配置保持原样。它是第三方编辑器协议的适配，不是 WebNav REST 业务接口。
+Windows 官方扩展市场的查询使用同源路径 `/_webnav/marketplace/extensionquery`：浏览器 → 已鉴权的本机编辑器代理 → 微软官方 HTTPS 市场。代理仅重写已知微软市场的 `serviceUrl`，固定请求目标、拒绝重定向，不转发页面 Cookie、认证头或编辑器令牌；自定义市场与 Linux code-server 的 Open VSX 配置保持原样。它是第三方编辑器协议的适配，不是小站 REST 业务接口。
 
 市场查询限 POST、256 KiB 请求、64 MiB 解压后响应，每个编辑器最多 2 个并发查询，20 秒超时；编辑器停止时取消在途请求。返回数据不缓存、不截断版本或资源列表，浏览器支持时使用 gzip 压缩。兼容版本查询可能远大于普通搜索（Python 的完整版本资料已实测约 28.3 MiB），不能沿用页面 HTML 的 1 MiB 限额。扩展资源下载和安装仍遵循编辑器原有路径，此代理不代表离线安装或全部外部网络请求均经过 SSH。
 
@@ -54,7 +54,7 @@ Windows 官方扩展市场的查询使用同源路径 `/_webnav/marketplace/exte
 
 最多 4 个准备中或运行中的编辑器；单包 512 MiB、下载 10 分钟、整个准备过程 25 分钟、解压命令 3 分钟、启动 90 秒。代理有连接数和请求超时限制。当前未实现编辑器页关闭后的空闲回收、同一主机多个窗口共用单个远端进程、跨 SSH 断线恢复或升级/卸载管理界面；不同任务共享用户数据目录，并发打开的兼容性待真实编辑器验证。
 
-首版用独立浏览器页，保留编辑器自己的 frame / CSP 策略，不嵌入工作台 Tab。插件随 WebNav 构建启用，不是 VS Code 内部的扩展；设置 `WEBNAV_EDITOR_ENABLED=0` 并重启可关闭能力。托盘启动和自启配置保存这两个 `WEBNAV_EDITOR_*` 环境设置。
+首版用独立浏览器页，保留编辑器自己的 frame / CSP 策略，不嵌入工作台 Tab。插件随小站构建启用，不是 VS Code 内部的扩展；设置 `WEBNAV_EDITOR_ENABLED=0` 并重启可关闭能力。托盘启动和自启配置保存这两个 `WEBNAV_EDITOR_*` 环境设置。
 
 ## 验证边界（2026-10-26）
 

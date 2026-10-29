@@ -4,7 +4,7 @@
   "name": "系统优化",
   "version": "0.1.1",
   "description": "查看开机启动与应用，调整用户级设置，预览更改并保留加密恢复记录。",
-  "author": "WebNav",
+  "author": "LittleDock",
   "license": "MIT",
   "category": "productivity",
   "secondaryCategories": [
@@ -12,7 +12,7 @@
     "backup"
   ],
   "apiVersion": 1,
-  "webnav": "^0.1.2",
+  "webnav": "^0.1.3",
   "node": ">=22.12.0",
   "platforms": [
     {
@@ -30,7 +30,9 @@
   "dataVersion": 1,
   "icon": "icon.svg",
   "backend": "runtime/backend.js",
-  "execution": { "backend": "dedicated" },
+  "execution": {
+    "backend": "dedicated"
+  },
   "frontend": "ui/main.js",
   "styles": [
     "ui/style.css"
@@ -86,5 +88,12 @@
         "maxSize": 48
       }
     ]
+  },
+  "i18n": {
+    "defaultLocale": "zh-CN",
+    "locales": {
+      "zh-CN": "locales/zh-CN.json",
+      "en": "locales/en.json"
+    }
   }
 }

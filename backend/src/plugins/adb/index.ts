@@ -12,7 +12,7 @@ export async function adbExecutable(){
   const name=process.platform==='win32'?'adb.exe':'adb'
   const candidates=[process.env.WEBNAV_ADB_PATH,...[process.env.ANDROID_HOME,process.env.ANDROID_SDK_ROOT].filter(Boolean).map(root=>join(root!,'platform-tools',name)),...(process.env.PATH??'').split(delimiter).filter(isAbsolute).map(path=>join(path,name))]
   for(const file of candidates)if(file&&isAbsolute(file)){try{await access(file);return file}catch{}}
-  throw new AppError('ADB_MISSING','未找到 ADB。请安装 Android Platform Tools 并加入 PATH，或设置 WEBNAV_ADB_PATH 后重启 WebNav。')
+  throw new AppError('ADB_MISSING','未找到 ADB。请安装 Android Platform Tools 并加入 PATH，或设置 WEBNAV_ADB_PATH 后重启小站。')
 }
 export const runAdb:AdbRunner=async(args,signal,maxBytes=64*1024)=>{
   const file=await adbExecutable()

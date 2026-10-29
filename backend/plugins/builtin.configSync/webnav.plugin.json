@@ -4,14 +4,14 @@
   "name": "配置同步",
   "version": "0.1.0",
   "description": "以 GitHub / Gitee 保存加密配置，通过自定义同步账号密码跨电脑恢复，提供冲突预览与加密历史。",
-  "author": "WebNav",
-  "license": "随 WebNav 项目许可证",
+  "author": "LittleDock",
+  "license": "随小站项目许可证",
   "category": "backup",
   "secondaryCategories": [
     "exchange"
   ],
   "apiVersion": 1,
-  "webnav": "^0.1.0",
+  "webnav": "^0.1.3",
   "node": ">=22.12.0",
   "platforms": [
     {
@@ -64,6 +64,13 @@
       "id": "main",
       "title": "配置同步",
       "styles": []
+    }
+  },
+  "i18n": {
+    "defaultLocale": "zh-CN",
+    "locales": {
+      "zh-CN": "locales/zh-CN.json",
+      "en": "locales/en.json"
     }
   }
 }

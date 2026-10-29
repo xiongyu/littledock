@@ -8,5 +8,6 @@ export type { PluginMenuContext, PluginMenuPoint, PluginMenuContribution, Plugin
 export type { AutomationHandler, AutomationCall } from './plugin-system/runtime.ts'
 export type { AutomationDeclaration, AutomationTool } from '@webnav/shared'
 export type { PluginManifest, PluginField, PluginCategory, PluginPlatform } from '@webnav/shared'
+export type { PluginMessages, MessageRef, MessageParams, PluginI18n, LocaleBundle } from '@webnav/shared'
 export type { TerminalProcess, TerminalProvider } from './core/terminal-provider.ts'
 export type { DeviceProvider, DeviceStream } from './plugins/device-sessions.ts'

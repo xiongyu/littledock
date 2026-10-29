@@ -1,106 +1,110 @@
-import type { PluginFrontendApi } from '../../../frontend/src/plugin-api.ts'
+import type { PluginFrontendApi, MessageRef } from '../../../frontend/src/plugin-api.ts'
 import type { PublicSnapshot, PublicItem } from './model.ts'
 import type { OptimizerEngine } from './engine.ts'
 type Preview = Awaited<ReturnType<OptimizerEngine['preview']>>
 type History = Awaited<ReturnType<OptimizerEngine['history']>>
 type Tab = 'overview' | 'startup' | 'settings' | 'cleanup' | 'apps' | 'history'
 export function activate(api: PluginFrontendApi) {
+  const { t: i18nT } = api.i18n
+
   const { h, ref, shallowRef, computed, watch, onBeforeUnmount, nextTick } = api.vue
+  const ruleText = (id: string, field: string, fallback: string) => { const key = `rules.${id}.${field}`, result = i18nT(key); return result === key ? fallback : result }
+  const itemName = (item: { id?: string; itemId?: string; name: string }) => ruleText(item.id ?? item.itemId ?? '', 'title', item.name)
   const fonts = Object.fromEntries(['body','heading','caption','metric'].map(flag => [flag, api.getFontInfo(flag)]))
   const icon = (name: string) => h('svg', { viewBox: '0 0 24 24', width: 21, height: 21, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'aria-hidden': true }, [h('path', { d: ({ settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2', scan: 'M20 11a8 8 0 1 0-2 7M20 4v7h-7', startup: 'm5 18 2-6L17 2l5 5-10 10-7 1M4 20l-2 2M8 22l2-2', apps: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z', history: 'M3 12a9 9 0 1 0 3-7M3 3v6h6M12 7v5l3 2', cleanup: 'M4 7h16M9 3h6l1 4H8l1-4M6 7l1 14h10l1-14M10 10v8m4-8v8' } as Record<string, string>)[name] ?? 'M4 4h16v16H4z' })])
   api.registerTool('main', { component: {
     name: 'SystemOptimizer',
     setup() {
-      const tab = ref<Tab>('overview'), snapshot = shallowRef<PublicSnapshot>(), history = shallowRef<History>(), preview = shallowRef<Preview>(), error = ref(''), notice = ref(''), busy = ref('')
+      const tab = ref<Tab>('overview'), snapshot = shallowRef<PublicSnapshot>(), history = shallowRef<History>(), preview = shallowRef<Preview>(), error = ref(''), notice = ref<MessageRef | string>(''), busy = ref<MessageRef | string>('')
       const search = ref(''), source = ref(''), page = ref(0), selected = ref(new Set<string>()), detail = shallowRef<{ name: string; details: string }>()
       let disposed = false, generation = 0
       watch(api.hostState, state => {
         if (state === 'ready') return
         generation++; selected.value = new Set(); snapshot.value = undefined; detail.value = undefined; preview.value = undefined; history.value = undefined
-        error.value = ''; busy.value = ''; notice.value = '连接恢复并解锁后，请重新扫描或查看恢复记录。'
+        error.value = ''; busy.value = ''; notice.value = api.i18n.ref('m99eca2717091')
       }, { flush: 'sync' })
       const previewDialog = ref<HTMLDialogElement>()
       watch(preview, async value => { await nextTick(); if (disposed) return; if (value) previewDialog.value?.showModal(); else previewDialog.value?.close() })
       onBeforeUnmount(() => { disposed = true; generation++; selected.value.clear(); snapshot.value = undefined; detail.value = undefined; preview.value = undefined })
-      const filtered = computed(() => (snapshot.value?.items ?? []).filter(item => item.category === tab.value && (!source.value || item.source === source.value) && (!search.value || `${item.name} ${item.publisher ?? ''} ${item.source}`.toLowerCase().includes(search.value.toLowerCase())) && (api.config.hideReadOnly !== true || item.category !== 'startup' || item.writable)))
+      const filtered = computed(() => (snapshot.value?.items ?? []).filter(item => item.category === tab.value && (!source.value || item.source === source.value) && (!search.value || `${itemName(item)} ${item.publisher ?? ''} ${item.source}`.toLowerCase().includes(search.value.toLowerCase())) && (api.config.hideReadOnly !== true || item.category !== 'startup' || item.writable)))
       const visible = computed(() => filtered.value.slice(page.value * 50, (page.value + 1) * 50))
       const sources = computed(() => [...new Set(snapshot.value?.items.filter(item => item.category === tab.value).map(item => item.source) ?? [])])
       watch([tab, search, source], () => { page.value = 0; detail.value = undefined })
-      const tabs: [Tab, string][] = [['overview','概览'],['startup','开机启动'],['settings','系统设置'],['cleanup','空间管理'],['apps','应用'],['history','恢复记录']]
+      const tabs = (): [Tab, string][] => [['overview',i18nT('mfea405f9b01d')],['startup',i18nT('m842b9f11cdd9')],['settings',i18nT('m68ea5dd4d7af')],['cleanup',i18nT('mc6bdf6d83d2c')],['apps',i18nT('tabs.apps')],['history',i18nT('md6240c5f7436')]]
       const button = (label: string, action: () => unknown, primary = false, disabled = false) => h('button', { class: ['opt-button', primary && 'primary'], disabled: disabled || !!busy.value || api.hostState.value !== 'ready', onClick: action }, label)
       const iconButton = (label: string, name: string, action: () => unknown) => h('button', { class: 'opt-icon-button', title: label, 'aria-label': label, onClick: action, disabled: !!busy.value || api.hostState.value !== 'ready' }, [icon(name)])
       async function currentResult<T>(promise: Promise<T>): Promise<T> {
         const token = generation, result = await promise
-        if (disposed || token !== generation || api.hostState.value !== 'ready') throw new Error('页面状态已变化，请重新核对。')
+        if (disposed || token !== generation || api.hostState.value !== 'ready') throw new Error(i18nT('m6a3b0ce07908'))
         return result
       }
       async function job<T>(name: string, params: Record<string, unknown> = {}): Promise<T> {
         const token = generation, { jobId } = await currentResult(api.rpc<{ jobId: string }>(name, params, true)), deadline = Date.now() + 240000
         while (!disposed && token === generation && Date.now() < deadline) {
-          const result = await currentResult(api.rpc<{ state: string; result?: T; error?: string }>('job', { jobId }))
+          const result = await currentResult(api.rpc<{ state: string; result?: T; error?: string; errorRef?: unknown }>('job', { jobId }))
           if (result.state === 'done') return result.result!
-          if (result.state === 'failed') throw new Error(result.error)
+          if (result.state === 'failed') throw new Error(api.i18n.message(result.errorRef, result.error))
           await new Promise(resolve => setTimeout(resolve, 400))
         }
-        throw new Error('等待结束，请通过恢复记录核对。不会重复提交。')
+        throw new Error(i18nT('m25f8728366d0'))
       }
-      async function run(label: string, action: () => Promise<void>) {
+      async function run(label: MessageRef | string, action: () => Promise<void>) {
         if (busy.value || api.hostState.value !== 'ready') return
         const token = generation
         busy.value = label; error.value = ''; notice.value = ''
-        try { await action() } catch (cause) { if (!disposed && token === generation) error.value = cause instanceof Error ? cause.message : '操作失败，请重新核对。' } finally { if (!disposed && token === generation) busy.value = '' }
+        try { await action() } catch (cause) { if (!disposed && token === generation) error.value = cause instanceof Error ? cause.message : i18nT('mf06887f1391e') } finally { if (!disposed && token === generation) busy.value = '' }
       }
-      async function scan() { await run('正在扫描本机…', async () => { const result = await job<PublicSnapshot>('scan'); if (!disposed) { snapshot.value = result; selected.value = new Set(); preview.value = undefined; notice.value = '扫描完成。未更改任何系统设置。' } }) }
-      async function loadHistory(index = 0) { await run('正在读取恢复记录…', async () => { const result = await job<History>('history', { page: index }); if (!disposed) history.value = result }) }
+      async function scan() { await run(api.i18n.ref('mabacb688d0d2'), async () => { const result = await job<PublicSnapshot>('scan'); if (!disposed) { snapshot.value = result; selected.value = new Set(); preview.value = undefined; notice.value = api.i18n.ref('m43b731ce1a1e') } }) }
+      async function loadHistory(index = 0) { await run(api.i18n.ref('m3ad506050375'), async () => { const result = await job<History>('history', { page: index }); if (!disposed) history.value = result }) }
       function openTab(value: Tab) { tab.value = value; search.value = ''; source.value = ''; if (value === 'history') void loadHistory() }
-      function toggle(item: PublicItem) { const next = new Set(selected.value); if (next.has(item.id)) next.delete(item.id); else if (next.size < 50) next.add(item.id); else { error.value = '每次最多选择 50 项。'; return } selected.value = next }
-      async function prepare() { await run('正在核对原值…', async () => { const result = await job<Preview>('preview', { ids: [...selected.value] }); if (!disposed) preview.value = result }) }
+      function toggle(item: PublicItem) { const next = new Set(selected.value); if (next.has(item.id)) next.delete(item.id); else if (next.size < 50) next.add(item.id); else { error.value = i18nT('m7f36807aedab'); return } selected.value = next }
+      async function prepare() { await run(api.i18n.ref('maea91e8be5ec'), async () => { const result = await job<Preview>('preview', { ids: [...selected.value] }); if (!disposed) preview.value = result }) }
       async function apply() {
         const plan = preview.value; if (!plan) return
-        await run('正在备份并应用更改…', async () => {
+        await run(api.i18n.ref('m70c0fecc7247'), async () => {
           preview.value = undefined
           const result = await job<Awaited<ReturnType<OptimizerEngine['apply']>>>('apply', { planId: plan.id, operationId: crypto.randomUUID() })
-          if (!disposed) { selected.value = new Set(); snapshot.value = undefined; notice.value = result.status === 'complete' ? '更改已读回核对。请重新登录后检查界面效果，可在恢复记录中还原。' : '部分项目未完成。请先查看恢复记录，不要重复执行。'; tab.value = 'history'; history.value = await job<History>('history') }
+          if (!disposed) { selected.value = new Set(); snapshot.value = undefined; notice.value = result.status === 'complete' ? api.i18n.ref('m9344dcc2435c') : api.i18n.ref('m31ce064a9846'); tab.value = 'history'; history.value = await job<History>('history') }
         })
       }
-      async function restore(id: string) { await run('正在核对恢复条件…', async () => { const result = await job<Preview>('restorePreview', { id }); if (!disposed) preview.value = result }) }
-      async function showDetails(item: PublicItem) { await run('正在读取详情…', async () => { const result = await currentResult(api.rpc<{ name: string; details: string }>('details', { id: item.id })); if (!disposed) detail.value = result }) }
-      function openSystem(value: 'startup' | 'apps' | 'storage') { void run('正在打开 Windows 设置…', async () => { await currentResult(api.rpc('openSettings', { page: value }, true)); notice.value = '已请求 Windows 打开对应设置。' }) }
+      async function restore(id: string) { await run(api.i18n.ref('m9f78664fc5a4'), async () => { const result = await job<Preview>('restorePreview', { id }); if (!disposed) preview.value = result }) }
+      async function showDetails(item: PublicItem) { await run(api.i18n.ref('m6f160ba76bd9'), async () => { const result = await currentResult(api.rpc<{ name: string; details: string }>('details', { id: item.id })); if (!disposed) detail.value = result }) }
+      function openSystem(value: 'startup' | 'apps' | 'storage') { void run(api.i18n.ref('ma5962a9f229b'), async () => { await currentResult(api.rpc('openSettings', { page: value }, true)); notice.value = api.i18n.ref('me987f726d452') }) }
       const count = (category: PublicItem['category']) => snapshot.value ? snapshot.value.items.filter(item => item.category === category).length : '—'
-      const sourceName = (value: string) => value.replace('CurrentUser', '当前用户').replace('LocalMachine', '本机范围').replace('Registry64', '64 位').replace('Registry32', '32 位').replace('Startup folder', '启动文件夹').replace('Automatic service', '自动服务').replace('Startup task', '开机 / 登录任务').replace('Packaged application', '商店应用')
-      const stateName = (value: string) => ({ registered: '已登记 · 启用状态未知', configured: '已设为目标值', 'not-set': '系统默认', custom: '当前自定义值', installed: '已安装', Running: '正在运行', Stopped: '已停止', Ready: '已就绪', Disabled: '已禁用' } as Record<string, string>)[value] ?? value
-      const recordState = (value: string) => ({ complete: '已完成', partial: '部分完成', running: '执行中', applied: '已应用', conflict: '发生冲突', unknown: '待核对', pending: '未执行', failed: '失败' } as Record<string, string>)[value] ?? value
-      const card = (title: string, kind: string, metric: string | number, caption: string, target: Tab) => h('article', { class: ['opt-card', kind] }, [h('header', [icon(kind), h('h2', title)]), h('div', { class: 'opt-card-body' }, [h('strong', { class: 'opt-metric' }, String(metric)), h('p', caption), button('查看', () => openTab(target))])])
+      const sourceName = (value: string) => value.replace('CurrentUser', i18nT('ma569c636d974')).replace('LocalMachine', i18nT('mc71df3663aa2')).replace('Registry64', i18nT('me5e18ca55c14')).replace('Registry32', i18nT('m57951dead465')).replace('Startup folder', i18nT('m509ed63cc4db')).replace('Automatic service', i18nT('m4189368f78e1')).replace('Startup task', i18nT('m1db3b1afc0fc')).replace('Packaged application', i18nT('m0385b871a017'))
+      const stateName = (value: string) => ({ registered: i18nT('m68d2d8fe1c40'), configured: i18nT('m41242bdece2a'), 'not-set': i18nT('m04b77083689b'), custom: i18nT('m5bcd3857473b'), installed: i18nT('ma8b6c39dcabf'), Running: i18nT('m9273b8cc8f40'), Stopped: i18nT('mf006455e3baf'), Ready: i18nT('mab27f80d046f'), Disabled: i18nT('mbc5a87a757a5') } as Record<string, string>)[value] ?? value
+      const recordState = (value: string) => ({ complete: i18nT('mf28461bb49c8'), partial: i18nT('m1bd16b45b478'), running: i18nT('m5026a63b58cd'), applied: i18nT('mf58574346081'), conflict: i18nT('m42068738f668'), unknown: i18nT('m33df16b4afab'), pending: i18nT('m231fe2204265'), failed: i18nT('m28384d7afd2e') } as Record<string, string>)[value] ?? value
+      const card = (title: string, kind: string, metric: string | number, caption: string, target: Tab) => h('article', { class: ['opt-card', kind] }, [h('header', [icon(kind), h('h2', title)]), h('div', { class: 'opt-card-body' }, [h('strong', { class: 'opt-metric' }, String(metric)), h('p', caption), button(i18nT('mdb8db0530432'), () => openTab(target))])])
       const itemRow = (item: PublicItem) => h('div', { key: item.id, class: ['opt-item', selected.value.has(item.id) && 'selected'] }, [
-        item.writable ? h('input', { type: 'checkbox', 'aria-label': `选择 ${item.name}`, checked: selected.value.has(item.id), disabled: !!busy.value, onChange: () => toggle(item) }) : h('span', { class: 'opt-readonly', title: '当前版本只读' }, '只读'),
-        h('div', { class: 'opt-item-main' }, [h('strong', item.name), h('small', item.category === 'apps' ? `${item.publisher || '发布者未知'} · ${item.version || '版本未知'}` : sourceName(item.source))]),
-        h('span', { class: ['opt-state', selected.value.has(item.id) && 'pending'] }, selected.value.has(item.id) ? item.category === 'startup' ? '将停用登记' : '将应用设置' : stateName(item.state)),
-        iconButton(`${item.name}详情`, 'apps', () => showDetails(item)),
+        item.writable ? h('input', { type: 'checkbox', 'aria-label': i18nT('mf0f5c3b93772', { p0: itemName(item) }), checked: selected.value.has(item.id), disabled: !!busy.value, onChange: () => toggle(item) }) : h('span', { class: 'opt-readonly', title: i18nT('m5c24d28b84f1') }, i18nT('m3b5ec3533b0e')),
+        h('div', { class: 'opt-item-main' }, [h('strong', itemName(item)), h('small', item.category === 'apps' ? `${item.publisher || i18nT('m2ec2b433ad5f')} · ${item.version || i18nT('mdc730979055d')}` : ruleText(item.id, 'group', sourceName(item.source)))]),
+        h('span', { class: ['opt-state', selected.value.has(item.id) && 'pending'] }, selected.value.has(item.id) ? item.category === 'startup' ? i18nT('me38370b837a2') : i18nT('m6c9030f4128e') : stateName(item.state)),
+        iconButton(i18nT('mb6625dad1654', { p0: itemName(item) }), 'apps', () => showDetails(item)),
       ])
       return () => h('div', { class: 'optimizer-tool', style: Object.fromEntries(Object.entries(fonts).map(([flag, font]) => [`--opt-font-${flag}`, `${font.size}px`])) }, [
-        h('header', { class: 'opt-heading' }, [h('div', [h('span', { class: 'opt-eyebrow' }, '本机 · WINDOWS'), h('h1', '系统优化'), h('p', snapshot.value ? `${snapshot.value.computer} · ${new Date(snapshot.value.scannedAt).toLocaleTimeString()} 扫描` : '先查看，再选择更改。')]), h('div', { class: 'opt-heading-actions' }, [iconButton('系统优化插件设置', 'settings', () => api.openSettings()), button('扫描本机', scan, true)])]),
-        h('nav', { class: 'opt-tabs', 'aria-label': '系统优化页面' }, tabs.map(([value, label]) => h('button', { class: tab.value === value ? 'active' : '', onClick: () => openTab(value), 'aria-current': tab.value === value ? 'page' : undefined }, label))),
-        busy.value ? h('p', { class: 'opt-message', role: 'status' }, busy.value) : null,
+        h('header', { class: 'opt-heading' }, [h('div', [h('span', { class: 'opt-eyebrow' }, i18nT('md211d89742e7')), h('h1', i18nT('mf6cd91dab1f0')), h('p', snapshot.value ? i18nT('me3d44be8c1f3', { p0: (snapshot.value.computer), p1: (api.i18n.date(snapshot.value.scannedAt, { timeStyle: 'medium' })) }) : i18nT('m51ef7fefc809'))]), h('div', { class: 'opt-heading-actions' }, [iconButton(i18nT('md7dcd37ccef7'), 'settings', () => api.openSettings()), button(i18nT('m13f48f2d7f6e'), scan, true)])]),
+        h('nav', { class: 'opt-tabs', 'aria-label': i18nT('ma5e3c83b33eb') }, tabs().map(([value, label]) => h('button', { class: tab.value === value ? 'active' : '', onClick: () => openTab(value), 'aria-current': tab.value === value ? 'page' : undefined }, label))),
+        busy.value ? h('p', { class: 'opt-message', role: 'status' }, api.i18n.message(busy.value)) : null,
         error.value ? h('p', { class: 'opt-error', role: 'alert' }, error.value) : null,
-        notice.value ? h('p', { class: 'opt-message', role: 'status' }, notice.value) : null,
-        tab.value === 'overview' ? h('div', { class: 'opt-overview' }, [card('开机启动', 'startup', count('startup'), '查看登记来源，选择可恢复的停用项', 'startup'), card('空间管理', 'cleanup', 'Windows', '打开系统存储设置，管理临时文件', 'cleanup'), card('系统设置', 'settings', count('settings'), '用户级设置 · 修改前保存原值', 'settings'), card('已装应用', 'apps', count('apps'), '应用清单与 Windows 卸载入口', 'apps'), card('恢复记录', 'history', '可追溯', '加密保存原值，恢复前再次核对', 'history')]) : null,
+        notice.value ? h('p', { class: 'opt-message', role: 'status' }, api.i18n.message(notice.value)) : null,
+        tab.value === 'overview' ? h('div', { class: 'opt-overview' }, [card(i18nT('m842b9f11cdd9'), 'startup', count('startup'), i18nT('mbdad78fd42cd'), 'startup'), card(i18nT('mc6bdf6d83d2c'), 'cleanup', 'Windows', i18nT('m6723294995f8'), 'cleanup'), card(i18nT('m68ea5dd4d7af'), 'settings', count('settings'), i18nT('me7c0e3b7d062'), 'settings'), card(i18nT('m3365220f210b'), 'apps', count('apps'), i18nT('mb64dae621711'), 'apps'), card(i18nT('md6240c5f7436'), 'history', i18nT('m8159ac176148'), i18nT('mf516b5ae9e89'), 'history')]) : null,
         ['startup','settings','apps'].includes(tab.value) ? h('section', { class: 'opt-list-section' }, [
-          h('header', { class: 'opt-section-heading' }, [h('h2', tabs.find(([value]) => value === tab.value)?.[1] ?? ''), h('span', snapshot.value ? `${filtered.value.length} 项` : '尚未扫描'), tab.value === 'startup' ? button('系统启动设置', () => openSystem('startup')) : tab.value === 'apps' ? button('系统卸载入口', () => openSystem('apps')) : null]),
-          !snapshot.value ? h('div', { class: 'opt-empty' }, [h('h3', '先扫描本机'), h('p', '读取当前设置和登记信息。'), button('开始扫描', scan, true)]) : h('div', [
-            h('div', { class: 'opt-filters' }, [h('input', { type: 'search', value: search.value, placeholder: '搜索名称或来源', 'aria-label': '搜索优化项目', onInput: (event: Event) => { search.value = (event.target as HTMLInputElement).value } }), h('select', { value: source.value, 'aria-label': '按来源筛选', onChange: (event: Event) => { source.value = (event.target as HTMLSelectElement).value } }, [h('option', { value: '' }, '全部来源'), ...sources.value.map(value => h('option', { value }, sourceName(value)))])]),
-            tab.value === 'startup' ? h('p', { class: 'opt-hint' }, '只修改当前用户的普通 Run 登记。启动文件夹、服务和任务只读；登记不等于实际启用，启动影响未测量。') : tab.value === 'settings' ? h('p', { class: 'opt-hint' }, '按需选择，不预选。修改后通常需重新登录核对，不自动重启。') : null,
-            ...visible.value.map(itemRow), !visible.value.length ? h('p', { class: 'opt-empty' }, '没有匹配的项目。') : null,
-            h('footer', { class: 'opt-pagination' }, [button('上一页', () => { page.value-- }, false, page.value === 0), h('span', `${page.value + 1} / ${Math.max(1, Math.ceil(filtered.value.length / 50))}`), button('下一页', () => { page.value++ }, false, (page.value + 1) * 50 >= filtered.value.length)]),
+          h('header', { class: 'opt-section-heading' }, [h('h2', tabs().find(([value]) => value === tab.value)?.[1] ?? ''), h('span', snapshot.value ? i18nT('m980fda45d8ef', { p0: (filtered.value.length) }) : i18nT('m5f6b5f6c5c51')), tab.value === 'startup' ? button(i18nT('md2c628e397bd'), () => openSystem('startup')) : tab.value === 'apps' ? button(i18nT('m51cf55754729'), () => openSystem('apps')) : null]),
+          !snapshot.value ? h('div', { class: 'opt-empty' }, [h('h3', i18nT('mbe38f8154976')), h('p', i18nT('mb4559d38a6b3')), button(i18nT('m743497b67cd2'), scan, true)]) : h('div', [
+            h('div', { class: 'opt-filters' }, [h('input', { type: 'search', value: search.value, placeholder: i18nT('m3f0d9f12cd58'), 'aria-label': i18nT('mfde4c11581d6'), onInput: (event: Event) => { search.value = (event.target as HTMLInputElement).value } }), h('select', { value: source.value, 'aria-label': i18nT('mbe09e1c4fe98'), onChange: (event: Event) => { source.value = (event.target as HTMLSelectElement).value } }, [h('option', { value: '' }, i18nT('m9f357adb6100')), ...sources.value.map(value => h('option', { value }, sourceName(value)))])]),
+            tab.value === 'startup' ? h('p', { class: 'opt-hint' }, i18nT('mbf33e6adf5c4')) : tab.value === 'settings' ? h('p', { class: 'opt-hint' }, i18nT('mb3069a911f4a')) : null,
+            ...visible.value.map(itemRow), !visible.value.length ? h('p', { class: 'opt-empty' }, i18nT('m1b5f97027985')) : null,
+            h('footer', { class: 'opt-pagination' }, [button(i18nT('mc9b9ae7a6144'), () => { page.value-- }, false, page.value === 0), h('span', `${page.value + 1} / ${Math.max(1, Math.ceil(filtered.value.length / 50))}`), button(i18nT('m8a8542f69648'), () => { page.value++ }, false, (page.value + 1) * 50 >= filtered.value.length)]),
           ]),
         ]) : null,
-        tab.value === 'cleanup' ? h('article', { class: 'opt-card cleanup' }, [h('header', [icon('cleanup'), h('h2', 'Windows 空间管理')]), h('div', { class: 'opt-card-body' }, [h('p', '打开系统存储页面查看临时文件、应用占用和清理建议。'), h('p', { class: 'opt-hint' }, '本版本由 Windows 提供清理确认；插件不会直接删除文件或清空回收站。'), button('打开存储设置', () => openSystem('storage'), true)])]) : null,
-        tab.value === 'history' ? h('section', { class: 'opt-list-section' }, [h('header', { class: 'opt-section-heading' }, [h('h2', '恢复记录'), button('刷新记录', () => loadHistory(history.value?.page ?? 0))]), ...(history.value?.items.map(record => h('article', { class: 'opt-history-item' }, [h('div', [h('strong', `${record.restoring ? '恢复' : '调整'} · ${recordState(record.status)}`), h('small', new Date(record.at).toLocaleString())]), h('ul', record.items.map(item => h('li', `${item.name} · ${recordState(item.status)}`))), button('预览恢复', () => restore(record.id))])) ?? []), history.value?.items.length === 0 ? h('p', { class: 'opt-empty' }, '尚无修改记录。') : null,
-          history.value ? h('footer', { class: 'opt-pagination' }, [button('较新记录', () => loadHistory(history.value!.page - 1), false, history.value.page === 0), h('span', `共 ${history.value.total} 次`), button('较早记录', () => loadHistory(history.value!.page + 1), false, (history.value.page + 1) * 20 >= history.value.total)]) : null,
+        tab.value === 'cleanup' ? h('article', { class: 'opt-card cleanup' }, [h('header', [icon('cleanup'), h('h2', i18nT('mb531e7bbb353'))]), h('div', { class: 'opt-card-body' }, [h('p', i18nT('m177f551455d8')), h('p', { class: 'opt-hint' }, i18nT('mab92b77b4cab')), button(i18nT('mad1f38366858'), () => openSystem('storage'), true)])]) : null,
+        tab.value === 'history' ? h('section', { class: 'opt-list-section' }, [h('header', { class: 'opt-section-heading' }, [h('h2', i18nT('md6240c5f7436')), button(i18nT('m621e17c543bc'), () => loadHistory(history.value?.page ?? 0))]), ...(history.value?.items.map(record => h('article', { class: 'opt-history-item' }, [h('div', [h('strong', `${record.restoring ? i18nT('me0534b8a4e46') : i18nT('mf65c42a2540b')} · ${recordState(record.status)}`), h('small', api.i18n.date(record.at, { dateStyle: 'short', timeStyle: 'medium' }))]), h('ul', record.items.map(item => h('li', `${itemName(item)} · ${recordState(item.status)}`))), button(i18nT('m55e4fb4e789b'), () => restore(record.id))])) ?? []), history.value?.items.length === 0 ? h('p', { class: 'opt-empty' }, i18nT('me036e2fe0777')) : null,
+          history.value ? h('footer', { class: 'opt-pagination' }, [button(i18nT('m7683ccb55d72'), () => loadHistory(history.value!.page - 1), false, history.value.page === 0), h('span', i18nT('mb3c1e04d9235', { p0: (history.value.total) })), button(i18nT('m8ed1851d8859'), () => loadHistory(history.value!.page + 1), false, (history.value.page + 1) * 20 >= history.value.total)]) : null,
         ]) : null,
-        detail.value ? h('aside', { class: 'opt-detail', 'aria-label': '优化项目详情' }, [h('h2', detail.value.name), h('pre', detail.value.details), button('收起详情', () => { detail.value = undefined })]) : null,
-        selected.value.size ? h('footer', { class: 'opt-action-bar' }, [h('span', `已选 ${selected.value.size} 项 · 尚未更改`), button('清除选择', () => { selected.value = new Set() }), button('预览更改', prepare, true)]) : null,
-        h('dialog', { ref: previewDialog, class: 'opt-preview', 'aria-label': '确认优化更改', onCancel: (event: Event) => { event.preventDefault(); if (!busy.value) preview.value = undefined } }, preview.value ? [h('header', [h('h2', preview.value.restoring ? '恢复预览' : '更改预览'), h('span', '可恢复 · 当前用户')]), ...preview.value.items.map(item => h('div', { class: 'opt-preview-row' }, [h('strong', item.name), h('span', `${item.before} → ${item.after}`), h('small', item.note)])), h('footer', [button('取消', () => { preview.value = undefined }), button(`确认${preview.value.restoring ? '恢复' : '应用'} ${preview.value.items.length} 项`, apply, true)])] : []),
-        snapshot.value ? h('details', { class: 'opt-coverage' }, [h('summary', '扫描范围与限制'), h('p', '读取当前用户可访问的注册表登记、启动文件夹、自动服务、开机/登录任务，以及桌面与商店应用；权限受限来源会被跳过。'), h('p', '尚未覆盖应用启动任务，不推测签名、启动影响或优化收益。'), ...snapshot.value.warnings.filter(warning => !warning.startsWith('StartupApproved')).map(warning => h('p', warning.replace('Unable to read', '无法读取').replace('Service enumeration unavailable', '无法读取服务清单').replace('Scheduled task enumeration unavailable', '无法读取计划任务').replace('Application enumeration incomplete', '应用清单读取不完整').replace('Packaged applications unavailable', '无法读取商店应用').replace('Startup folder unavailable', '无法读取启动文件夹').replace('Setting unavailable:', '设置读取失败：').replace('Enumeration is bounded: 1000 entries per startup source and packaged apps, 2000 entries per desktop-app registry source, 10000 entries total. Larger sources may be incomplete.', '扫描有限额：启动来源及商店应用各最多 1,000 项，桌面应用注册表来源各最多 2,000 项，总计最多 10,000 项；超过限额的来源可能不完整。').replace('Total enumeration truncated at 10000 entries.', '总清单已截断至 10,000 项。')))]) : null,
+        detail.value ? h('aside', { class: 'opt-detail', 'aria-label': i18nT('m5e38b58eba75') }, [h('h2', detail.value.name), h('pre', detail.value.details), button(i18nT('m0ae7312510f4'), () => { detail.value = undefined })]) : null,
+        selected.value.size ? h('footer', { class: 'opt-action-bar' }, [h('span', i18nT('mf320b5f58bee', { p0: (selected.value.size) })), button(i18nT('m5288519d856d'), () => { selected.value = new Set() }), button(i18nT('m9661c8114770'), prepare, true)]) : null,
+        h('dialog', { ref: previewDialog, class: 'opt-preview', 'aria-label': i18nT('m742de65d2b71'), onCancel: (event: Event) => { event.preventDefault(); if (!busy.value) preview.value = undefined } }, preview.value ? [h('header', [h('h2', preview.value.restoring ? i18nT('m10328a6f1af8') : i18nT('m1e462838759e')), h('span', i18nT('m6866e7a8ab19'))]), ...preview.value.items.map(item => h('div', { class: 'opt-preview-row' }, [h('strong', itemName(item)), h('span', `${api.i18n.message(item.before)} → ${api.i18n.message(item.after)}`), h('small', api.i18n.message(item.note))])), h('footer', [button(i18nT('m2cd0f3be8738'), () => { preview.value = undefined }), button(i18nT('m007cf1fd145d', { p0: (preview.value.restoring ? i18nT('me0534b8a4e46') : i18nT('m63c73c4730f4')), p1: (preview.value.items.length) }), apply, true)])] : []),
+        snapshot.value ? h('details', { class: 'opt-coverage' }, [h('summary', i18nT('mb272a7e91f19')), h('p', i18nT('m1ce091daa6e7')), h('p', i18nT('m06491580c50f')), ...snapshot.value.warnings.filter(warning => !warning.startsWith('StartupApproved')).map(warning => h('p', warning.replace('Unable to read', i18nT('mc27041585556')).replace('Service enumeration unavailable', i18nT('me9bcfcb1c1a3')).replace('Scheduled task enumeration unavailable', i18nT('m54a74d5542d5')).replace('Application enumeration incomplete', i18nT('mdb45ad3aa920')).replace('Packaged applications unavailable', i18nT('m563152745996')).replace('Startup folder unavailable', i18nT('m832178c3c1a2')).replace('Setting unavailable:', i18nT('m16a81f88d849')).replace('Enumeration is bounded: 1000 entries per startup source and packaged apps, 2000 entries per desktop-app registry source, 10000 entries total. Larger sources may be incomplete.', i18nT('m945da02010fd')).replace('Total enumeration truncated at 10000 entries.', i18nT('m2244203ece67'))))]) : null,
       ])
     },
   } })

@@ -1,0 +1,4 @@
+{
+  "metadata.name": "Windows 远程桌面",
+  "metadata.description": "调用系统远程桌面客户端，按每个连接入口保存显示设置与凭据，保留系统客户端的独立窗口。"
+}

@@ -33,7 +33,7 @@ async function load() {
   clearCapture(); captureButton.hidden = true
   const state = await send('status')
   pairForm.hidden = state.paired === true; element('paired-tools').hidden = state.paired !== true; fillForm.hidden = true
-  if (!state.paired) { status.textContent = '先连接本机 WebNav'; return }
+  if (!state.paired) { status.textContent = '先连接本机小站'; return }
   status.textContent = '已保存配对 · 正在检查当前网站'
   const tab = (await browser.tabs.query({ active: true, currentWindow: true }))[0]
   if (tab?.id === undefined || !tab.url) { status.textContent = '请在登录网页点击扩展图标'; return }
@@ -51,8 +51,8 @@ async function load() {
 }
 function captureOptions() {
   saveUsername.disabled = savePassword.disabled = !saveLogin.checked
-  element('save-submit').textContent = saveTarget.value ? '更新这条收藏' : '保存到 WebNav'
-  element('save-change-hint').textContent = saveTarget.value ? (saveLogin.checked ? '将更新所选收藏的名称、网址和账号密码。' : '将更新名称和网址，保留已有账号密码。') : '保存后会出现在 WebNav 首页。'
+  element('save-submit').textContent = saveTarget.value ? '更新这条收藏' : '保存到小站'
+  element('save-change-hint').textContent = saveTarget.value ? (saveLogin.checked ? '将更新所选收藏的名称、网址和账号密码。' : '将更新名称和网址，保留已有账号密码。') : '保存后会出现在小站首页。'
 }
 captureButton.addEventListener('click', () => { void action(async () => {
   clearCapture()
@@ -77,7 +77,7 @@ saveForm.addEventListener('submit', event => {
     const params = { captureId, targetId: saveTarget.value, name: saveName.value, url: saveUrl.value, ...(saveLogin.checked ? { login: { username: saveUsername.value, password: savePassword.value } } : {}) }
     try { await send('savePage', params) }
     finally { clearCapture(); captureButton.hidden = false }
-    await load(); status.textContent = '已保存到 WebNav，首页收藏已更新'
+    await load(); status.textContent = '已保存到小站，首页收藏已更新'
   })
 })
 element('cancel-save').addEventListener('click', () => { clearCapture(); captureButton.hidden = false; fillForm.hidden = !choices.length; error.textContent = '' })
@@ -104,6 +104,6 @@ fillForm.addEventListener('submit', event => {
   })
 })
 element('open-webnav').addEventListener('click', () => { void action(async () => { await send('openWebNav') }) })
-element('forget').addEventListener('click', () => { void action(async () => { await send('forget'); await load(); status.textContent = '已断开。可在 WebNav 设置中撤销旧授权。' }) })
+element('forget').addEventListener('click', () => { void action(async () => { await send('forget'); await load(); status.textContent = '已断开。可在小站设置中撤销旧授权。' }) })
 element('refresh').addEventListener('click', () => { void action(load) })
 void action(load)

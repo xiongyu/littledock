@@ -6,7 +6,7 @@ import { AppError, record } from '../../core/errors.ts'
 export interface CollectorStreams { input: Writable; output: Readable; stderr?: Readable; close: () => void; }
 type Pending = { resolve: (value: unknown) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }
 const collectorErrors: Record<string, string> = {
-  INVALID_REQUEST: '采集请求格式无效，请更新 WebNav 与采集器后重试。',
+  INVALID_REQUEST: '采集请求格式无效，请更新小站与采集器后重试。',
   UNKNOWN_METHOD: '此采集器不支持请求的功能，请更新到匹配版本。',
   REQUEST_TOO_LARGE: '采集请求超出大小限制。',
   RESPONSE_TOO_LARGE: '采集结果超出大小限制，请缩小查询范围。',
@@ -14,7 +14,7 @@ const collectorErrors: Record<string, string> = {
   COLLECTION_TIMEOUT: '采集操作已取消或超时；涉及进程操作时请核对实际状态。',
   PROCESS_UNAVAILABLE: '进程已退出，或当前权限无法读取并核验该进程。',
   IDENTITY_MISMATCH: '进程身份已变化，请刷新后重新选择。',
-  PROTECTED_PROCESS: '不能结束系统关键进程、WebNav、采集器或承载连接的进程。',
+  PROTECTED_PROCESS: '不能结束系统关键进程、小站、采集器或承载连接的进程。',
   PERMISSION_DENIED: '当前目标用户没有执行此进程操作的权限。',
   UNSUPPORTED: '目标系统不支持这项安全操作，可能受平台、系统版本或内核限制。',
   UNSAFE_PATH: '目标记录目录包含链接或不安全的文件，操作已停止。',

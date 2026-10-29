@@ -4,12 +4,12 @@
   "name": "界面扩展示例",
   "version": "1.0.0",
   "description": "界面扩展示例，仅演示公开界面扩展，不执行调试或进程操作",
-  "author": "WebNav",
+  "author": "LittleDock",
   "license": "MIT",
   "category": "development",
   "secondaryCategories": [],
   "apiVersion": 1,
-  "webnav": "^0.1.1",
+  "webnav": "^0.1.3",
   "node": ">=22.12.0",
   "platforms": [
     {
@@ -115,5 +115,12 @@
       }
     ]
   },
-  "readme": "README.md"
+  "readme": "README.md",
+  "i18n": {
+    "defaultLocale": "zh-CN",
+    "locales": {
+      "zh-CN": "locales/zh-CN.json",
+      "en": "locales/en.json"
+    }
+  }
 }

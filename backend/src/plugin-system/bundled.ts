@@ -3,6 +3,7 @@ import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/
 import { dirname, join, resolve, sep } from 'node:path'
 import { parsePluginManifest, type PluginDetails } from '@webnav/shared'
 import { releaseFile } from './git.ts'
+import { readPluginLocales } from './locales.ts'
 
 // Only the host-supplied installation directory is searched. Git packages cannot claim this source.
 export async function loadBundledPlugins(directory: string, releases: string) {
@@ -48,6 +49,7 @@ export async function loadBundledPlugins(directory: string, releases: string) {
         }
       } finally { if (!temporary.startsWith(resolve(releases) + sep)) throw new Error('清理路径无效。'); await rm(temporary, { recursive: true, force: true }) }
       const mime = manifest.icon.endsWith('.svg') ? 'image/svg+xml' : manifest.icon.endsWith('.png') ? 'image/png' : manifest.icon.endsWith('.webp') ? 'image/webp' : 'image/jpeg'
+      await readPluginLocales(target, manifest)
       plugins.push({ manifest, repository: 'bundled:' + manifest.id, commit, readme: files.get(manifest.readme ?? 'README.md')?.toString('utf8') ?? '', iconDataUrl: `data:${mime};base64,${files.get(manifest.icon)!.toString('base64')}`, fetchedAt: Date.now(), cached: true, reasons: [] })
     } catch (cause) { if (verifyingRelease) invalidReleases.push(verifyingRelease); errors.push(`${entry.name}：${cause instanceof Error ? cause.message : '随附插件读取失败。'}`) }
   }

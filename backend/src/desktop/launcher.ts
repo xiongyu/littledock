@@ -28,10 +28,10 @@ export async function launch(mode: RunMode, options: { console?: boolean; source
         else reject(new Error('托盘启动失败。'))
       })
     })
-    if (status.state !== 'running' || status.error) { console.error(status.error ?? 'WebNav 未启动完成，请检查端口与依赖。'); process.exitCode = 1 }
-    else if (status.reused) console.log(`已打开正在运行的 WebNav：${status.url}`)
-    else if (status.presentation === 'tray') console.log(`WebNav 已在后台运行：${status.url}\n右下角托盘：打开主页 / 开机启动 / 重启 / 退出。现在可以关闭此终端。`)
-    else console.log(`WebNav 已在前台运行：${status.url}（Ctrl+C 退出）`)
+    if (status.state !== 'running' || status.error) { console.error(status.error ?? '小站未启动完成，请检查端口与依赖。'); process.exitCode = 1 }
+    else if (status.reused) console.log(`已打开正在运行的小站：${status.url}`)
+    else if (status.presentation === 'tray') console.log(`小站已在后台运行：${status.url}\n右下角托盘：打开主页 / 开机启动 / 重启 / 退出。现在可以关闭此终端。`)
+    else console.log(`小站已在前台运行：${status.url}（Ctrl+C 退出）`)
     if (foreground) {
       process.send?.({ type: status.state === 'running' ? 'ready' : 'failed' })
       const code = await exited

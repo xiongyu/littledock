@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "id": "builtin.appearance",
-  "name": "WebNav 默认主题",
+  "name": "小站默认主题",
   "version": "0.1.0",
-  "description": "清爽的灰绿工作台配色。恢复默认界面，保留浏览器里的其他外观方案；内置外观面板还提供浅砂、远山、夜航与雾岚湖畔。",
-  "author": "WebNav",
-  "license": "随 WebNav 项目许可证",
+  "description": "小站默认明暗主题：晨雾小港与暮色归港。保留已上传图片，内置外观面板还提供雾松、浅砂、远山、夜航与雾岚湖畔。",
+  "author": "LittleDock",
+  "license": "随小站项目许可证",
   "category": "themes",
   "secondaryCategories": [],
   "apiVersion": 1,
-  "webnav": "^0.1.0",
+  "webnav": "^0.1.3",
   "node": ">=22.12.0",
   "platforms": [
     {
@@ -53,7 +53,14 @@
   "dataVersion": 1,
   "automation": {
     "version": 1,
-    "description": "清爽的灰绿工作台配色。恢复默认界面，保留浏览器里的其他外观方案；内置外观面板还提供浅砂、远山、夜航与雾岚湖畔。 此版本仅提供人工界面，没有开放 AI 执行工具。",
+    "description": "小站默认明暗主题：晨雾小港与暮色归港。保留已上传图片，内置外观面板还提供雾松、浅砂、远山、夜航与雾岚湖畔。 此版本仅提供人工界面，没有开放 AI 执行工具。",
     "tools": []
+  },
+  "i18n": {
+    "defaultLocale": "zh-CN",
+    "locales": {
+      "zh-CN": "locales/zh-CN.json",
+      "en": "locales/en.json"
+    }
   }
 }

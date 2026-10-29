@@ -1,5 +1,7 @@
+import { errorMessageRef, type MessageRef } from '@webnav/shared'
 export class AppError extends Error {
   code: string
+  messageRef?: MessageRef
   constructor(code: string, message: string) { super(message); this.code = code }
 }
 export function record(value: unknown): Record<string, unknown> {
@@ -15,5 +17,6 @@ export function integer(value: unknown, min: number, max: number): number {
   return value
 }
 export function publicError(cause: unknown) {
-  return cause instanceof AppError ? { code: cause.code, message: cause.message } : { code: 'INTERNAL', message: '本地服务处理失败，请检查配置或重试。' }
+  const messageRef = errorMessageRef(cause)
+  return cause instanceof AppError ? { code: cause.code, message: cause.message, ...(messageRef ? { messageRef } : {}) } : { code: 'INTERNAL', message: '本地服务处理失败，请检查配置或重试。' }
 }

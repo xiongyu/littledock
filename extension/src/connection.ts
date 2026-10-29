@@ -10,7 +10,7 @@ export class LocalConnection {
   private heartbeat?: ReturnType<typeof setInterval>
   generation = 0
   constructor(private pairing: ExtensionPairing, private origin: string) {}
-  close(message = '与 WebNav 的连接已断开，请重新操作。') {
+  close(message = '与小站的连接已断开，请重新操作。') {
     this.generation++
     const ws = this.socket; this.socket = undefined; this.cipher = undefined; clearInterval(this.heartbeat)
     if (ws && ws.readyState < WebSocket.CLOSING) ws.close()
@@ -31,17 +31,17 @@ export class LocalConnection {
     return new Promise<void>((resolve, reject) => {
       let done = false, transcript = '', stage: 'challenge' | 'proof' | 'ready' = 'challenge'
       const fail = (message: string) => { if (!done) { done = true; clearTimeout(timer); reject(new Error(message)) } if (this.socket === ws) this.close(message) }
-      const timer = setTimeout(() => fail('WebNav 连接超时，请确认本机服务已启动。'), 10_000)
-      ws.onerror = () => fail('无法连接本机 WebNav，请确认服务已启动。')
-      ws.onclose = () => fail('WebNav 已锁定、授权被撤销或连接已断开。请解锁后重新操作。')
+      const timer = setTimeout(() => fail('小站连接超时，请确认本机服务已启动。'), 10_000)
+      ws.onerror = () => fail('无法连接本机小站，请确认服务已启动。')
+      ws.onclose = () => fail('小站已锁定、授权被撤销或连接已断开。请解锁后重新操作。')
       ws.onmessage = event => {
         this.incoming = this.incoming.then(async () => {
           if (this.socket !== ws || ws.readyState !== WebSocket.OPEN) return
           if (typeof event.data !== 'string' || event.data.length > 36_000) throw new Error('扩展响应超出限制。')
           const message = extensionRecord(JSON.parse(event.data))
-          if (message.type === 'unavailable') throw new Error('请先打开 WebNav，输入主密码解锁。')
+          if (message.type === 'unavailable') throw new Error('请先打开小站，输入主密码解锁。')
           if (stage === 'challenge') {
-            if (message.v !== 1 || message.type !== 'challenge' || message.serverId !== this.pairing.serverId) throw new Error('本机服务身份不匹配，请在 WebNav 重新配对。')
+            if (message.v !== 1 || message.type !== 'challenge' || message.serverId !== this.pairing.serverId) throw new Error('本机服务身份不匹配，请在小站重新配对。')
             const nonce = randomExtensionNonce()
             transcript = extensionTranscript(this.pairing.serverId, this.pairing.endpoint, this.origin, this.pairing.id, extensionString(message.nonce, 43), nonce)
             const proof = await extensionProof(this.pairing.key, transcript, 'client')

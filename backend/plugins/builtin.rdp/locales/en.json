@@ -1,0 +1,4 @@
+{
+  "metadata.name": "Windows Remote Desktop",
+  "metadata.description": "Launches the system Remote Desktop client with display settings and credentials saved per connection, preserving the client's separate windows."
+}

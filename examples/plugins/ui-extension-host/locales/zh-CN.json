@@ -1,0 +1,14 @@
+{
+  "m0842b32a1d81": "右键打开示例菜单",
+  "m9723dfceb0f0": "插件自身的默认内容",
+  "m2b195835111e": "默认标签",
+  "m1011b8cb289f": "这是独立插件自己声明的区域。安装“进程诊断示例”后，会出现来自另一个插件的内容。",
+  "m59360a1de3a1": "界面扩展示例",
+  "metadata.name": "界面扩展示例",
+  "metadata.description": "界面扩展示例，仅演示公开界面扩展，不执行调试或进程操作",
+  "tools.main.title": "界面扩展示例",
+  "menuPoints.item.title": "示例项目菜单",
+  "uiPoints.summary.title": "示例摘要面板",
+  "uiPoints.actions.title": "示例操作栏",
+  "uiPoints.details.title": "示例详情标签"
+}

@@ -1,3 +1,6 @@
+
+import { pluginI18n } from './i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.sessions')
 export type SplitDirection = 'horizontal' | 'vertical'
 export interface WorkspaceEntry { sessionId: string; protocol: 'ssh' | 'rdp' | 'vnc' | 'local' | 'adb' | 'wdb'; detached?: boolean }
 export type TerminalLayout = { kind: 'pane'; sessionId: string } | TerminalBranch
@@ -13,7 +16,7 @@ export function constrainSplitRatio(ratio: number) { return Math.max(20, Math.mi
 
 // A split replaces only the selected leaf. Existing branches and session IDs survive.
 export function splitPane(layout: TerminalLayout, target: string, second: string, direction: SplitDirection, branchId: string): TerminalLayout {
-  if (!paneIds(layout).includes(target) || paneIds(layout).includes(second)) throw new Error('分屏目标已经改变，请重新操作。')
+  if (!paneIds(layout).includes(target) || paneIds(layout).includes(second)) throw new Error(i18nT('m4209bb6cf418'))
   const insert = (node: TerminalLayout): TerminalLayout => node.kind === 'pane'
     ? node.sessionId === target ? { kind: 'split', id: branchId, direction, ratio: 50, first: node, second: { kind: 'pane', sessionId: second } } : node
     : { ...node, first: insert(node.first), second: insert(node.second) }
@@ -35,9 +38,9 @@ export function removePane(groups: readonly TerminalGroup[], id: string): Termin
 }
 
 export function joinPane(groups: readonly TerminalGroup[], entries: readonly WorkspaceEntry[], target: string, second: string, direction: SplitDirection, branchId: string): TerminalGroup[] {
-  if ([target, second].some(id => !entries.some(item => item.sessionId === id && item.protocol === 'ssh' && !item.detached))) throw new Error('只能对主页中的 SSH 终端分屏。')
+  if ([target, second].some(id => !entries.some(item => item.sessionId === id && item.protocol === 'ssh' && !item.detached))) throw new Error(i18nT('m8af73c0649e0'))
   const destination = groups.find(group => paneIds(group.layout).includes(target))
-  if (!destination || !groups.some(group => paneIds(group.layout).includes(second)) || paneIds(destination.layout).includes(second)) throw new Error('请选择其他标签中的 SSH 终端。')
+  if (!destination || !groups.some(group => paneIds(group.layout).includes(second)) || paneIds(destination.layout).includes(second)) throw new Error(i18nT('m2c998449478f'))
   const layout = splitPane(destination.layout, target, second, direction, branchId)
   return removePane(groups, second).map(group => group.id === destination.id ? { ...group, layout, focusedId: target } : group)
 }

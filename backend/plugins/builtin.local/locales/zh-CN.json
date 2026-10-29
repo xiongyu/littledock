@@ -1,0 +1,4 @@
+{
+  "metadata.name": "本地终端",
+  "metadata.description": "在工作区使用本机交互终端，自动选择系统 Shell，也可选择 PowerShell、CMD、Bash 或 Zsh。"
+}

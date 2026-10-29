@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from './i18n.ts'
+const { t: i18nT } = pluginI18n('core')
+
 import { computed, defineAsyncComponent, markRaw, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { fileEditors } from './file-editors'
 import { workspaceSnapshot } from './backend'
@@ -30,6 +33,7 @@ import { activePluginTab, pluginTabs, pluginTools, openPluginTool, openPluginSet
 import PluginSettingsPage from './components/PluginSettingsPage.vue'
 import { pluginViews, pluginState, connectorProvider } from './plugins'
 import { useAppearance } from './appearance'
+import BackgroundMedia from './components/BackgroundMedia.vue'
 import { groupDescendants, protocolNames, orderedGroups } from './catalog'
 import type { Connection, Group, Protocol, Server } from './catalog'
 import { serializeCatalog } from './catalog-management'
@@ -49,7 +53,7 @@ import { useSessionPreviews } from './session-previews'
 const appearance = useAppearance()
 setPluginSettingsOpener((id, section) => {
   const manifest = pluginState.value?.installed.find(plugin => plugin.manifest.id === id)?.manifest ?? pluginState.value?.builtins.find(plugin => plugin.id === id)?.manifest
-  if (!manifest) throw new Error('插件尚未安装。')
+  if (!manifest) throw new Error(i18nT('m0a41e89f29a8'))
   openSettingsTab(id, manifest.name, PluginSettingsPage, section)
 })
 const workspacePreferences = useWorkspacePreferences()
@@ -88,15 +92,15 @@ const searchInput = ref<HTMLInputElement>()
 const panelDialog = ref<HTMLDialogElement>()
 const panel = ref<'appearance' | 'editor' | 'connection' | 'vault' | 'credentials' | 'history' | 'terminalThemes' | 'terminalConnectionTheme' | 'browserExtension' | 'updates'>('appearance')
 const themeTarget = ref<{ serverId: string; connectionId: string }>()
-const dialogTitle = computed(() => ({ appearance: '让工作台，更像你。', editor: editingServer.value ? '编辑服务器' : '添加服务器', connection: '连接入口', vault: '全局设置', credentials: 'SSH 认证', history: '查看历史', terminalThemes: '终端配色', terminalConnectionTheme: '终端配色', browserExtension: '浏览器自动填写', updates: '工作台更新' })[panel.value])
+const dialogTitle = computed(() => ({ appearance: i18nT('m0380b8cae48f'), editor: editingServer.value ? i18nT('m7dc5cd68ff29') : i18nT('mebf91996f8fe'), connection: i18nT('m3a8ffd4246b8'), vault: i18nT('m3f754f38a654'), credentials: i18nT('md8db7c0553c6'), history: i18nT('ma5783b941d7d'), terminalThemes: i18nT('m3e7571c83eac'), terminalConnectionTheme: i18nT('m3e7571c83eac'), browserExtension: i18nT('mb84e79c88754'), updates: i18nT('m50303a8bf686') })[panel.value])
 const favoriteServers = computed(() => servers.value.filter(server => server.favorite))
-const groupName = (id: string) => groups.value.find(group => group.id === id)?.name ?? '未分组'
+const groupName = (id: string) => groups.value.find(group => group.id === id)?.name ?? i18nT('me86ea3f280d9')
 const groupCount = (id: string) => {
   const ids = groupDescendants(id, groups.value)
   return servers.value.filter(server => ids.has(server.groupId)).length
 }
-const pageTitles = new Map([['all', '所有服务器'], ['favorites', '收藏夹'], ['recent', '最近使用'], ['manage', '管理中心'], ['@plugins', '插件中心']])
-const pageName = computed(() => pageTitles.get(selected.value) ?? groupName(selected.value))
+const pageTitles = () => new Map([['all', i18nT('m399597c455f7')], ['favorites', i18nT('m796d20e91588')], ['recent', i18nT('m39a9046f9c8c')], ['manage', i18nT('m64b3e602bf0e')], ['@plugins', i18nT('mb1e1262a1205')]])
+const pageName = computed(() => pageTitles().get(selected.value) ?? groupName(selected.value))
 const filteredServers = computed(() => {
   const ids = groupDescendants(selected.value, groups.value)
   const text = query.value.trim().toLocaleLowerCase()
@@ -124,8 +128,8 @@ async function favorite(id: string) {
   const server = servers.value.find(item => item.id === id)
   if (server) {
     const nextServers = servers.value.map(item => item.id === id ? { ...item, favorite: !item.favorite } : item)
-    try { serializeCatalog(groups.value, nextServers) } catch (cause) { notify(cause instanceof Error ? cause.message : '配置超出容量限制。'); return }
-    try { await saveCatalog(groups.value, nextServers) } catch (cause) { notify(cause instanceof Error ? cause.message : '保存失败。'); return }; notify(!server.favorite ? `已收藏 ${server.name}` : `已取消收藏 ${server.name}`)
+    try { serializeCatalog(groups.value, nextServers) } catch (cause) { notify(cause instanceof Error ? cause.message : i18nT('mf64681b7cad5')); return }
+    try { await saveCatalog(groups.value, nextServers) } catch (cause) { notify(cause instanceof Error ? cause.message : i18nT('mcf1487e7aa89')); return }; notify(!server.favorite ? i18nT('md114e063dc06', { p0: (server.name) }) : i18nT('mf86fb84d59c2', { p0: (server.name) }))
   }
 }
 async function showPanel(target: typeof panel.value) {
@@ -199,29 +203,29 @@ async function persistServer(server: Server): Promise<boolean> {
   editorSaveError.value = ''
   const index = servers.value.findIndex(item => item.id === server.id)
   const nextServers = index >= 0 ? servers.value.map(item => item.id === server.id ? server : item) : [...servers.value, server]
-  try { serializeCatalog(groups.value, nextServers) } catch (cause) { editorSaveError.value = cause instanceof Error ? cause.message : '配置超出容量限制。'; return false }
+  try { serializeCatalog(groups.value, nextServers) } catch (cause) { editorSaveError.value = cause instanceof Error ? cause.message : i18nT('mf64681b7cad5'); return false }
   editorBusy.value = true
   try { await saveCatalog(groups.value, nextServers, editor.value?.getRdpPasswordUpdates()) }
-  catch (cause) { editorSaveError.value = cause instanceof Error ? cause.message : '保存失败。'; return false }
+  catch (cause) { editorSaveError.value = cause instanceof Error ? cause.message : i18nT('mcf1487e7aa89'); return false }
   finally { editorBusy.value = false }
-  notify('已保存到本机数据库。')
+  notify(i18nT('m63378bb0d3c5'))
   return true
 }
 async function saveServer(server: Server) { if (await persistServer(server)) closePanelImmediately() }
 async function deleteServer(id: string) {
   if (editorBusy.value) return
   editorBusy.value = true
-  try { await saveCatalog(groups.value, servers.value.filter(server => server.id !== id)) } catch (cause) { notify(cause instanceof Error ? cause.message : '删除失败。'); return }
+  try { await saveCatalog(groups.value, servers.value.filter(server => server.id !== id)) } catch (cause) { notify(cause instanceof Error ? cause.message : i18nT('mf06e4127fc8b')); return }
   finally { editorBusy.value = false }
   recent.value = recent.value.filter(item => item !== id)
-  closePanelImmediately(); notify('已删除服务器。')
+  closePanelImmediately(); notify(i18nT('m3346cdb8721e'))
 }
 function manageGroups() { navigate('manage'); managementTab.value = 'groups' }
 
 const previewConnection = ref<{ server: Server; connection: Connection }>()
 const credentialTarget = ref<{ serverId: string; connectionId: string }>()
 const historyServer = ref('')
-const terminals = ref<{sessionId:string;attachToken:string;name:string;serverId:string;connectionId:string;ai?:boolean;page?:SessionPage;protocol:'ssh'|'rdp'|'vnc'|'local'|'adb'|'wdb';display?:Connection['rdpDisplay'];status:string;floating:boolean;order:number;focusRequest:number}[]>([])
+const terminals = ref<{sessionId:string;attachToken:string;name:string;serverId:string;connectionId:string;ai?:boolean;page?:SessionPage;protocol:'ssh'|'rdp'|'vnc'|'local'|'adb'|'wdb';display?:Connection['rdpDisplay'];running?:boolean;status:string;floating:boolean;order:number;focusRequest:number}[]>([])
 const activeTerminal = ref(''), openingConnection = ref(false)
 watch(activeTerminal, id => { if(id) activePluginTab.value = '' })
 watch(activePluginTab, id => { if (id) { activeTerminal.value = ''; mobileOpen.value = false } })
@@ -255,7 +259,7 @@ async function saveWorkspace(){
       const result=await rpc<{revision:number}>('workspace.save',{expectedRevision:workspaceRevision,view:JSON.parse(JSON.stringify(workspaceView.value))},true)
       workspaceRevision=result.revision
     }
-  }catch(cause){workspaceDirty=false;notify(cause instanceof Error?cause.message:'工作区布局保存失败。')}
+  }catch(cause){workspaceDirty=false;notify(cause instanceof Error?cause.message:i18nT('mb32cf2cf37f1'))}
   finally{savingWorkspace=false}
 }
 watch(workspaceView,()=>{if(restoringWorkspace)return;clearTimeout(workspaceSaveTimer);workspaceSaveTimer=setTimeout(()=>{void saveWorkspace()},80)},{deep:true})
@@ -267,7 +271,7 @@ watch(workspaceSnapshot,snapshot=>{
   const existing=new Set(terminals.value.map(t=>t.sessionId))
   for(const session of snapshot.sessions)if(!existing.has(session.sessionId)){
     const connection=servers.value.find(s=>s.id===session.serverId)?.connections.find(c=>c.id===session.connectionId)
-    terminals.value.push({...session,attachToken:'',display:connection?.rdpDisplay,status:'正在恢复…',floating:snapshot.view.floating.includes(session.sessionId),order:0,focusRequest:0})
+    terminals.value.push({...session,attachToken:'',display:connection?.rdpDisplay,status:i18nT('m72d43fc16d53'),floating:snapshot.view.floating.includes(session.sessionId),order:0,focusRequest:0})
     previews.add(session.sessionId,session.serverId,session.protocol)
   }
   const available=new Set(terminals.value.map(t=>t.sessionId))
@@ -282,7 +286,7 @@ const inspectorTerminal = computed(()=>{const item=terminals.value.find(item=>it
 const terminalNumbers=computed(()=>new Map(terminalGroups.value.flatMap(group=>{const ids=paneIds(group.layout);return terminals.value.filter(item=>ids.includes(item.sessionId)&&item.protocol==='ssh').map((item,index)=>[item.sessionId,index+1] as const)})))
 const fileSources=ref<Record<string,string>>({}),fileLocateRequest=ref(0)
 const paneLocatePulse=ref<{id:string;request:number}>()
-const fileTargets=computed(()=>{const ids=activeGroup.value?paneIds(activeGroup.value.layout):[];return terminals.value.filter(item=>ids.includes(item.sessionId)&&item.protocol==='ssh').map(item=>({sessionId:item.sessionId,name:item.name,number:terminalNumbers.value.get(item.sessionId)??1,ready:item.status==='已连接'}))})
+const fileTargets=computed(()=>{const ids=activeGroup.value?paneIds(activeGroup.value.layout):[];return terminals.value.filter(item=>ids.includes(item.sessionId)&&item.protocol==='ssh').map(item=>({sessionId:item.sessionId,name:item.name,number:terminalNumbers.value.get(item.sessionId)??1,ready:item.running === true}))})
 const fileTerminal=computed(()=>fileTargets.value.find(item=>item.sessionId===fileSources.value[activeGroup.value?.id??''])??fileTargets.value[0])
 function locateFilePane(id:string){if(activeGroup.value){fileSources.value[activeGroup.value.id]=id;fileLocateRequest.value++;paneLocatePulse.value={id,request:fileLocateRequest.value}}}
 watch(connectionState,state=>{if(state==='locked')fileEditors.value=[]})
@@ -321,13 +325,13 @@ const tabMenuItems = computed(()=>{
   const multiple=!!group&&paneIds(group.layout).length>1
   const scoped=multiple&&tabMenu.value?.groupId
   return [
-    {id:'reconnect',label:scoped?'重连当前终端':'重新连接',disabled:openingConnection.value||connectionState.value!=='ready'},
-    {id:'configure',label:scoped?'当前终端配置…':'连接配置…',disabled:connectionState.value!=='ready'},
-    ...(item?.protocol==='ssh'&&!item.page?[{id:'page',label:'移到独立页面',separator:true,disabled:detaching.value.has(item.sessionId)}]:[]),
-    {id:item?.floating||item?.page?'dock':'float',label:item?.floating||item?.page?'收回工作区':'悬浮窗口'},
-    ...(item?.protocol==='ssh'&&!item.page?[{id:'horizontal',label:'左右分屏',separator:true,disabled:openingConnection.value},{id:'vertical',label:'上下分屏',disabled:openingConnection.value},...(multiple?[{id:'unsplit',label:'移到单独标签'}]:[])]:[]),
-    ...(multiple&&item&&!item.floating&&!item.page?[{id:'minimize',label:minimized.value.has(item.sessionId)?'还原终端':'最小化终端'}]:[]),
-    {id:'close',label:scoped?'关闭整组终端':multiple?'关闭当前终端':'关闭',separator:true,danger:true},
+    {id:'reconnect',label:scoped?i18nT('mcfd5fdcdad31'):i18nT('m68891ab35cab'),disabled:openingConnection.value||connectionState.value!=='ready'},
+    {id:'configure',label:scoped?i18nT('m376e4a5dc047'):i18nT('m398ddac33fc3'),disabled:connectionState.value!=='ready'},
+    ...(item?.protocol==='ssh'&&!item.page?[{id:'page',label:i18nT('mea3c4ba8dc20'),separator:true,disabled:detaching.value.has(item.sessionId)}]:[]),
+    {id:item?.floating||item?.page?'dock':'float',label:item?.floating||item?.page?i18nT('mff2ed63b8d31'):i18nT('mf561772757ea')},
+    ...(item?.protocol==='ssh'&&!item.page?[{id:'horizontal',label:i18nT('m62ed1b06404f'),separator:true,disabled:openingConnection.value},{id:'vertical',label:i18nT('m3d63360a3d6e'),disabled:openingConnection.value},...(multiple?[{id:'unsplit',label:i18nT('mdc6f15e55a48')}]:[])]:[]),
+    ...(multiple&&item&&!item.floating&&!item.page?[{id:'minimize',label:minimized.value.has(item.sessionId)?i18nT('m5a0c2dc7447c'):i18nT('medb9838be019')}]:[]),
+    {id:'close',label:scoped?i18nT('m73db853631ba'):multiple?i18nT('m2052c6687942'):i18nT('m3fd47edce45b'),separator:true,danger:true},
   ]
 })
 function focusMain(){window.focus()}
@@ -342,7 +346,7 @@ function configureTerminal(id:string){
   window.focus()
   const item=terminals.value.find(item=>item.sessionId===id)
   const server=servers.value.find(server=>server.id===item?.serverId)
-  if(server)edit(server);else notify('这个服务器入口已被删除。')
+  if(server)edit(server);else notify(i18nT('m54ac8cb1649b'))
 }
 function terminalTheme(id:string){const item=terminals.value.find(item=>item.sessionId===id);return servers.value.find(server=>server.id===item?.serverId)?.connections.find(connection=>connection.id===item?.connectionId)?.terminalThemeId}
 function openTerminalColors(id?: string) {
@@ -363,7 +367,7 @@ function applySplit(second:string,picker=splitPicker.value){
     terminalGroups.value=joinPane(terminalGroups.value,terminals.value.map(item=>({...item,detached:!!item.page})),picker.id,second,picker.direction,crypto.randomUUID())
     for(const item of terminals.value)if(item.sessionId===picker.id||item.sessionId===second)item.floating=false
     selectTerminal(picker.id);splitPicker.value=undefined
-  }catch(cause){notify(cause instanceof Error?cause.message:'无法分屏')}
+  }catch(cause){notify(cause instanceof Error?cause.message:i18nT('me0c2a49a333b'))}
 }
 async function newSplit(picker=splitPicker.value){
   if(!picker || openingConnection.value)return
@@ -400,18 +404,18 @@ function resizeSplit(event:PointerEvent,handle:SplitHandle){
 async function reconnectTerminal(id:string){
   const item=terminals.value.find(item=>item.sessionId===id)
   const server=servers.value.find(server=>server.id===item?.serverId),connection=server?.connections.find(connection=>connection.id===item?.connectionId)
-  if(!item||!server||!connection){notify('连接入口已删除，请重新配置。');return}
-  if(item.ai){notify('AI 终端由任务管理，请在任务中重新建立连接。');return}
+  if(!item||!server||!connection){notify(i18nT('m4b03b320675a'));return}
+  if(item.ai){notify(i18nT('m9579147dff8a'));return}
   if(openingConnection.value)return
-  if(connection.type!==item.protocol||!opensInWorkspace(connection)){notify('入口的连接方式已变更，请从目录重新打开。');return}
+  if(connection.type!==item.protocol||!opensInWorkspace(connection)){notify(i18nT('m7a9ea24a26a4'));return}
   openingConnection.value=true
   try{
-    if(item.status==='已结束'){
+    if(!item.running){
       const snapshot=await rpc<{sessions:{sessionId:string}[]}>('workspace.snapshot')
       if(snapshot.sessions.some(s=>s.sessionId===id)){
         const method=['ssh','local'].includes(item.protocol)?'sessions.attachTicket':['adb','wdb'].includes(item.protocol)?'devices.attachTicket':'desktops.attachTicket'
         const ticket=await rpc<{attachToken:string}>(method,{sessionId:id})
-        item.attachToken=ticket.attachToken;item.status='正在恢复…';return
+        item.attachToken=ticket.attachToken;item.status=i18nT('m72d43fc16d53');return
       }
     }
     // Explicit reconnect releases only this resource, leaving its workspace slot intact.
@@ -420,11 +424,11 @@ async function reconnectTerminal(id:string){
     const index=terminals.value.indexOf(item)
     if(index<0){await rpc(closeMethod(item.protocol),{sessionId:opened.sessionId},true);return}
     previews.remove(id);previews.add(opened.sessionId,server.id,item.protocol)
-    terminals.value[index]={...item,...opened,status:'连接中'}
+    terminals.value[index]={...item,...opened,status:i18nT('ma898478be181')}
     if(minimized.value.delete(id))minimized.value.add(opened.sessionId)
     for(const group of terminalGroups.value){group.layout=replacePane(group.layout,id,opened.sessionId);if(group.focusedId===id)group.focusedId=opened.sessionId}
     if(activeTerminal.value===id)activeTerminal.value=opened.sessionId
-  }catch(cause){notify(cause instanceof Error?cause.message:'重连失败。')}
+  }catch(cause){notify(cause instanceof Error?cause.message:i18nT('mcd56e3cbc736'))}
   finally{openingConnection.value=false}
 }
 async function detachTerminal(id:string){
@@ -433,10 +437,10 @@ async function detachTerminal(id:string){
   detaching.value.add(id)
   let page:SessionPage|undefined
   try { page=await openSessionPage(item.name,()=>{const current=terminals.value.find(entry=>entry.page?.window===page?.window);if(current)dockTerminal(current.sessionId)}) }
-  catch(cause){notify(cause instanceof Error?cause.message:'无法打开独立页面。');return}
+  catch(cause){notify(cause instanceof Error?cause.message:i18nT('m104a9201d1e9'));return}
   finally{detaching.value.delete(id)}
   if(!terminals.value.includes(item)){page?.dispose();return}
-  if(!page){notify('浏览器拦截了独立页面，请允许弹出窗口后重试。');return}
+  if(!page){notify(i18nT('m0d57adefaec1'));return}
   item.page=markRaw(page);item.floating=false;minimized.value.delete(id)
   if(activeTerminal.value===id)selectAvailable(groupFor(id)?.id)
 }
@@ -540,28 +544,28 @@ async function connect(server: Server, connection: Connection, splitTarget?:{id:
   try {
     const extension=connectorProvider(connection)
     if(extension?.open){await extension.open(server.id,connection.id);return}
-    if(connection.type.startsWith('plugin:'))throw new Error('此入口的插件视图不可用，请在插件中心检查；配置已保留。')
+    if(connection.type.startsWith('plugin:'))throw new Error(i18nT('m0f571afd1840'))
     if(connection.type==='web') { previewConnection.value={server,connection};void openPanel('connection');return }
     if(connection.type==='ssh') {
       const credential=await rpc<{configured:boolean}>('credentials.describe',{serverId:server.id,connectionId:connection.id})
       if(!credential.configured){credentials(server.id,connection.id);return}
     }
     if(opensInWorkspace(connection) && (connection.type==='ssh'||connection.type==='rdp'||connection.type==='vnc'||connection.type==='local'||connection.type==='adb'||connection.type==='wdb')) {
-      if(terminals.value.length>=8)throw new Error('请先关闭一个会话，最多保留 8 个会话（含分屏）。')
+      if(terminals.value.length>=8)throw new Error(i18nT('mb7ce6a32d72f'))
       const opened=await rpc<{sessionId:string;attachToken:string}>('connections.open',{serverId:server.id,connectionId:connection.id},true)
       // The user may close the parent tab while the new SSH connection is pending.
       if(splitTarget&&!terminals.value.some(item=>item.sessionId===splitTarget.id)){
         await rpc('sessions.close',{sessionId:opened.sessionId},true);return
       }
       previews.add(opened.sessionId,server.id,connection.type)
-      terminals.value.push({...opened,name:`${server.name} · ${connection.name}`,serverId:server.id,connectionId:connection.id,protocol:connection.type,display:connection.rdpDisplay,status:'连接中',floating:false,order:0,focusRequest:0});activeTerminal.value=opened.sessionId
+      terminals.value.push({...opened,name:`${server.name} · ${connection.name}`,serverId:server.id,connectionId:connection.id,protocol:connection.type,display:connection.rdpDisplay,status:i18nT('ma898478be181'),floating:false,order:0,focusRequest:0});activeTerminal.value=opened.sessionId
       addTerminalGroup(opened.sessionId)
       if(splitTarget)applySplit(opened.sessionId,splitTarget)
     } else {
-      await rpc('connections.open',{serverId:server.id,connectionId:connection.id},true);notify('远程桌面客户端已启动。')
+      await rpc('connections.open',{serverId:server.id,connectionId:connection.id},true);notify(i18nT('m5e20e7ce9e23'))
     }
     recent.value=[server.id,...recent.value.filter(id=>id!==server.id)]
-  } catch(cause){notify(cause instanceof Error?cause.message:'无法打开连接。')} finally {openingConnection.value=false}
+  } catch(cause){notify(cause instanceof Error?cause.message:i18nT('ma445790b3fa7'))} finally {openingConnection.value=false}
 }
 function keyboard(event: KeyboardEvent) {
   if (connectionState.value !== 'ready') return
@@ -581,81 +585,81 @@ onBeforeUnmount(() => { closeSessionPages();window.removeEventListener('pagehide
     <VaultUnlock />
     <RemoteEditorPanel />
     <RemoteFileEditor v-for="editor in fileEditors" :key="editor.id" :document="editor"/>
-    <button v-if="mobileOpen" class="nav-scrim" aria-label="关闭导航" @click="mobileOpen = false"></button>
-    <aside :inert="workspacePreferences.navigationClosed && !navigationPeek && !mobileOpen || undefined" :class="['sidebar', { 'mobile-open': mobileOpen }]" :style="{ '--page': appearance.settings.value.left.color }" :data-theme="appearance.sidebarDark.value ? 'dark' : 'light'" aria-label="工作空间导航">
-      <img v-if="appearance.backgroundImages.value.left" class="region-background" :class="{'scene-background':appearance.settings.value.left.preset}" :src="appearance.backgroundImages.value.left" alt="" />
-      <a href="#" class="brand" aria-label="WebNav · 返回工作台" title="WebNav · 返回工作台" @click.prevent="navigate('all')"><span class="brand-mark" aria-hidden="true"></span><strong>WebNav</strong></a>
-      <button class="icon-button mobile-close" aria-label="收起导航" @click="mobileOpen = false"><PhX :size="21" /></button>
+    <button v-if="mobileOpen" class="nav-scrim" :aria-label="i18nT('mbaf9f5c82ab8')" @click="mobileOpen = false"></button>
+    <aside :inert="workspacePreferences.navigationClosed && !navigationPeek && !mobileOpen || undefined" :class="['sidebar', { 'mobile-open': mobileOpen }]" :style="{ '--page': appearance.settings.value.left.color }" :data-theme="appearance.sidebarDark.value ? 'dark' : 'light'" :aria-label="i18nT('m056c999fb13a')">
+      <BackgroundMedia v-if="appearance.backgroundMedia.value.left" class="region-background" :class="{'scene-background':appearance.settings.value.left.preset || appearance.backgroundMedia.value.left.kind === 'video'}" :media="appearance.backgroundMedia.value.left" />
+      <a href="#" class="brand" :aria-label="i18nT('md9b82109ee6d')" :title="i18nT('md9b82109ee6d')" @click.prevent="navigate('all')"><img class="brand-mark" src="/brand/littledock-otter.png" alt="" aria-hidden="true" draggable="false" /><span class="brand-wordmark"><strong>{{ i18nT('brand.name') }}</strong><small>{{ i18nT('brand.subtitle') }}</small></span></a>
+      <button class="icon-button mobile-close" :aria-label="i18nT('m95ddfcc9901d')" @click="mobileOpen = false"><PhX :size="21" /></button>
       <nav class="main-navigation">
-        <p class="nav-label">工作空间</p>
-        <button v-for="item in [{ id: 'all', name: '所有服务器', icon: PhHardDrives }, { id: 'favorites', name: '收藏夹', icon: PhStar }, { id: 'recent', name: '最近使用', icon: PhClock }]" :key="item.id" :class="['nav-item', { active: selected === item.id }]" :aria-current="selected === item.id ? 'page' : undefined" @click="navigate(item.id)"><component :is="item.icon" :size="20" /><span>{{ item.name }}</span><small v-if="item.id === 'all' && catalogLoaded">{{ servers.length }}</small></button>
+        <p class="nav-label">{{ i18nT('m6fed7e860168') }}</p>
+        <button v-for="item in [{ id: 'all', name: i18nT('m399597c455f7'), icon: PhHardDrives }, { id: 'favorites', name: i18nT('m796d20e91588'), icon: PhStar }, { id: 'recent', name: i18nT('m39a9046f9c8c'), icon: PhClock }]" :key="item.id" :class="['nav-item', { active: selected === item.id }]" :aria-current="selected === item.id ? 'page' : undefined" @click="navigate(item.id)"><component :is="item.icon" :size="20" /><span>{{ item.name }}</span><small v-if="item.id === 'all' && catalogLoaded">{{ servers.length }}</small></button>
         <div class="nav-divider"></div>
-        <div class="group-label"><p class="nav-label">服务器分组</p><button class="icon-button small" aria-label="管理分组" @click="manageGroups"><PhPlus :size="17" /></button></div>
+        <div class="group-label"><p class="nav-label">{{ i18nT('m88eac6c5df32') }}</p><button class="icon-button small" :aria-label="i18nT('m25c3aad45894')" @click="manageGroups"><PhPlus :size="17" /></button></div>
         <button v-for="group in sidebarGroups" :key="group.id" :class="['nav-item', { active: selected === group.id }]" :style="{ paddingLeft: `${14 + group.depth * 14}px` }" :aria-current="selected === group.id ? 'page' : undefined" @click="navigate(group.id)"><PhFolderSimple :size="group.depth ? 17 : 20" /><span>{{ group.name }}</span><small>{{ groupCount(group.id) }}</small></button>
-        <button v-if="servers.some(server => !server.groupId)" :class="['nav-item', { active: selected === '' }]" @click="navigate('')"><PhFolderSimple :size="20" /><span>未分组</span><small>{{ servers.filter(server => !server.groupId).length }}</small></button>
+        <button v-if="servers.some(server => !server.groupId)" :class="['nav-item', { active: selected === '' }]" @click="navigate('')"><PhFolderSimple :size="20" /><span>{{ i18nT('me86ea3f280d9') }}</span><small>{{ servers.filter(server => !server.groupId).length }}</small></button>
       </nav>
-      <div class="sidebar-bottom"><p class="nav-label">工具</p><button v-for="tool in Object.values(pluginTools)" :key="tool.key" :class="['nav-item', { active: activePluginTab === tool.key }]" :disabled="connectionState !== 'ready'" @click="openPluginTool(tool.key)"><img v-if="tool.icon" :src="tool.icon" alt="" width="20" height="20" /><PhSquaresFour v-else :size="20" /><span>{{ tool.title }}</span></button><div class="nav-divider"></div><button :class="['nav-item', {active:selected==='@plugins'}]" @click="navigate('@plugins')"><PhSquaresFour :size="20"/><span>插件中心</span></button><button :class="['nav-item', { active: selected === 'manage' }]" @click="navigate('manage')"><PhGearSix :size="20" /><span>管理中心</span></button></div>
+      <div class="sidebar-bottom"><p class="nav-label">{{ i18nT('m5ca6730d4415') }}</p><button v-for="tool in Object.values(pluginTools)" :key="tool.key" :class="['nav-item', { active: activePluginTab === tool.key }]" :disabled="connectionState !== 'ready'" @click="openPluginTool(tool.key)"><img v-if="tool.icon" :src="tool.icon" alt="" width="20" height="20" /><PhSquaresFour v-else :size="20" /><span>{{ tool.title }}</span></button><div class="nav-divider"></div><button :class="['nav-item', {active:selected==='@plugins'}]" @click="navigate('@plugins')"><PhSquaresFour :size="20"/><span>{{ i18nT('mb1e1262a1205') }}</span></button><button :class="['nav-item', { active: selected === 'manage' }]" @click="navigate('manage')"><PhGearSix :size="20" /><span>{{ i18nT('m64b3e602bf0e') }}</span></button></div>
     </aside>
-    <div v-if="!workspacePreferences.navigationClosed" class="navigation-resizer" role="separator" aria-label="调整导航宽度" aria-orientation="vertical" tabindex="0" :aria-valuenow="workspacePreferences.navigationWidth" aria-valuemin="164" aria-valuemax="400" @pointerdown="resizeNavigation" @keydown.left.prevent="workspacePreferences.navigationWidth=Math.max(164,workspacePreferences.navigationWidth-16)" @keydown.right.prevent="workspacePreferences.navigationWidth=Math.min(400,workspacePreferences.navigationWidth+16)" @dblclick="workspacePreferences.navigationWidth=232"></div>
+    <div v-if="!workspacePreferences.navigationClosed" class="navigation-resizer" role="separator" :aria-label="i18nT('me575476759cb')" aria-orientation="vertical" tabindex="0" :aria-valuenow="workspacePreferences.navigationWidth" aria-valuemin="164" aria-valuemax="400" @pointerdown="resizeNavigation" @keydown.left.prevent="workspacePreferences.navigationWidth=Math.max(164,workspacePreferences.navigationWidth-16)" @keydown.right.prevent="workspacePreferences.navigationWidth=Math.min(400,workspacePreferences.navigationWidth+16)" @dblclick="workspacePreferences.navigationWidth=232"></div>
 
     <div class="workspace" :class="{ 'has-terminal-tabs': terminals.length || pluginTabs.length, 'terminal-active': activeTerminal || activePluginTab }" :inert="mobileOpen || undefined">
-      <div class="workspace-background" aria-hidden="true"><img v-if="appearance.backgroundImages.value.right" class="region-background" :class="{'scene-background':appearance.settings.value.right.preset}" :src="appearance.backgroundImages.value.right" alt="" /></div>
-      <header class="topbar"><button class="icon-button navigation-toggle" :aria-label="workspacePreferences.navigationClosed?'固定展开导航':'收起导航'" :title="workspacePreferences.navigationClosed?'固定展开导航':'收起导航'" @click="toggleNavigation"><PhSidebarSimple :size="21" /></button><WorkspaceTabs v-if="allWorkspaceTabs.length" :terminals="allWorkspaceTabs" :active-id="activePluginTab || (activeGroup?.id ?? '')" :directory-name="pageName" @select="selectGroup" @close="closeGroup" @menu="menuGroup" /><div v-else class="breadcrumb"><span>工作空间</span><span class="breadcrumb-separator">/</span><strong>{{ pageName }}</strong></div><div class="topbar-actions"><template v-if="inspectorTerminal"><button class="icon-button inspector-toggle" :aria-pressed="workspacePreferences.systemOpen" aria-label="切换系统信息栏" title="系统信息" @click="workspacePreferences.systemOpen=!workspacePreferences.systemOpen"><PhCpu :size="20"/></button><button class="icon-button inspector-toggle" :aria-pressed="workspacePreferences.filesOpen" aria-label="切换文件栏" title="文件" @click="workspacePreferences.filesOpen=!workspacePreferences.filesOpen"><PhFolderOpen :size="20"/></button></template><label class="global-search"><PhMagnifyingGlass :size="19" /><input ref="searchInput" v-model="query" @input="searchServers" aria-label="搜索服务器、IP 或标签" placeholder="搜索服务器" /><button v-if="query" class="search-clear" aria-label="清空搜索" @click="query = ''"><PhX :size="14" /></button><kbd v-else>Ctrl K</kbd></label><button class="icon-button" aria-label="全局设置" title="全局设置" :disabled="connectionState !== 'ready'" @click="openPanel('vault')"><PhGearSix :size="21" /></button><button class="icon-button appearance-shortcut" aria-label="打开外观设置" title="外观设置" @click="openPanel('appearance')"><PhTShirt :size="21" /></button><span class="preview-label">{{ connectionState === 'ready' ? '本机' : '离线' }}</span></div></header>
+      <div class="workspace-background" aria-hidden="true"><BackgroundMedia v-if="appearance.backgroundMedia.value.right" class="region-background" :class="{'scene-background':appearance.settings.value.right.preset || appearance.backgroundMedia.value.right.kind === 'video'}" :media="appearance.backgroundMedia.value.right" /></div>
+      <header class="topbar"><button class="icon-button navigation-toggle" :aria-label="workspacePreferences.navigationClosed?i18nT('m905c4044329a'):i18nT('m95ddfcc9901d')" :title="workspacePreferences.navigationClosed?i18nT('m905c4044329a'):i18nT('m95ddfcc9901d')" @click="toggleNavigation"><PhSidebarSimple :size="21" /></button><WorkspaceTabs v-if="allWorkspaceTabs.length" :terminals="allWorkspaceTabs" :active-id="activePluginTab || (activeGroup?.id ?? '')" :directory-name="pageName" @select="selectGroup" @close="closeGroup" @menu="menuGroup" /><div v-else class="breadcrumb"><span>{{ i18nT('m6fed7e860168') }}</span><span class="breadcrumb-separator">/</span><strong>{{ pageName }}</strong></div><div class="topbar-actions"><template v-if="inspectorTerminal"><button class="icon-button inspector-toggle" :aria-pressed="workspacePreferences.systemOpen" :aria-label="i18nT('ma9a350022303')" :title="i18nT('m3fa4b23d8bce')" @click="workspacePreferences.systemOpen=!workspacePreferences.systemOpen"><PhCpu :size="20"/></button><button class="icon-button inspector-toggle" :aria-pressed="workspacePreferences.filesOpen" :aria-label="i18nT('m1d8509b501b2')" :title="i18nT('m39932f24fe11')" @click="workspacePreferences.filesOpen=!workspacePreferences.filesOpen"><PhFolderOpen :size="20"/></button></template><label class="global-search"><PhMagnifyingGlass :size="19" /><input ref="searchInput" v-model="query" @input="searchServers" :aria-label="i18nT('m4a722ef8352d')" :placeholder="i18nT('m0191c754eec0')" /><button v-if="query" class="search-clear" :aria-label="i18nT('mb6f00afa6537')" @click="query = ''"><PhX :size="14" /></button><kbd v-else>Ctrl K</kbd></label><button class="icon-button" :aria-label="i18nT('m3f754f38a654')" :title="i18nT('m3f754f38a654')" :disabled="connectionState !== 'ready'" @click="openPanel('vault')"><PhGearSix :size="21" /></button><button class="icon-button appearance-shortcut" :aria-label="i18nT('m96110462ab73')" :title="i18nT('m94ed88da9852')" @click="openPanel('appearance')"><PhTShirt :size="21" /></button><span class="preview-label">{{ connectionState === 'ready' ? i18nT('m8a94c4a1cdbd') : i18nT('mbe1b4f3c6c1c') }}</span></div></header>
       <main id="workspace-catalog" v-show="!activeTerminal && !activePluginTab" class="main-content" :role="terminals.length ? 'tabpanel' : undefined" :aria-labelledby="terminals.length ? 'workspace-tab-catalog' : undefined">
         <BackendStatus />
-        <section v-if="selected!=='@plugins'" class="page-heading"><div><h1>{{ pageName }}<span v-if="selected !== 'manage' && catalogLoaded" class="heading-count">{{ filteredServers.length }}</span></h1></div><div v-if="selected !== 'manage'" class="heading-actions"><button class="button icon-only" title="管理分组" aria-label="管理分组" @click="manageGroups"><PhFolderSimple :size="20" /></button><button class="button primary icon-only" title="添加服务器" aria-label="添加服务器" :disabled="connectionState !== 'ready'" @click="edit()"><PhPlus :size="22" /></button></div></section>
+        <section v-if="selected!=='@plugins'" class="page-heading"><div><h1>{{ pageName }}<span v-if="selected !== 'manage' && catalogLoaded" class="heading-count">{{ filteredServers.length }}</span></h1></div><div v-if="selected !== 'manage'" class="heading-actions"><button class="button icon-only" :title="i18nT('m25c3aad45894')" :aria-label="i18nT('m25c3aad45894')" @click="manageGroups"><PhFolderSimple :size="20" /></button><button class="button primary icon-only" :title="i18nT('mebf91996f8fe')" :aria-label="i18nT('mebf91996f8fe')" :disabled="connectionState !== 'ready'" @click="edit()"><PhPlus :size="22" /></button></div></section>
 
         <div v-if="catalogLoaded" :inert="connectionState !== 'ready' || undefined">
         <component :is="pluginViews.bookmarks ?? WebBookmarks" v-if="selected === 'all' && !query" @notify="notify" />
-        <section v-if="selected === 'all' && !query && favoriteServers.length" class="favorites-section" aria-labelledby="favorite-title"><div class="section-title"><h2 id="favorite-title">收藏夹</h2><span>{{ favoriteServers.length }}</span></div><div class="favorite-grid"><ServerItem v-for="server in favoriteServers" :key="server.id" :server="server" :group-name="groupName(server.groupId)" :preview-sessions="previews.forServer(server.id)" :last-frame="previews.lastFrames.value[server.id]" card @favorite="favorite" @connect="connect" @edit="edit" /></div></section>
+        <section v-if="selected === 'all' && !query && favoriteServers.length" class="favorites-section" aria-labelledby="favorite-title"><div class="section-title"><h2 id="favorite-title">{{ i18nT('m796d20e91588') }}</h2><span>{{ favoriteServers.length }}</span></div><div class="favorite-grid"><ServerItem v-for="server in favoriteServers" :key="server.id" :server="server" :group-name="groupName(server.groupId)" :preview-sessions="previews.forServer(server.id)" :last-frame="previews.lastFrames.value[server.id]" card @favorite="favorite" @connect="connect" @edit="edit" /></div></section>
 
         <PluginCenter v-if="selected === '@plugins'" /><ManagementPage v-else-if="selected === 'manage'" :servers="servers" :groups="groups" :query="query" :initial-tab="managementTab" @edit="edit" :commit="saveCatalog" @notify="notify" @clear-search="query = ''" />
-        <section v-else class="directory-section" aria-labelledby="directory-title"><div class="directory-heading"><div class="section-title"><h2 id="directory-title">{{ query ? '搜索结果' : pageName === '所有服务器' || selected === 'manage' ? '全部服务器' : pageName }}</h2><span class="result-count">{{ filteredServers.length }}</span></div></div><div class="directory-toolbar"><div class="segmented protocol-filter" aria-label="按连接方式筛选"><button v-for="item in ['all', 'ssh', 'rdp', 'vnc', 'local', 'adb', 'wdb', 'web'] as const" :key="item" :class="{ active: protocol === item }" :aria-pressed="protocol === item" @click="protocol = item">{{ item === 'all' ? '全部' : protocolNames[item] }}</button></div><div class="toolbar-right"><div class="segmented view-toggle" aria-label="显示方式"><button :class="{ active: viewMode === 'list' }" :aria-pressed="viewMode === 'list'" aria-label="列表视图" @click="viewMode = 'list'"><PhList :size="18" /></button><button :class="{ active: viewMode === 'grid' }" :aria-pressed="viewMode === 'grid'" aria-label="卡片视图" @click="viewMode = 'grid'"><PhSquaresFour :size="18" /></button></div><label class="sort-select"><span class="visually-hidden">服务器排序</span><select v-model="sort"><option value="default">默认排序</option><option value="name">按名称排序</option><option value="group">按分组排序</option></select><PhCaretDown :size="13" /></label></div></div>
-          <div v-if="filteredServers.length" :class="['server-directory', { 'grid-directory': viewMode === 'grid' }]"><div v-if="viewMode === 'list'" class="table-header"><span>服务器</span><span>所属分组</span><span>连接方式</span><span class="visually-hidden">操作</span></div><ServerItem v-for="server in filteredServers" :key="server.id" :server="server" :group-name="groupName(server.groupId)" :preview-sessions="previews.forServer(server.id)" :last-frame="previews.lastFrames.value[server.id]" :card="viewMode === 'grid'" @favorite="favorite" @connect="connect" @edit="edit" /><p v-if="viewMode === 'grid'" class="grid-edit-hint"><PhSlidersHorizontal :size="15" />编辑配置请切换列表视图。</p></div>
-          <div v-else class="empty-state"><PhMagnifyingGlass v-if="query" :size="36" /><PhStar v-else-if="selected === 'favorites'" :size="36" /><PhClock v-else-if="selected === 'recent'" :size="36" /><PhFolderSimple v-else :size="36" /><h3>{{ query ? '没有找到匹配的服务器' : selected === 'favorites' ? '收藏夹还是空的' : selected === 'recent' ? '还没有最近使用记录' : !servers.length ? '还没有服务器' : '这个分组还没有服务器' }}</h3><p>{{ query ? '试试名称、IP、标签或分组名称。' : selected === 'favorites' ? '点击服务器的星标，即可加入收藏夹。' : selected === 'recent' ? '打开一个连接预览后，会显示在这里。' : '添加服务器，或切换其他筛选条件。' }}</p><button v-if="!servers.length" class="button" @click="navigate('manage')">打开管理中心</button><button v-else class="button" @click="navigate('all')">查看全部服务器<PhArrowRight :size="16" /></button></div>
+        <section v-else class="directory-section" aria-labelledby="directory-title"><div class="directory-heading"><div class="section-title"><h2 id="directory-title">{{ query ? i18nT('m88d72ece7cf7') : pageName === i18nT('m399597c455f7') || selected === 'manage' ? i18nT('m29d9802b8fac') : pageName }}</h2><span class="result-count">{{ filteredServers.length }}</span></div></div><div class="directory-toolbar"><div class="segmented protocol-filter" :aria-label="i18nT('m7b0e8f561819')"><button v-for="item in ['all', 'ssh', 'rdp', 'vnc', 'local', 'adb', 'wdb', 'web'] as const" :key="item" :class="{ active: protocol === item }" :aria-pressed="protocol === item" @click="protocol = item">{{ item === 'all' ? i18nT('m5c55a67935af') : protocolNames[item] }}</button></div><div class="toolbar-right"><div class="segmented view-toggle" :aria-label="i18nT('m8d3d73a18aff')"><button :class="{ active: viewMode === 'list' }" :aria-pressed="viewMode === 'list'" :aria-label="i18nT('md56220435194')" @click="viewMode = 'list'"><PhList :size="18" /></button><button :class="{ active: viewMode === 'grid' }" :aria-pressed="viewMode === 'grid'" :aria-label="i18nT('m7904ff565aaa')" @click="viewMode = 'grid'"><PhSquaresFour :size="18" /></button></div><label class="sort-select"><span class="visually-hidden">{{ i18nT('m13fffdc852b8') }}</span><select v-model="sort"><option value="default">{{ i18nT('mbd1689042db6') }}</option><option value="name">{{ i18nT('m0b21faac57ac') }}</option><option value="group">{{ i18nT('me833522ff57b') }}</option></select><PhCaretDown :size="13" /></label></div></div>
+          <div v-if="filteredServers.length" :class="['server-directory', { 'grid-directory': viewMode === 'grid' }]"><div v-if="viewMode === 'list'" class="table-header"><span>{{ i18nT('m2388cbc6a486') }}</span><span>{{ i18nT('m6c49c1f947d1') }}</span><span>{{ i18nT('m485a26050ce5') }}</span><span class="visually-hidden">{{ i18nT('med31fbb483ee') }}</span></div><ServerItem v-for="server in filteredServers" :key="server.id" :server="server" :group-name="groupName(server.groupId)" :preview-sessions="previews.forServer(server.id)" :last-frame="previews.lastFrames.value[server.id]" :card="viewMode === 'grid'" @favorite="favorite" @connect="connect" @edit="edit" /><p v-if="viewMode === 'grid'" class="grid-edit-hint"><PhSlidersHorizontal :size="15" />{{ i18nT('m6cbbcb300c45') }}</p></div>
+          <div v-else class="empty-state"><PhMagnifyingGlass v-if="query" :size="36" /><PhStar v-else-if="selected === 'favorites'" :size="36" /><PhClock v-else-if="selected === 'recent'" :size="36" /><PhFolderSimple v-else :size="36" /><h3>{{ query ? i18nT('ma9a80ea9fb9e') : selected === 'favorites' ? i18nT('m19d77b1cd17e') : selected === 'recent' ? i18nT('m8a317de06761') : !servers.length ? i18nT('m4e5db443f3d9') : i18nT('m6c5cb60e9248') }}</h3><p>{{ query ? i18nT('m52a208fba037') : selected === 'favorites' ? i18nT('m589dd4753637') : selected === 'recent' ? i18nT('me6285be749da') : i18nT('m1f3e8316c72f') }}</p><button v-if="!servers.length" class="button" @click="navigate('manage')">{{ i18nT('mb6c9c5a53b83') }}</button><button v-else class="button" @click="navigate('all')">{{ i18nT('me2dc23e034e5') }}<PhArrowRight :size="16" /></button></div>
         </section>
-        </div><section v-else class="empty-state catalog-pending" role="status"><PhHardDrives :size="36" /><h3>目录尚未加载</h3><p>连接本地服务后，才会读取已保存的服务器和分组。</p></section><footer class="workspace-footer"><span><kbd>Ctrl K</kbd>快速搜索</span><span>{{ saving ? '正在保存…' : connectionState === 'ready' ? '本机数据库' : '服务未连接' }}</span></footer>
+        </div><section v-else class="empty-state catalog-pending" role="status"><PhHardDrives :size="36" /><h3>{{ i18nT('m29fb92fb050d') }}</h3><p>{{ i18nT('m807e15bbee95') }}</p></section><footer class="workspace-footer"><span><kbd>Ctrl K</kbd>{{ i18nT('m9e7be6d0908d') }}</span><span>{{ saving ? i18nT('m6bdb4435095e') : connectionState === 'ready' ? i18nT('m10e796708567') : i18nT('m2adabcae4c29') }}</span></footer>
       </main>
       <PluginWorkspacePage v-for="tab in pluginTabs" :key="tab.key" v-show="activePluginTab === tab.key" :tab="tab" :active="activePluginTab === tab.key" />
       <div v-if="terminals.length" class="session-workbench" :class="{idle:!activeTerminal}">
         <div v-if="inspectorTerminal && workspacePreferences.systemOpen" class="system-dock" :style="{'--system-width':workspacePreferences.systemWidth+'px'}">
-          <component :is="pluginViews.system ?? SshSystemPanel" :session-id="inspectorTerminal.sessionId" :name="inspectorTerminal.name" :host="servers.find(server=>server.id===inspectorTerminal?.serverId)?.host??''" :ready="inspectorTerminal.status==='已连接'" @close="workspacePreferences.systemOpen=false"/>
-          <div class="system-resizer" role="separator" aria-label="调整系统信息栏宽度" title="拖动调整宽度，双击恢复默认" aria-orientation="vertical" tabindex="0" :aria-valuenow="workspacePreferences.systemWidth" aria-valuemin="200" aria-valuemax="420" @pointerdown="resizeSystemPanel" @keydown.left.prevent="workspacePreferences.systemWidth=Math.max(200,workspacePreferences.systemWidth-16)" @keydown.right.prevent="workspacePreferences.systemWidth=Math.min(420,workspacePreferences.systemWidth+16)" @dblclick="workspacePreferences.systemWidth=260"></div>
+          <component :is="pluginViews.system ?? SshSystemPanel" :session-id="inspectorTerminal.sessionId" :name="inspectorTerminal.name" :host="servers.find(server=>server.id===inspectorTerminal?.serverId)?.host??''" :ready="inspectorTerminal.running === true" @close="workspacePreferences.systemOpen=false"/>
+          <div class="system-resizer" role="separator" :aria-label="i18nT('m89a976eb58f8')" :title="i18nT('m4357f563c23f')" aria-orientation="vertical" tabindex="0" :aria-valuenow="workspacePreferences.systemWidth" aria-valuemin="200" aria-valuemax="420" @pointerdown="resizeSystemPanel" @keydown.left.prevent="workspacePreferences.systemWidth=Math.max(200,workspacePreferences.systemWidth-16)" @keydown.right.prevent="workspacePreferences.systemWidth=Math.min(420,workspacePreferences.systemWidth+16)" @dblclick="workspacePreferences.systemWidth=260"></div>
         </div>
         <div class="session-main">
-      <section ref="workspaceArea" v-if="terminals.length" class="terminal-workspace" :class="{ idle: !activeTerminal }" aria-label="连接工作区">
+      <section ref="workspaceArea" v-if="terminals.length" class="terminal-workspace" :class="{ idle: !activeTerminal }" :aria-label="i18nT('m34882c098e98')">
         <div v-for="tab in workspaceTabs" :key="tab.sessionId" :id="'workspace-panel-'+tab.sessionId" v-show="activeGroup?.id===tab.sessionId" class="workspace-group-panel" role="tabpanel" :aria-labelledby="'workspace-tab-'+tab.sessionId" :aria-owns="tab.paneIds.map(id=>'terminal-pane-'+id).join(' ')"></div>
-        <Teleport v-for="item in terminals" :key="item.sessionId" :to="item.page?.mount ?? workspaceArea" :disabled="!item.page"><TerminalWindow :ai="item.ai" :locate-request="paneLocatePulse?.id===item.sessionId?paneLocatePulse.request:0" :pane-number="terminalNumbers.get(item.sessionId)" :style="paneStyle(item.sessionId)" :theme-id="terminalTheme(item.sessionId)" :detached="!!item.page" :owner-document="item.page?.window.document" :split="hasPaneHeader(item.sessionId)||minimized.has(item.sessionId)" :minimized="minimized.has(item.sessionId)" :collapsed-rail="collapsedRail(item.sessionId)" @minimize="minimizeTerminal(item.sessionId)" :focused="activeTerminal===item.sessionId" :session-id="item.sessionId" :attach-token="item.attachToken" :protocol="item.protocol" :display="item.display" @running="previews.running(item.sessionId, $event)" @frame="previewFrame(item.sessionId, item.serverId, $event)" :name="item.name" :active="inWorkspace(item.sessionId)" :floating="item.floating" :order="item.order" :focus-request="item.focusRequest" @status="item.status = $event" @history="focusMain();showHistory(item.serverId)" @reconnect="reconnectTerminal(item.sessionId)" @configure="configureTerminal(item.sessionId)" @colors="openTerminalColors(item.sessionId)" @select="!item.page && selectTerminal(item.sessionId)" @menu="menuTerminal(item.sessionId,$event)" @float="floatTerminal(item.sessionId)" @dock="dockTerminal(item.sessionId)" @close="closeTerminal(item.sessionId)" @raise="raiseTerminal(item.sessionId)" /></Teleport>
-        <div v-for="handle in geometry.handles" :key="handle.branch.id" class="terminal-split-handle" :class="handle.branch.direction" :style="rectStyle(handle)" tabindex="0" role="separator" :aria-orientation="handle.branch.direction === 'horizontal' ? 'vertical' : 'horizontal'" aria-label="调整终端分屏大小" :aria-valuenow="Math.round(handle.branch.ratio)" aria-valuemin="20" aria-valuemax="80" @pointerdown="resizeSplit($event,handle)" @keydown.left.prevent="adjustSplit(handle.branch.id,handle.branch.ratio-5)" @keydown.right.prevent="adjustSplit(handle.branch.id,handle.branch.ratio+5)" @keydown.up.prevent="adjustSplit(handle.branch.id,handle.branch.ratio-5)" @keydown.down.prevent="adjustSplit(handle.branch.id,handle.branch.ratio+5)" @dblclick="adjustSplit(handle.branch.id,50)"></div>
+        <Teleport v-for="item in terminals" :key="item.sessionId" :to="item.page?.mount ?? workspaceArea" :disabled="!item.page"><TerminalWindow :ai="item.ai" :locate-request="paneLocatePulse?.id===item.sessionId?paneLocatePulse.request:0" :pane-number="terminalNumbers.get(item.sessionId)" :style="paneStyle(item.sessionId)" :theme-id="terminalTheme(item.sessionId)" :detached="!!item.page" :owner-document="item.page?.window.document" :split="hasPaneHeader(item.sessionId)||minimized.has(item.sessionId)" :minimized="minimized.has(item.sessionId)" :collapsed-rail="collapsedRail(item.sessionId)" @minimize="minimizeTerminal(item.sessionId)" :focused="activeTerminal===item.sessionId" :session-id="item.sessionId" :attach-token="item.attachToken" :protocol="item.protocol" :display="item.display" @running="item.running = $event; previews.running(item.sessionId, $event)" @frame="previewFrame(item.sessionId, item.serverId, $event)" :name="item.name" :active="inWorkspace(item.sessionId)" :floating="item.floating" :order="item.order" :focus-request="item.focusRequest" @status="item.status = $event" @history="focusMain();showHistory(item.serverId)" @reconnect="reconnectTerminal(item.sessionId)" @configure="configureTerminal(item.sessionId)" @colors="openTerminalColors(item.sessionId)" @select="!item.page && selectTerminal(item.sessionId)" @menu="menuTerminal(item.sessionId,$event)" @float="floatTerminal(item.sessionId)" @dock="dockTerminal(item.sessionId)" @close="closeTerminal(item.sessionId)" @raise="raiseTerminal(item.sessionId)" /></Teleport>
+        <div v-for="handle in geometry.handles" :key="handle.branch.id" class="terminal-split-handle" :class="handle.branch.direction" :style="rectStyle(handle)" tabindex="0" role="separator" :aria-orientation="handle.branch.direction === 'horizontal' ? 'vertical' : 'horizontal'" :aria-label="i18nT('m50b6f9b63bfb')" :aria-valuenow="Math.round(handle.branch.ratio)" aria-valuemin="20" aria-valuemax="80" @pointerdown="resizeSplit($event,handle)" @keydown.left.prevent="adjustSplit(handle.branch.id,handle.branch.ratio-5)" @keydown.right.prevent="adjustSplit(handle.branch.id,handle.branch.ratio+5)" @keydown.up.prevent="adjustSplit(handle.branch.id,handle.branch.ratio-5)" @keydown.down.prevent="adjustSplit(handle.branch.id,handle.branch.ratio+5)" @dblclick="adjustSplit(handle.branch.id,50)"></div>
       </section>
-          <div v-if="inspectorTerminal && fileTerminal && workspacePreferences.filesOpen" class="files-dock" :style="{height:workspacePreferences.filesHeight+'px'}"><div class="files-resizer" role="separator" aria-label="调整文件栏高度" aria-orientation="horizontal" tabindex="0" :aria-valuenow="workspacePreferences.filesHeight" aria-valuemin="140" aria-valuemax="420" @pointerdown="resizeFiles" @keydown.up.prevent="workspacePreferences.filesHeight=Math.min(420,workspacePreferences.filesHeight+16)" @keydown.down.prevent="workspacePreferences.filesHeight=Math.max(140,workspacePreferences.filesHeight-16)"></div><component :is="pluginViews.files ?? SshFilesPanel" :session-id="fileTerminal.sessionId" :name="fileTerminal.name" :ready="fileTerminal.ready" :targets="fileTargets" :locate-request="fileLocateRequest" @locate="locateFilePane" @close="workspacePreferences.filesOpen=false"/></div>
+          <div v-if="inspectorTerminal && fileTerminal && workspacePreferences.filesOpen" class="files-dock" :style="{height:workspacePreferences.filesHeight+'px'}"><div class="files-resizer" role="separator" :aria-label="i18nT('ma3ec34a436c1')" aria-orientation="horizontal" tabindex="0" :aria-valuenow="workspacePreferences.filesHeight" aria-valuemin="140" aria-valuemax="420" @pointerdown="resizeFiles" @keydown.up.prevent="workspacePreferences.filesHeight=Math.min(420,workspacePreferences.filesHeight+16)" @keydown.down.prevent="workspacePreferences.filesHeight=Math.max(140,workspacePreferences.filesHeight-16)"></div><component :is="pluginViews.files ?? SshFilesPanel" :session-id="fileTerminal.sessionId" :name="fileTerminal.name" :ready="fileTerminal.ready" :targets="fileTargets" :locate-request="fileLocateRequest" @locate="locateFilePane" @close="workspacePreferences.filesOpen=false"/></div>
         </div>
       </div>
     </div>
 
-    <ContextMenu v-if="tabMenu" :key="tabMenu.id+(tabMenu.groupId??'')" :owner="tabMenu.owner" :x="tabMenu.x" :y="tabMenu.y" :items="tabMenuItems" label="标签右键菜单" :extension="tabMenuExtension" :execute="tabAction" @close="tabMenu=undefined" />
+    <ContextMenu v-if="tabMenu" :key="tabMenu.id+(tabMenu.groupId??'')" :owner="tabMenu.owner" :x="tabMenu.x" :y="tabMenu.y" :items="tabMenuItems" :label="i18nT('m385f108bd01c')" :extension="tabMenuExtension" :execute="tabAction" @close="tabMenu=undefined" />
     <TerminalSplitPicker v-if="splitPicker" :direction="splitPicker.direction" :candidates="splitCandidates" :busy="openingConnection || connectionState !== 'ready'" @close="splitPicker=undefined" @select="applySplit" @create="newSplit" />
-    <dialog aria-labelledby="panel-title"  ref="panelDialog" :class="['panel-dialog', { 'connection-dialog': panel === 'connection', 'history-dialog': panel === 'history', 'terminal-themes-dialog':['terminalThemes', 'terminalConnectionTheme'].includes(panel) }]" v-on="backdropEvents" @cancel.prevent="closePanel"><div class="panel-shell"><header class="panel-header"><div><span class="panel-kicker">{{ panel === 'appearance' ? '外观设置' : panel === 'connection' ? 'WebNav' : '管理中心' }}</span><h2 id="panel-title">{{ dialogTitle }}</h2></div><button class="icon-button" aria-label="关闭面板" :disabled="editorBusy || themeEditor?.busy" @click="closePanel"><PhX :size="22" /></button></header><div class="panel-body" :class="{ 'editor-panel-body': panel === 'editor' }">
+    <dialog aria-labelledby="panel-title"  ref="panelDialog" :class="['panel-dialog', { 'connection-dialog': panel === 'connection', 'history-dialog': panel === 'history', 'terminal-themes-dialog':['terminalThemes', 'terminalConnectionTheme'].includes(panel) }]" v-on="backdropEvents" @cancel.prevent="closePanel"><div class="panel-shell"><header class="panel-header"><div><span class="panel-kicker">{{ panel === 'appearance' ? i18nT('m94ed88da9852') : panel === 'connection' ? 'LittleDock' : i18nT('m64b3e602bf0e') }}</span><h2 id="panel-title">{{ dialogTitle }}</h2></div><button class="icon-button" :aria-label="i18nT('me453bb7ac8e1')" :disabled="editorBusy || themeEditor?.busy" @click="closePanel"><PhX :size="22" /></button></header><div class="panel-body" :class="{ 'editor-panel-body': panel === 'editor' }">
       <AppearancePanel v-if="panel === 'appearance'" :appearance="appearance" />
 
       <ServerEditor v-else-if="panel === 'editor'" ref="editor" :key="editorRevision" :server="editingServer" :groups="groups" :initial-group-id="editorGroupId" :save-error="editorSaveError" :busy="editorBusy" @save="saveServer" @cancel="closePanel" @remove="deleteServer" @credentials="credentials" @history="showHistory" />
 
-      <template v-else-if="panel === 'vault'"><button class="button settings-section-link" @click="openTerminalColors()">终端配色 <span>默认配色、自定义方案 →</span></button><button class="button settings-section-link" @click="openCapabilitySettings('service:configSync')">配置同步 <span>GitHub / Gitee 加密同步 →</span></button><button class="button settings-section-link" @click="openPanel('browserExtension')">浏览器自动填写 <span>配对浏览器、管理网站授权 →</span></button><button class="button settings-section-link" @click="openCapabilitySettings('extension:mcp')">AI 接入 <span>MCP、授权与任务 →</span></button><button class="button settings-section-link" @click="openPanel('updates')">工作台更新 <span>检查版本、下载与安装 →</span></button><VaultPanel /></template>
+      <template v-else-if="panel === 'vault'"><button class="button settings-section-link" @click="openTerminalColors()">{{ i18nT('m3e7571c83eac') }}<span>{{ i18nT('ma5a4cd82624f') }}</span></button><button class="button settings-section-link" @click="openCapabilitySettings('service:configSync')">{{ i18nT('m7d2d3dcb1978') }}<span>{{ i18nT('mc696f9d60397') }}</span></button><button class="button settings-section-link" @click="openPanel('browserExtension')">{{ i18nT('mb84e79c88754') }}<span>{{ i18nT('mbd4e223c1196') }}</span></button><button class="button settings-section-link" @click="openCapabilitySettings('extension:mcp')">{{ i18nT('m44feff976cf0') }}<span>{{ i18nT('m2556b1fdecd2') }}</span></button><button class="button settings-section-link" @click="openPanel('updates')">{{ i18nT('m50303a8bf686') }}<span>{{ i18nT('ma08c7916a80d') }}</span></button><VaultPanel /></template>
       <UpdatePanel v-else-if="panel === 'updates'" @back="openPanel('vault')" />
       <BrowserExtensionPanel v-else-if="panel === 'browserExtension'" @back="openPanel('vault')" />
       <TerminalConnectionThemePanel v-else-if="panel === 'terminalConnectionTheme' && themeTarget" ref="themeEditor" :server-id="themeTarget.serverId" :connection-id="themeTarget.connectionId" @manage="openPanel('terminalThemes')" />
       <component :is="pluginViews.themes ?? TerminalThemesPanel" v-else-if="panel === 'terminalThemes'" ref="themeEditor" :connection-context="!!themeTarget" @back="openPanel(themeTarget ? 'terminalConnectionTheme' : 'vault')" />
-      <CredentialPanel v-else-if="panel === 'credentials' && credentialTarget" :key="credentialTarget.serverId + credentialTarget.connectionId" :server-id="credentialTarget.serverId" :connection-id="credentialTarget.connectionId" @saved="closePanel(); notify('认证信息已保存。')" />
+      <CredentialPanel v-else-if="panel === 'credentials' && credentialTarget" :key="credentialTarget.serverId + credentialTarget.connectionId" :server-id="credentialTarget.serverId" :connection-id="credentialTarget.connectionId" @saved="closePanel(); notify(i18nT('m5f9c74d914d5'))" />
       <component :is="pluginViews.history ?? HistoryPanel" v-else-if="panel === 'history'" :key="historyServer" :server-id="historyServer" />
-      <div v-else-if="panel === 'connection' && previewConnection" class="connection-preview"><span class="connection-preview-icon"><PhTerminalWindow v-if="previewConnection.connection.type === 'ssh'" :size="35" /><PhDesktop v-else-if="previewConnection.connection.type === 'rdp'" :size="35" /><PhGlobeHemisphereWest v-else :size="35" /></span><h3>{{ previewConnection.server.name }}</h3><p class="server-address">{{ previewConnection.connection.type === 'web' ? previewConnection.connection.url : `${previewConnection.server.host}:${previewConnection.connection.port}` }}</p><div class="connection-summary"><span>连接类型<strong>{{ protocolNames[previewConnection.connection.type] }}</strong></span><span v-if="previewConnection.connection.username">用户名<strong>{{ previewConnection.connection.username }}</strong></span><span>当前状态<strong>尚未连接</strong></span></div><a v-if="previewConnection.connection.type === 'web'" class="button primary" :href="previewConnection.connection.url" target="_blank" rel="noopener noreferrer">打开网页</a><button class="button" @click="closePanel">返回工作台</button></div>
+      <div v-else-if="panel === 'connection' && previewConnection" class="connection-preview"><span class="connection-preview-icon"><PhTerminalWindow v-if="previewConnection.connection.type === 'ssh'" :size="35" /><PhDesktop v-else-if="previewConnection.connection.type === 'rdp'" :size="35" /><PhGlobeHemisphereWest v-else :size="35" /></span><h3>{{ previewConnection.server.name }}</h3><p class="server-address">{{ previewConnection.connection.type === 'web' ? previewConnection.connection.url : `${previewConnection.server.host}:${previewConnection.connection.port}` }}</p><div class="connection-summary"><span>{{ i18nT('mafc8bc6d0ad5') }}<strong>{{ protocolNames[previewConnection.connection.type] }}</strong></span><span v-if="previewConnection.connection.username">{{ i18nT('m1a3f0617d6de') }}<strong>{{ previewConnection.connection.username }}</strong></span><span>{{ i18nT('m82b7cf40b5e6') }}<strong>{{ i18nT('m93ae902da0d3') }}</strong></span></div><a v-if="previewConnection.connection.type === 'web'" class="button primary" :href="previewConnection.connection.url" target="_blank" rel="noopener noreferrer">{{ i18nT('m82d9ce3a5b37') }}</a><button class="button" @click="closePanel">{{ i18nT('mde7efab05d73') }}</button></div>
     </div></div></dialog>
     <dialog ref="unsavedDialog" class="management-dialog unsaved-dialog" aria-labelledby="unsaved-title" aria-describedby="unsaved-description" @cancel.prevent="continueEditing">
-      <header><h2 id="unsaved-title">保存修改？</h2><button class="icon-button" aria-label="继续编辑" title="继续编辑" @click="continueEditing"><PhX :size="20" /></button></header>
-      <p id="unsaved-description">有未保存的修改。</p>
+      <header><h2 id="unsaved-title">{{ i18nT('mba77ae75e888') }}</h2><button class="icon-button" :aria-label="i18nT('mfd4b9e3b6c68')" :title="i18nT('mfd4b9e3b6c68')" @click="continueEditing"><PhX :size="20" /></button></header>
+      <p id="unsaved-description">{{ i18nT('m6d734e052979') }}</p>
       <div class="unsaved-actions">
-        <button type="button" class="button" autofocus @click="continueEditing">继续编辑</button>
-        <button type="button" class="button" @click="discardAndLeave">不保存</button>
-        <button type="button" class="button primary" @click="saveAndLeave"><PhCheck :size="17" />保存</button>
+        <button type="button" class="button" autofocus @click="continueEditing">{{ i18nT('mfd4b9e3b6c68') }}</button>
+        <button type="button" class="button" @click="discardAndLeave">{{ i18nT('m8bcc3e177f5f') }}</button>
+        <button type="button" class="button primary" @click="saveAndLeave"><PhCheck :size="17" />{{ i18nT('ma3030bf8f16d') }}</button>
       </div>
     </dialog>
     <Transition name="toast"><div v-if="toast" class="toast-message" role="status"><PhCheck :size="17" />{{ toast }}</div></Transition>

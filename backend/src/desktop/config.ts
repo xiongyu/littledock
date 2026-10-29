@@ -8,7 +8,7 @@ export type RuntimeState = 'starting' | 'running' | 'restarting' | 'failed' | 's
 export const root = fileURLToPath(new URL('../../../', import.meta.url))
 export function configuration(mode: RunMode, env = process.env) {
   const port = Number(env.WEBNAV_PORT ?? 3030), uiPort = Number(env.WEBNAV_UI_PORT ?? 5173)
-  for (const value of [port, uiPort]) if (!Number.isInteger(value) || value < 1024 || value > 65535) throw new Error('WebNav 端口须为 1024–65535 的整数。')
+  for (const value of [port, uiPort]) if (!Number.isInteger(value) || value < 1024 || value > 65535) throw new Error('小站端口须为 1024–65535 的整数。')
   if (mode === 'dev' && port === uiPort) throw new Error('前后端开发端口不能相同。')
   const directory = resolve(env.WEBNAV_DATA_DIR ?? join(env.LOCALAPPDATA ?? join(homedir(), '.local', 'share'), 'WebNav'))
   // The application profile, not a checkout, port or selected database, owns the singleton.

@@ -37,7 +37,7 @@ export class TransportService extends Service {
     const app=new Hono()
     app.use('*',async(c,next)=>{
       if(config.runtimeGateway&&c.req.header('x-webnav-runtime')!==config.runtimeGateway.token)return c.text('Forbidden gateway',403)
-      if(!ctx.auth)return c.text('WebNav is restarting. Please reload shortly.',503)
+      if(!ctx.auth)return c.text('小站 is restarting. Please reload shortly.',503)
       if(c.req.header('host')!==host)return c.text('Forbidden host',403)
       c.header('X-WebNav-Service','1')
       if(config.devOrigin)c.header('X-WebNav-Dev-Origin',config.devOrigin)

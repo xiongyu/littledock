@@ -1,3 +1,6 @@
+
+import { pluginI18n } from './i18n.ts'
+const { t: i18nT } = pluginI18n('core')
 import { ref } from 'vue'
 import type { RemoteTextFile } from '@webnav/shared'
 import { rpc,connectionState } from './backend'
@@ -10,11 +13,11 @@ watch(connectionState,()=>{generation++})
 export async function openFileEditor(sessionId:string,path:string){
   const existing=fileEditors.value.find(item=>item.sessionId===sessionId&&item.file.path===path)
   if(existing){existing.order=++order;return}
-  if(fileEditors.value.length>=4)throw new Error('最多同时打开 4 个文件编辑器。')
+  if(fileEditors.value.length>=4)throw new Error(i18nT('m1e657c45b316'))
   const current=generation
   const file=await rpc<RemoteTextFile>('files.read',{sessionId,path})
   if(current!==generation||connectionState.value!=='ready')return
-  if(fileEditors.value.length>=4)throw new Error('最多同时打开 4 个文件编辑器。')
+  if(fileEditors.value.length>=4)throw new Error(i18nT('m1e657c45b316'))
   if(fileEditors.value.some(item=>item.sessionId===sessionId&&item.file.path===path))return
   fileEditors.value.push({id:crypto.randomUUID(),sessionId,file,order:++order})
 }

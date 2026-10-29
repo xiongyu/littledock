@@ -1,0 +1,20 @@
+{
+  "mb8784c8dd563": "Retry",
+  "m4bffc7dd28dc": "Open editor",
+  "m4cd94a10b5f4": "Install and start",
+  "mca4d973c0b00": "Stop",
+  "m65acfd20cb72": "Edit in a separate browser page; saves write directly to the remote host. Stopping the editor, closing its SSH connection, or locking the master password closes the editor connection.",
+  "m7012f396a6b8": "VS Code Server license terms",
+  "me2af8d3bfffa": "I have read and accept",
+  "m3c747325cf69": "Installs in the current SSH user's directory without administrator privileges. Each version is downloaded once and uploaded from the local cache afterward.",
+  "mc736bac0b6c3": "Checking remote environment…",
+  "mabb93c55f560": "Detect server",
+  "m90bb34c2f1de": "Collapse panel",
+  "m7cbb50cd65a9": "Close editor panel",
+  "md8a6cb39e705": "Remote VS Code",
+  "m702275568df2": "Failed to read status.",
+  "mb3b75bd055c0": "Operation failed.",
+  "m475e8f72b962": "Unable to prepare the editor.",
+  "metadata.name": "Remote VS Code",
+  "metadata.description": "Opens a separate remote editor for the current SSH directory, caches installation packages, and forwards access over SSH to the Linux or Windows web editor."
+}

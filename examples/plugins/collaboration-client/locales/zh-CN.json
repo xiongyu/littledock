@@ -1,0 +1,15 @@
+{
+  "m802a407c7743": "刷新状态",
+  "m9a82ab6212ed": "通过另一插件 +1",
+  "mdf3d58c7d84b": "设置",
+  "m18d4f498988d": "观察器设置",
+  "mc4533e7b19e7": "协作观察器",
+  "m2ac51b7645ff": "计数器插件尚未启用",
+  "m8eb2c7871f85": "来自 {p0} · 版本 {p1}",
+  "m2d1341db7717": "正在读取",
+  "metadata.name": "协作观察器",
+  "metadata.description": "演示跨插件调用与状态订阅",
+  "tools.main.title": "协作观察器",
+  "fonts.value.name": "当前计数",
+  "fonts.value.group": "主面板"
+}

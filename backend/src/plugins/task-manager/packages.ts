@@ -30,10 +30,10 @@ export async function collectorPackage(directory: string, platform: TaskManagerO
     const path = join(directory, 'manifest.json'), stat = await lstat(path)
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024) throw new Error('invalid manifest')
     data = record(JSON.parse(await readFile(path, 'utf8')))
-  } catch { throw new AppError('PACKAGE_UNAVAILABLE', '本机缺少固定版本采集程序，请运行 pnpm collector:build 准备安装包，或安装包含采集器的完整 WebNav 版本。') }
+  } catch { throw new AppError('PACKAGE_UNAVAILABLE', '本机缺少固定版本采集程序，请运行 pnpm collector:build 准备安装包，或安装包含采集器的完整小站版本。') }
   if (data.schemaVersion !== 1 || data.version !== COLLECTOR_VERSION || data.protocol !== 1 || !Array.isArray(data.artifacts) || data.artifacts.length > 6) throw new AppError('PACKAGE_INVALID', '采集程序发行清单不兼容。')
   const artifacts = data.artifacts.map(record), matches = artifacts.filter(value => value.platform === platform && value.arch === arch)
-  if (matches.length !== 1) throw new AppError('PACKAGE_UNAVAILABLE', '当前 WebNav 安装包没有包含此目标系统和架构的采集程序。')
+  if (matches.length !== 1) throw new AppError('PACKAGE_UNAVAILABLE', '当前小站安装包没有包含此目标系统和架构的采集程序。')
   const item = matches[0]!, file = `${platform}-${arch}/${packageName(platform)}`
   if (item.file !== file || typeof item.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.sha256) || typeof item.size !== 'number' || !Number.isSafeInteger(item.size) || item.size <= 0 || item.size > MAX_PACKAGE_BYTES) throw new AppError('PACKAGE_INVALID', '采集程序发行记录无效。')
   const path = join(directory, file), root = await realpath(directory), actual = await realpath(path), rel = relative(root, actual)

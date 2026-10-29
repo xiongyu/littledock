@@ -97,7 +97,7 @@ export class GitSyncRemote implements SyncRemote {
     if (this.closed || this.signal.aborted) return Promise.reject(new AppError('CANCELLED', '同步已取消。'))
     const quote = (path: string) => '"' + path.replace(/\\/g, '/').replace(/["$`]/g, '\\$&') + '"'
     const helper = `!${quote(process.execPath)} --experimental-strip-types ${quote(this.helper)}`
-    const env = { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: join(this.directory, 'empty-config'), GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', GIT_SSH_COMMAND: '', WEBNAV_SYNC_PIPE: this.pipe, GIT_AUTHOR_NAME: 'WebNav Sync', GIT_AUTHOR_EMAIL: 'sync@webnav.invalid', GIT_COMMITTER_NAME: 'WebNav Sync', GIT_COMMITTER_EMAIL: 'sync@webnav.invalid' }
+    const env = { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: join(this.directory, 'empty-config'), GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', GIT_SSH_COMMAND: '', WEBNAV_SYNC_PIPE: this.pipe, GIT_AUTHOR_NAME: '小站 Sync', GIT_AUTHOR_EMAIL: 'sync@webnav.invalid', GIT_COMMITTER_NAME: '小站 Sync', GIT_COMMITTER_EMAIL: 'sync@webnav.invalid' }
     // Inherited Git overrides must not redirect plumbing into another repository.
     for (const key of Object.keys(env)) if (/^GIT_(DIR|WORK_TREE|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|CONFIG_PARAMETERS|CONFIG_COUNT|CONFIG_KEY_\d+|CONFIG_VALUE_\d+|TRACE.*|CURL_VERBOSE|EXEC_PATH|SSL_NO_VERIFY)$/.test(key)) delete env[key as keyof typeof env]
     return new Promise((resolve, reject) => {
@@ -139,7 +139,7 @@ export class GitSyncRemote implements SyncRemote {
     const blob = (await this.run(['hash-object', '-w', '--stdin'], text, 128)).trim()
     await this.run(['update-index', '--add', '--cacheinfo', `100644,${blob},${this.path}`])
     const tree = (await this.run(['write-tree'], undefined, 128)).trim()
-    return (await this.run(['commit-tree', tree, ...(expected ? ['-p', expected] : [])], 'WebNav encrypted snapshot\n', 128)).trim()
+    return (await this.run(['commit-tree', tree, ...(expected ? ['-p', expected] : [])], '小站 encrypted snapshot\n', 128)).trim()
   }
   async publish(expected: string | null, candidate: string) {
     if (!oid(candidate) || (expected !== null && !oid(expected))) throw new AppError('INVALID_ARGUMENT', '提交版本无效。')

@@ -127,7 +127,7 @@ export class CredentialService extends Service {
     } catch { this.retryAt = this.now() + 2000; throw new AppError('WRONG_PASSWORD', '主密码不正确，或凭据库无法解锁。') }
     finally { key?.fill(0); this.busy = false }
   }
-  requireUnlocked() { if (!this.status().unlocked) throw new AppError('VAULT_LOCKED', '请输入主密码解锁 WebNav。') }
+  requireUnlocked() { if (!this.status().unlocked) throw new AppError('VAULT_LOCKED', '请输入主密码解锁小站。') }
   /** A reveal verifies again; it never reuses or extends the global unlock period. */
   async verifyReveal(password: string) {
     this.requireUnlocked()

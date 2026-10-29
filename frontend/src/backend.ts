@@ -1,3 +1,6 @@
+
+import { pluginI18n, renderMessage } from './i18n.ts'
+const { t: i18nT } = pluginI18n('core')
 import { defaultTerminalThemes, parseTerminalThemes } from '@webnav/shared'
 import type { SyncStatus } from '@webnav/shared'
 import { ref } from 'vue'
@@ -31,10 +34,10 @@ let socket: WebSocket | undefined, epoch = '', revision = -1, subscription = '',
 let bookmarkSubscription = '', bookmarkRevision = -1
 let automationRevision = -1
 let retry: ReturnType<typeof setTimeout> | undefined
-function object(input: unknown): Record<string, unknown> { if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('服务响应格式不正确。'); return input as Record<string, unknown> }
+function object(input: unknown): Record<string, unknown> { if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error(i18nT('m01049b6ccd2e')); return input as Record<string, unknown> }
 function snapshot(input: unknown) {
   const data = object(input)
-  if (!Number.isSafeInteger(data.revision)) throw new Error('目录版本无效。')
+  if (!Number.isSafeInteger(data.revision)) throw new Error(i18nT('md917683b3169'))
   const version = data.revision as number
   if (version < revision) return
   const catalog = parseCatalogImport(data.snapshot)
@@ -43,22 +46,22 @@ function snapshot(input: unknown) {
 function applyAutomation(input:unknown){
   const data=object(input)
   if(data.epoch!==epoch||!vaultStatus.value?.unlocked)return
-  if(!Number.isSafeInteger(data.revision)||Number(data.revision)<0||!Array.isArray(data.tasks)||data.tasks.length>32)throw new Error('AI 任务快照无效。')
+  if(!Number.isSafeInteger(data.revision)||Number(data.revision)<0||!Array.isArray(data.tasks)||data.tasks.length>32)throw new Error(i18nT('m250905d5cd5c'))
   if(Number(data.revision)<automationRevision)return
   const tasks=data.tasks.map(value=>{
     const task=object(value)
-    for(const key of ['id','sessionId','clientName','name','serverId','connectionId','message'])if(typeof task[key]!=='string'||String(task[key]).length>4096)throw new Error('AI 任务信息无效。')
-    for(const key of ['createdAt','expiresAt','controlEpoch'])if(!Number.isSafeInteger(task[key])||Number(task[key])<1)throw new Error('AI 任务版本无效。')
-    if(typeof task.connected!=='boolean'||!['ai','user','none'].includes(String(task.controller))||!['running','waiting_user','finishing','succeeded','failed','cancelling','cancelled','interrupted'].includes(String(task.state)))throw new Error('AI 任务状态无效。')
+    for(const key of ['id','sessionId','clientName','name','serverId','connectionId','message'])if(typeof task[key]!=='string'||String(task[key]).length>4096)throw new Error(i18nT('mb60da2f82cc4'))
+    for(const key of ['createdAt','expiresAt','controlEpoch'])if(!Number.isSafeInteger(task[key])||Number(task[key])<1)throw new Error(i18nT('m2a9a2e216bb3'))
+    if(typeof task.connected!=='boolean'||!['ai','user','none'].includes(String(task.controller))||!['running','waiting_user','finishing','succeeded','failed','cancelling','cancelled','interrupted'].includes(String(task.state)))throw new Error(i18nT('m20e371aec39d'))
     return task as unknown as AutomationTaskView
   })
   automationRevision=Number(data.revision);automationTasks.value=tasks
 }
 export function rpc<T>(method: string, params: Record<string, unknown> = {}, mutate = false, timeoutMs = 30_000): Promise<T> {
-  if (socket?.readyState !== WebSocket.OPEN || !epoch) return Promise.reject(new Error('本地服务尚未连接。'))
+  if (socket?.readyState !== WebSocket.OPEN || !epoch) return Promise.reject(new Error(i18nT('m254952718516')))
   const id = crypto.randomUUID()
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { pending.delete(id); reject(new Error(mutate ? '未收到结果，操作可能已经保存。请同步目录后核对，不要连续重试。' : '请求超时，请重试。')) }, timeoutMs)
+    const timer = setTimeout(() => { pending.delete(id); reject(new Error(mutate ? i18nT('m6789ce053819') : i18nT('mc90cdb0cfc21'))) }, timeoutMs)
     pending.set(id, { resolve: value => resolve(value as T), reject, timer })
     socket!.send(JSON.stringify({ v: 1, type: 'request', epoch, id, method, params, ...(mutate ? { operationId: crypto.randomUUID() } : {}) }))
   })
@@ -67,9 +70,9 @@ export async function synchronize() {
   const pluginWatch = await rpc<{subscriptionId:string;epoch:string;state:import('@webnav/shared').PluginState}>('plugins.watch')
   if(pluginWatch.epoch !== epoch)return
   pluginSubscription=pluginWatch.subscriptionId;pluginState.value=pluginWatch.state
-  void loadPlugins().catch(cause => { backendError.value = cause instanceof Error ? cause.message : '插件加载失败。' })
+  void loadPlugins().catch(cause => { backendError.value = cause instanceof Error ? cause.message : i18nT('m085be4c893be') })
   const result = await rpc<unknown>('catalog.watch'); const data = object(result)
-  if (data.epoch !== epoch || typeof data.subscriptionId !== 'string') throw new Error('目录订阅无效。')
+  if (data.epoch !== epoch || typeof data.subscriptionId !== 'string') throw new Error(i18nT('m0134b370ed13'))
   if (!vaultStatus.value?.unlocked) return
   subscription = data.subscriptionId; snapshot(result); connectionState.value = 'ready'; backendError.value = ''
   const themes = await rpc<Record<string, unknown>>('terminalThemes.watch')
@@ -91,13 +94,13 @@ export async function synchronizeBookmarks() {
   try {
     const result = await rpc<BookmarkSnapshot & { subscriptionId: string; epoch: string }>('bookmarks.watch')
     if (result.epoch !== epoch || !vaultStatus.value?.unlocked) return
-    if (typeof result.subscriptionId !== 'string') throw new Error('网页收藏订阅无效。')
+    if (typeof result.subscriptionId !== 'string') throw new Error(i18nT('me63f52b38fa8'))
     bookmarkSubscription = result.subscriptionId; applyBookmarks(result)
-  } catch (cause) { bookmarksError.value = cause instanceof Error ? cause.message : '网页收藏加载失败。' }
+  } catch (cause) { bookmarksError.value = cause instanceof Error ? cause.message : i18nT('mce9e7592e0fb') }
 }
 function applyVault(input: unknown) {
   const data = object(input)
-  if (!['local', 'master'].includes(String(data.mode)) || typeof data.unlocked !== 'boolean' || !Number.isSafeInteger(data.unlockMinutes) || (data.expiresAt !== null && typeof data.expiresAt !== 'number')) throw new Error('全局设置响应无效。')
+  if (!['local', 'master'].includes(String(data.mode)) || typeof data.unlocked !== 'boolean' || !Number.isSafeInteger(data.unlockMinutes) || (data.expiresAt !== null && typeof data.expiresAt !== 'number')) throw new Error(i18nT('m12b5ed1cab2c'))
   vaultStatus.value = data as unknown as VaultStatus
   if (!data.unlocked) { connectionState.value = 'locked'; backendError.value = ''; if(configSyncStatus.value)configSyncStatus.value={...configSyncStatus.value,unlocked:false,expiresAt:null} }
 }
@@ -116,7 +119,7 @@ export async function unlockVault(password: string) {
 export type RdpPasswordUpdate = { serverId: string; connectionId: string; secret: string | null }
 export type DesktopPasswordUpdate = RdpPasswordUpdate
 export async function saveCatalog(nextGroups: Group[], nextServers: Server[], rdpPasswords: RdpPasswordUpdate[] = []) {
-  if (saving.value) throw new Error('上一项保存尚未完成。')
+  if (saving.value) throw new Error(i18nT('m394e0352a14b'))
   const catalog = parseCatalogImport({ schemaVersion: 1, groups: nextGroups, servers: nextServers })
   saving.value = true
     try { snapshot(await rpc('catalog.replace', { catalog, expectedRevision: revision, ...(rdpPasswords.length ? { desktopPasswords: rdpPasswords } : {}) }, true)) }
@@ -143,11 +146,11 @@ export function startBackend() {
       try {
         const message = object(JSON.parse(String(event.data)))
         if (message.type === 'hello') {
-          if (typeof message.epoch !== 'string') throw new Error('服务握手无效。')
+          if (typeof message.epoch !== 'string') throw new Error(i18nT('m2a23c54d86c8'))
           receivedHello = true; refreshPageSession = false
           epoch = message.epoch
           if (message.authorized) void initialize().catch(cause => { backendError.value = String(cause.message) })
-          else { backendError.value = '请重启本地服务以更新连接流程。'; socket?.close() }
+          else { backendError.value = i18nT('m35c00f2b91fb'); socket?.close() }
         } else if (message.type === 'response') {
           const task = pending.get(String(message.id)); if (!task) return
           pending.delete(String(message.id)); clearTimeout(task.timer)
@@ -159,7 +162,7 @@ export function startBackend() {
               if (vaultStatus.value) vaultStatus.value = { ...vaultStatus.value, unlocked: false, expiresAt: null }
             }
             if (error.code === 'UNAUTHORIZED') socket?.close()
-            task.reject(Object.assign(new Error(String(error.message ?? '请求失败。')), { code: error.code }))
+            task.reject(Object.assign(new Error(renderMessage(error.messageRef, String(error.message ?? i18nT('m0755d81df3ff')))), { code: error.code, messageRef: error.messageRef }))
           }
         } else if (message.type === 'event' && message.event === 'automation.changed' && message.epoch === epoch) {
           applyAutomation(message)
@@ -179,13 +182,13 @@ export function startBackend() {
         } else if (message.type === 'event' && message.event === 'bookmarks.changed' && message.epoch === epoch && message.subscriptionId === bookmarkSubscription) {
           if (vaultStatus.value?.unlocked) applyBookmarks(message)
         }
-      } catch (cause) { backendError.value = cause instanceof Error ? cause.message : '无法读取服务响应。' }
+      } catch (cause) { backendError.value = cause instanceof Error ? cause.message : i18nT('m8bd4962d9376') }
     }
     socket.onclose = () => {
       refreshPageSession = !receivedHello
       connectionState.value = 'offline'; epoch = ''
       if(configSyncStatus.value)configSyncStatus.value={...configSyncStatus.value,unlocked:false,expiresAt:null}
-      for (const task of pending.values()) { clearTimeout(task.timer); task.reject(new Error('连接中断；写入结果可能未知，重连后请核对。')) }
+      for (const task of pending.values()) { clearTimeout(task.timer); task.reject(new Error(i18nT('m1abbffc3fb58'))) }
       pending.clear()
       if (!stopped) retry = setTimeout(connect, 3000)
     }

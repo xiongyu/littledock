@@ -1,0 +1,15 @@
+{
+  "mdf3d58c7d84b": "Settings",
+  "m802a407c7743": "Refresh status",
+  "m9a82ab6212ed": "Increment through another plugin",
+  "m18d4f498988d": "Observer settings",
+  "mc4533e7b19e7": "Collaboration Observer",
+  "m2ac51b7645ff": "The counter plugin is not enabled",
+  "m8eb2c7871f85": "From {p0} · Version {p1}",
+  "m2d1341db7717": "Reading",
+  "metadata.name": "Collaboration Observer",
+  "metadata.description": "Demonstrates calls and state subscriptions between plugins",
+  "tools.main.title": "Collaboration Observer",
+  "fonts.value.name": "Current count",
+  "fonts.value.group": "Main panel"
+}

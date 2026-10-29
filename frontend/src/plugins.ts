@@ -1,3 +1,4 @@
+
 import * as vue from 'vue'
 import { shallowReactive, ref, markRaw, type Component } from 'vue'
 import type { Connection, FrontendSlot, PluginManifest, PluginState, Protocol, InstalledTheme } from '@webnav/shared'
@@ -13,6 +14,8 @@ import { pluginSettingsViews } from './plugin-settings-registry'
 import { pluginMenus, setMenuAvailability } from './plugin-menus'
 import { pluginUi, setUiAvailability } from './plugin-ui'
 import { createUiApi } from './plugin-ui-api'
+import { pluginI18n, pluginText, cachePluginLocales, installedLocaleBundles } from './i18n.ts'
+const { t: i18nT } = pluginI18n('core')
 setMenuAvailability(() => connectionState.value === 'ready')
 setUiAvailability(() => connectionState.value === 'ready')
 vue.watch(connectionState, state => { if (state !== 'ready') pluginMenus.cancelPending() }, { flush: 'sync' })
@@ -30,11 +33,22 @@ let serial: Promise<void> = Promise.resolve()
 async function cleanup(unit: Unit) {
   if (unit.disposed) return
   unit.disposed = true; unit.registering = false
-  try { const results = await pluginDeadline(Promise.allSettled(unit.cleanups.splice(0).reverse().map(async dispose => dispose())), 5000, '插件资源清理超时。'); if (results.some(result => result.status === 'rejected')) throw new Error('清理失败') }
-  catch { if (!pluginLoadErrors.value.includes('插件资源清理未完成，请刷新页面完成回收。')) pluginLoadErrors.value.push('插件资源清理未完成，请刷新页面完成回收。') }
+  try { const results = await pluginDeadline(Promise.allSettled(unit.cleanups.splice(0).reverse().map(async dispose => dispose())), 5000, i18nT('mc92eed4ed733')); if (results.some(result => result.status === 'rejected')) throw new Error(i18nT('m09e7b98edc4d')) }
+  catch { if (!pluginLoadErrors.value.includes(i18nT('md3d0bdb326b1'))) pluginLoadErrors.value.push(i18nT('md3d0bdb326b1')) }
 }
 export function loadPlugins() { serial = serial.catch(() => {}).then(syncPlugins); return serial }
 async function syncPlugins() {
+  const localeState = await rpc<PluginState>('plugins.state')
+  const present = new Set(localeState.installed.filter(plugin => plugin.manifest.i18n).map(plugin => plugin.manifest.id))
+  for (const [id, current] of installedLocaleBundles) if (!present.has(id)) { current.dispose(); installedLocaleBundles.delete(id) }
+  for (const plugin of localeState.installed) {
+    const id = plugin.manifest.id
+    if (!plugin.manifest.i18n || loaded.has(id) || installedLocaleBundles.get(id)?.commit === plugin.commit) continue
+    try {
+      const bundle = await rpc('plugins.locales', { id, commit: plugin.commit })
+      cachePluginLocales(id, plugin.commit, bundle)
+    } catch { /* Retain the previous complete dictionary when a replacement fails validation. */ }
+  }
   await refreshThemes()
   type Asset = { id: string; name?: string; commit: string; capabilities: PluginManifest['capabilities']; entry?: string; builtin?: boolean; contributes?: PluginManifest['contributes']; icon?: string; styles: string[]; config: Record<string, unknown> }
   const state = await rpc<{ revision: number; assets: Asset[]; providers: Record<string, string> }>('plugins.assets')
@@ -47,55 +61,64 @@ async function syncPlugins() {
     const fonts = createPluginFontScope(asset.id, asset.name ?? asset.id)
     const menus = pluginMenus.createScope(asset.id, asset.name ?? asset.id, asset.contributes), ui = pluginUi.createScope(asset.id, asset.name ?? asset.id, asset.contributes)
     const unit: Unit = { signature, views: new Map(), tools: new Map(), fonts, menus, ui, connectors: new Map(), cleanups: [() => fonts.dispose(), () => menus.dispose(), () => ui.dispose()], disposed: false, registering: true }
-    const requireRegistration = () => { if (unit.disposed || !unit.registering) throw new Error('插件注册作用域已经关闭。') }
+    const requireRegistration = () => { if (unit.disposed || !unit.registering) throw new Error(i18nT('m45059cd185f1')) }
+    const previousLocale = installedLocaleBundles.get(asset.id)
     try {
       await pluginDeadline((async () => {
+      if (!asset.builtin && installedLocaleBundles.get(asset.id)?.commit !== asset.commit) {
+        const bundle = await rpc('plugins.locales', { id: asset.id, commit: asset.commit })
+        requireRegistration()
+        if (bundle) cachePluginLocales(asset.id, asset.commit, bundle)
+      }
       const module: unknown = asset.builtin ? { activate: builtinFrontend(asset.id) } : await import(/* @vite-ignore */ entry!)
       requireRegistration()
       const activate = (module as { activate?: unknown }).activate
-      if (typeof activate !== 'function') throw new Error('前端入口未导出 activate。')
-      const api: PluginFrontendApi = { apiVersion: 1, vue, hostState: vue.readonly(connectionState), config: asset.config, ...createUiApi(menus, ui),
+      if (typeof activate !== 'function') throw new Error(i18nT('mf37cc2828fbe'))
+      const api: PluginFrontendApi = { apiVersion: 1, vue, i18n: pluginI18n(asset.id), hostState: vue.readonly(connectionState), config: asset.config, ...createUiApi(menus, ui),
         registerFontInfo: info => { requireRegistration(); return fonts.registerFontInfo(info) }, getFontInfo: flag => fonts.getFontInfo(flag),
         rpc: (name: string, params: Record<string, unknown> = {}, mutate = false) => rpc(`plugin.${asset.id}.${name}`, params, mutate), hostRpc: rpc,
         registerView: (slot: FrontendSlot, component: Component) => {
           requireRegistration()
           if (!slotCapabilities[slot]?.some(cap => state.providers['service:' + cap] === asset.id)) return
-          if (unit.views.has(slot)) throw new Error('视图槽位冲突。')
+          if (unit.views.has(slot)) throw new Error(i18nT('maa80ebb923dc'))
           unit.views.set(slot, markRaw(component))
         },
         registerTool: (id, definition) => {
           requireRegistration()
           const declared = asset.contributes?.tools.find(tool => tool.id === id)
-          if (!declared || unit.tools.has(id) || !definition.component) throw new Error('工具注册未声明或重复。')
+          if (!declared || unit.tools.has(id) || !definition.component) throw new Error(i18nT('mf03203e63a58'))
           const key = `plugin-tool:${asset.id}/${id}`
-          unit.tools.set(id, { key, id, pluginId: asset.id, title: declared.title, component: markRaw(definition.component), icon: !asset.builtin && declared.icon ? `/plugins/${asset.id}/${asset.commit}/${declared.icon}` : asset.icon })
+          unit.tools.set(id, { key, id, pluginId: asset.id, get title() { return pluginText(asset.id, `tools.${id}.title`, declared.title) }, component: markRaw(definition.component), icon: !asset.builtin && declared.icon ? `/plugins/${asset.id}/${asset.commit}/${declared.icon}` : asset.icon })
         },
         registerSettingsPage: (id, definition) => {
           requireRegistration()
-          if (id !== asset.contributes?.settings?.id || unit.settings || !definition.component) throw new Error('设置页面未声明或重复。')
+          if (id !== asset.contributes?.settings?.id || unit.settings || !definition.component) throw new Error(i18nT('mf1a91e64123c'))
           unit.settings = markRaw(definition.component)
         },
-        openTool: id => { if (unit.disposed) throw new Error('插件已停止。'); openPluginTool(`plugin-tool:${asset.id}/${id}`) },
-        openSettings: options => { if (unit.disposed) throw new Error('插件已停止。'); openPluginSettings(asset.id, options?.section) },
+        openTool: id => { if (unit.disposed) throw new Error(i18nT('mf2383f034b33')); openPluginTool(`plugin-tool:${asset.id}/${id}`) },
+        openSettings: options => { if (unit.disposed) throw new Error(i18nT('mf2383f034b33')); openPluginSettings(asset.id, options?.section) },
         registerConnector: (type: string, definition: Omit<Connector, 'pluginId'>) => {
           requireRegistration()
-          if (!asset.capabilities.some(cap => cap.id === 'connector:' + type)) throw new Error('连接器未声明。')
-          if (!definition.name || !Number.isInteger(definition.port) || definition.port < 1 || definition.port > 65535) throw new Error('连接器显示定义无效。')
+          if (!asset.capabilities.some(cap => cap.id === 'connector:' + type)) throw new Error(i18nT('mb28489367db6'))
+          if (!definition.name || !Number.isInteger(definition.port) || definition.port < 1 || definition.port > 65535) throw new Error(i18nT('me3e47bce07a8'))
           const key = asset.id + '/' + type
           unit.connectors.set(key, { ...definition, pluginId: asset.id, ...(definition.form ? { form: markRaw(definition.form) } : {}) })
         },
-        onDispose: (dispose: () => void | Promise<void>) => { requireRegistration(); if (typeof dispose !== 'function') throw new Error('清理方法无效。'); unit.cleanups.push(dispose) },
+        onDispose: (dispose: () => void | Promise<void>) => { requireRegistration(); if (typeof dispose !== 'function') throw new Error(i18nT('m919ea184d5be')); unit.cleanups.push(dispose) },
       }
       for (const font of asset.contributes?.fonts ?? []) fonts.registerFontInfo(font)
       await activate(api)
       menus.seal(); ui.seal()
-      if (asset.contributes?.tools.some(tool => !unit.tools.has(tool.id))) throw new Error('未注册声明的工具页面。')
-      })(), 15000, '插件前端加载超时。')
+      if (asset.contributes?.tools.some(tool => !unit.tools.has(tool.id))) throw new Error(i18nT('m45bba0aba47c'))
+      })(), 15000, i18nT('m3dba32ea2f7c'))
       unit.registering = false
       for (const href of asset.styles) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = href; document.head.append(link); unit.cleanups.push(() => link.remove()) }
       candidates.set(asset.id, unit)
       pluginLoadErrors.value = pluginLoadErrors.value.filter(message => !message.startsWith(asset.id + ' '))
-    } catch { await cleanup(unit); const message = `${asset.id} 前端更新失败，已保留原视图。请重试或回退插件。`; if (!pluginLoadErrors.value.includes(message)) pluginLoadErrors.value.push(message) }
+    } catch {
+      if (previousLocale) cachePluginLocales(asset.id, previousLocale.commit, previousLocale.bundle)
+      await cleanup(unit); const message = i18nT('m8a9dc69c73ef', { p0: (asset.id) }); if (!pluginLoadErrors.value.includes(message)) pluginLoadErrors.value.push(message)
+    }
   }
   // Vue batches this synchronous registry update: unchanged panes keep the same component identity.
   const retired: Unit[] = []

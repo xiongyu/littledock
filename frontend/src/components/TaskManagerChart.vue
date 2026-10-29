@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.taskManager')
+
 import { computed } from 'vue'
 import { seriesAreaPath, seriesPath, type SeriesPoint } from '../task-manager'
 const props = withDefaults(defineProps<{ points: readonly SeriesPoint[]; secondary?: readonly SeriesPoint[]; label: string; max?: number; maximumLabel?: string; compact?: boolean }>(), { max: 100 })
@@ -29,9 +32,9 @@ function area(points: readonly SeriesPoint[]) {
         <circle v-if="valid.length === 1" :cx="singlePointX(points, valid[0])" :cy="pointY" r="2" class="first-point"/>
         <circle v-if="secondary && secondaryValid.length === 1" :cx="singlePointX(secondary, secondaryValid[0])" :cy="secondaryPointY" r="2" class="secondary-point"/>
       </svg>
-      <span v-if="!hasAny" class="tm-chart-pending">{{ last?.value === null ? '当前指标不可用' : '等待有效采样' }}</span>
+      <span v-if="!hasAny" class="tm-chart-pending">{{ last?.value === null ? i18nT('m0833af8a89b5') : i18nT('me8e939f31da7') }}</span>
     </div>
-    <div v-if="!compact" class="tm-chart-times"><span>{{ span ? (span >= 60 ? (span / 60).toFixed(1) + ' 分钟' : span + ' 秒') + '前' : '采样开始' }}</span><span>{{ points.length }} 个样本 · 现在</span></div>
+    <div v-if="!compact" class="tm-chart-times"><span>{{ span ? (span >= 60 ? (span / 60).toFixed(1) + i18nT('m40de54344d22') : span + i18nT('m00fe8dda1fd7')) + i18nT('m6044e9f095e0') : i18nT('ma66671cd506a') }}</span><span>{{ i18nT('m58fc58266916', { p0: (points.length) }) }}</span></div>
   </div>
 </template>
 <style scoped>

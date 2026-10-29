@@ -12,7 +12,7 @@
 
 ## 本地终端
 
-在**运行 WebNav 后端的电脑**打开交互式 Shell。Windows 自动选择 Windows PowerShell，macOS 自动选择 Zsh，Linux 自动选择 Bash；Unix 默认 Shell 不存在时回退 `/bin/sh`。入口也可明确选择 PowerShell 7、CMD、Bash、Zsh 或 POSIX Shell；未安装或不适合当前系统时提示失败。
+在**运行小站后端的电脑**打开交互式 Shell。Windows 自动选择 Windows PowerShell，macOS 自动选择 Zsh，Linux 自动选择 Bash；Unix 默认 Shell 不存在时回退 `/bin/sh`。入口也可明确选择 PowerShell 7、CMD、Bash、Zsh 或 POSIX Shell；未安装或不适合当前系统时提示失败。
 
 工作目录留空使用当前用户主目录，也可填写已存在的绝对路径。选择本地入口时空服务器地址自动填 `127.0.0.1`，地址仅用于目录资料，不发起 SSH。目录格式仍保留 `port: 1` 占位，表单不显示端口。插件不接受任意启动命令或自定义可执行文件路径；打开后用户通过终端正常输入本机命令。
 
@@ -22,7 +22,7 @@
 
 ## 安卓 ADB
 
-先安装 Android Platform Tools。插件依次检查 `WEBNAV_ADB_PATH`（绝对路径）、`ANDROID_HOME` / `ANDROID_SDK_ROOT` 下的 `platform-tools`、`PATH`。更改环境变量后重启 WebNav。手机需开启 USB 调试并在手机上允许当前电脑；部分系统还要求「USB 调试（安全设置）」才能注入触摸与按键。
+先安装 Android Platform Tools。插件依次检查 `WEBNAV_ADB_PATH`（绝对路径）、`ANDROID_HOME` / `ANDROID_SDK_ROOT` 下的 `platform-tools`、`PATH`。更改环境变量后重启小站。手机需开启 USB 调试并在手机上允许当前电脑；部分系统还要求「USB 调试（安全设置）」才能注入触摸与按键。
 
 USB 入口可以读取本机设备并选择序列号；留空只在恰好一台设备已授权时自动选择，不替用户决定多设备目标。网络入口使用服务器地址与端口（默认 5555）；Android 无线调试需要先在本机完成 `adb pair`，插件不会自动打开无线调试。
 
@@ -30,7 +30,7 @@ USB 入口可以读取本机设备并选择序列号；留空只在恰好一台�
 
 随插件分发官方 **scrcpy server 3.3.4**。server 是 APK 格式的 Java 包，以 `.jar` 保存；每次连接自动推送到手机 `/data/local/tmp/` 下随机命名的会话文件，通过 `app_process` 启动，不安装普通桌面应用。来源、许可证和校验值见 [server 说明](../backend/plugins/builtin.adb/scrcpy/README.md)。离线使用不必再下载 server。
 
-实现参考已有 scrcpy 封装的推送、双通道和输入协议流程，以 TypeScript 适配当前 WebNav 生命周期。版本与 SHA-256 固定；默认 H.264、最长边 1280、最高 60 FPS、8 Mbps，入口可调整帧率、大小与码率。选择的 FPS 是编码上限；工具栏显示浏览器实际呈现 FPS，静止画面可降至 0，不把配置值当作实测帧率。
+实现参考已有 scrcpy 封装的推送、双通道和输入协议流程，以 TypeScript 适配当前小站生命周期。版本与 SHA-256 固定；默认 H.264、最长边 1280、最高 60 FPS、8 Mbps，入口可调整帧率、大小与码率。选择的 FPS 是编码上限；工具栏显示浏览器实际呈现 FPS，静止画面可降至 0，不把配置值当作实测帧率。
 
 一条本机临时 ADB 转发承载视频和控制两个 socket。视频使用 Annex-B、12 字节帧头，处理任意 TCP 分块、编码参数、关键帧与旋转后的尺寸变化。浏览器用固定 JMuxer 2.1.0 转为 MSE；恢复可见或重置解码器后请求新配置与关键帧，不能从丢失参考帧的中间继续解码。
 
@@ -44,19 +44,19 @@ USB 入口可以读取本机设备并选择序列号；留空只在恰好一台�
 
 ## WDB
 
-WDB 是独立的 Windows 被控端。WebNav 直接连接它的内置网页服务（默认端口 **27880**），不依赖 AxisAuto 的反向连接服务器，也不会修改该反向连接的地址或令牌。
+WDB 是独立的 Windows 被控端。小站直接连接它的内置网页服务（默认端口 **27880**），不依赖 AxisAuto 的反向连接服务器，也不会修改该反向连接的地址或令牌。
 
 被控端需运行**完整模式**，已初始化网页管理员，并允许所需的键鼠控制。用户名和密码是 WDB 网页管理员，与 Windows 登录和 AxisAuto 令牌独立。HTTPS 选项适用于目标提供受信任 TLS 证书的部署；当前 WDB 内置服务通常为 HTTP。
 
-后端登录 `/api/login`，检查 `/api/status`，再连接 WDB 的 `/ws/control` 与 `/ws/video`。WDB 密码、登录 Cookie 和 CSRF 值只留在后端；浏览器获得 WebNav 自己的一次性设备绑定票据。密码通过 `catalog.replace.desktopPasswords` 与入口事务保存，使用现有凭据服务，不进入目录导出。
+后端登录 `/api/login`，检查 `/api/status`，再连接 WDB 的 `/ws/control` 与 `/ws/video`。WDB 密码、登录 Cookie 和 CSRF 值只留在后端；浏览器获得小站自己的一次性设备绑定票据。密码通过 `catalog.replace.desktopPasswords` 与入口事务保存，使用现有凭据服务，不进入目录导出。
 
 WDB 每次网页登录会替换之前的网页登录。插件初始只查看画面，用户开启控制后才发送物理扫描码、鼠标移动 / 按键 / 滚轮。F8 保留给 WDB，不向远端发送。被控端拒绝控制时显示原因并保持仅查看；不绕过 WDB 的输入所有权、物理释放确认或隔离状态。
 
-「仅管理」模式会在连接时明确提示切换完整模式，不持续显示“正在连接”。没有首帧、认证失败、会话被替换、断线和视频过载均有明确失败状态，可以手动重连。WebNav 不自动修改被控端模式、输入设备或采集配置。
+「仅管理」模式会在连接时明确提示切换完整模式，不持续显示“正在连接”。没有首帧、认证失败、会话被替换、断线和视频过载均有明确失败状态，可以手动重连。小站不自动修改被控端模式、输入设备或采集配置。
 
 ## 通道与资源边界
 
-- 本地终端复用 `/ws/terminal`；ADB / WDB 每会话使用一个 `/ws/device`。业务 RPC 仍只走 `/ws`，没有新增 WebNav REST 业务接口。
+- 本地终端复用 `/ws/terminal`；ADB / WDB 每会话使用一个 `/ws/device`。业务 RPC 仍只走 `/ws`，没有新增小站 REST 业务接口。
 - 设备票据随机、单次、30 秒有效且绑定创建者。Host、精确 Origin、Cookie、当前授权和所属会话均校验；重复或其他浏览器的绑定失败不能销毁原连接。
 - ADB / WDB 与网页 RDP / VNC 合计最多 4 个画面，与所有终端合计最多 8 个连接。设备输入每秒最多 240 条、并行处理最多 16 条；输入不会在超时后自动重放。
 - 设备二进制包前缀是 4 字节大端序号；最多两包等待累计 ACK，总在途 payload 最多 16 MiB，WS 写入缓冲最多 2 MiB，15 秒不确认移除视图。内置提供者支持后台保留；旧插件未声明 viewerVersion 1 时仍释放会话。

@@ -198,7 +198,7 @@ export async function supervise(options: { open?: (url:string) => Promise<void> 
       }
       await new Promise(resolve => setTimeout(resolve, 250))
     }
-    process.send?.({ ...status(), state: 'failed', error: '已有 WebNav 正在启动或退出，请稍后重试。' }, () => process.exit(1))
+    process.send?.({ ...status(), state: 'failed', error: '已有小站正在启动或退出，请稍后重试。' }, () => process.exit(1))
     if (!process.connected) process.exit(1)
     await new Promise(() => {})
   }
