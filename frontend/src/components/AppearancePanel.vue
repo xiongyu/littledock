@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { PhCheck, PhImage, PhArrowCounterClockwise, PhTrash } from '@phosphor-icons/vue'
-import { skins } from '../appearance'
+import { skins, scenicBackgrounds } from '../appearance'
 import type { BackgroundSide, useAppearance } from '../appearance'
+import PluginFontSettings from './PluginFontSettings.vue'
 
 defineProps<{ appearance: ReturnType<typeof useAppearance> }>()
 const input = ref<HTMLInputElement>()
@@ -17,11 +18,12 @@ function upload(event: Event, appearance: ReturnType<typeof useAppearance>) {
 <template>
   <div class="appearance-panel">
     <p class="panel-intro">给工作台换一种心情。外观会保存在这个浏览器。</p>
+    <details class="settings-section"><summary>字体与可读性 · 按插件调整</summary><PluginFontSettings /></details>
     <section class="settings-section">
       <h3>主题皮肤</h3>
       <div class="skin-grid">
-        <button v-for="skin in skins" :key="skin.id" :class="['skin-option', { selected: appearance.settings.value.skin === skin.id }]" :aria-pressed="appearance.settings.value.skin === skin.id" @click="appearance.selectSkin(skin.id)">
-          <span class="skin-sample" :style="{ background: skin.background, '--sample-accent': skin.accent }"><i></i><span><b></b><b></b><b></b></span><PhCheck v-if="appearance.settings.value.skin === skin.id" :size="17" /></span>
+        <button v-for="skin in appearance.availableSkins.value" :key="skin.id" :class="['skin-option', { selected: appearance.settings.value.skin === skin.id, 'scenic-skin-option': skin.id === 'mist-lake' }]" :aria-pressed="appearance.settings.value.skin === skin.id" @click="appearance.selectSkin(skin.id)">
+          <span class="skin-sample" :style="{ background: skin.background, '--sample-accent': skin.accent }"><img v-if="skin.id === 'mist-lake'" class="scenic-skin-thumbnail" :src="scenicBackgrounds.right" alt="" loading="lazy"/><i></i><span><b></b><b></b><b></b></span><PhCheck v-if="appearance.settings.value.skin === skin.id" :size="17" /></span>
           <strong>{{ skin.name }}</strong><small>{{ skin.description }}</small>
         </button>
       </div>
@@ -43,7 +45,7 @@ function upload(event: Event, appearance: ReturnType<typeof useAppearance>) {
       <template v-if="appearance.backgroundImages.value[side]">
         <button class="button subtle" :disabled="appearance.imageBusy.value" @click="appearance.removeBackground(side)"><PhTrash :size="16" />移除这一侧的图片</button>
       </template>
-      <p class="field-hint">两侧分别保存。选择自己准备好的图片即可，图片只保存在本机浏览器。</p>
+      <p class="field-hint">两侧分别保存。风景皮肤附带左右背景，也可各自替换；上传图片只保存在本机浏览器。</p>
     </section>
     <p v-if="appearance.storageError.value" class="field-error" role="alert">{{ appearance.storageError.value }}</p>
     <button class="button full-width" :disabled="appearance.imageBusy.value" @click="appearance.reset"><PhArrowCounterClockwise :size="17" />恢复默认外观</button>

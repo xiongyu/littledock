@@ -2,6 +2,7 @@
   "name": "@webnav/shared",
   "private": true,
   "type": "module",
+  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { PhDesktop, PhGlobeHemisphereWest, PhPencilSimple, PhStar, PhTerminalWindow, PhHardDrives } from '@phosphor-icons/vue'
+import { PhDesktop, PhPencilSimple, PhStar, PhHardDrives } from '@phosphor-icons/vue'
 import SessionPreview from './SessionPreview.vue'
+import { connectorViews } from '../connectors'
 import type { Connection, Server } from '../catalog'
 import type { PreviewFrame, PreviewSession } from '../session-preview'
 
@@ -11,13 +12,13 @@ defineEmits<{ favorite: [id: string]; connect: [server: Server, connection: Conn
 <template>
   <article :class="['server-item', { 'server-card': card }]" :aria-label="server.name">
     <div class="server-identity">
-      <span class="server-symbol"><PhDesktop v-if="server.connections.some(c => c.type === 'rdp')" :size="23" /><PhHardDrives v-else :size="23" /></span>
+      <span class="server-symbol"><PhDesktop v-if="server.connections.some(c => c.type === 'rdp' || c.type === 'vnc')" :size="23" /><PhHardDrives v-else :size="23" /></span>
       <div class="server-description"><h3 :title="server.name">{{ server.name }}</h3><span class="server-address" :title="server.host">{{ server.host }}</span><span v-if="card" class="card-group" :title="groupName">{{ groupName }}</span></div>
     </div>
     <span v-if="!card" class="row-group">{{ groupName }}</span>
     <div class="connection-actions">
       <button v-for="connection in server.connections" :key="connection.id" class="protocol-button" @click="$emit('connect', server, connection)" :aria-label="`${server.name} ${connection.name}`" :title="`${connection.name} · ${connection.port}`">
-        <PhTerminalWindow v-if="connection.type === 'ssh'" :size="18" /><PhDesktop v-else-if="connection.type === 'rdp'" :size="18" /><PhGlobeHemisphereWest v-else :size="18" />
+        <component :is="connectorViews[connection.type]!.icon" :size="18" />
         <span class="visually-hidden">{{ connection.name }}</span>
       </button>
     </div>

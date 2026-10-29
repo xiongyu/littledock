@@ -3,7 +3,13 @@ node_modules/
 dist/
 .vite/
 coverage/
+/frontend/public/extensions/
+.native-deps/
+backend/native/rdp/build/
+backend/native/rdp/runtime/
+backend/native/task-manager/package/
 *.tsbuildinfo
+/.releases/
 
 # Local configuration and runtime data
 .env
@@ -11,6 +17,7 @@ coverage/
 !.env.example
 /data/
 /backend/data/
+editor-packages/
 *.sqlite
 *.sqlite3
 *.sqlite-wal

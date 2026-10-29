@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "id": "example.ui-extension-host",
+  "name": "界面扩展示例",
+  "version": "1.0.0",
+  "description": "界面扩展示例，仅演示公开界面扩展，不执行调试或进程操作",
+  "author": "WebNav",
+  "license": "MIT",
+  "category": "development",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.1",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "extension:ui-extension-host",
+      "version": 1
+    }
+  ],
+  "dataVersion": 1,
+  "icon": "icon.svg",
+  "frontend": "ui/main.js",
+  "reload": "hot",
+  "contributes": {
+    "tools": [
+      {
+        "id": "main",
+        "title": "界面扩展示例",
+        "placement": "sidebar.tools"
+      }
+    ],
+    "menuPoints": [
+      {
+        "id": "item",
+        "title": "示例项目菜单",
+        "description": "示例项目菜单，用于演示独立插件向其他插件开放扩展位置。",
+        "version": 1,
+        "fields": {
+          "itemId": {
+            "type": "string",
+            "required": true,
+            "description": "当前示例项目标识"
+          }
+        }
+      }
+    ],
+    "uiPoints": [
+      {
+        "id": "summary",
+        "title": "示例摘要面板",
+        "description": "示例摘要面板，用于演示独立插件向其他插件开放扩展位置。",
+        "version": 1,
+        "fields": {
+          "itemId": {
+            "type": "string",
+            "required": true,
+            "description": "当前示例项目标识"
+          }
+        },
+        "kind": "panel"
+      },
+      {
+        "id": "actions",
+        "title": "示例操作栏",
+        "description": "示例操作栏，用于演示独立插件向其他插件开放扩展位置。",
+        "version": 1,
+        "fields": {
+          "itemId": {
+            "type": "string",
+            "required": true,
+            "description": "当前示例项目标识"
+          }
+        },
+        "kind": "actions"
+      },
+      {
+        "id": "details",
+        "title": "示例详情标签",
+        "description": "示例详情标签，用于演示独立插件向其他插件开放扩展位置。",
+        "version": 1,
+        "fields": {
+          "itemId": {
+            "type": "string",
+            "required": true,
+            "description": "当前示例项目标识"
+          }
+        },
+        "kind": "tabs"
+      }
+    ]
+  },
+  "readme": "README.md"
+}

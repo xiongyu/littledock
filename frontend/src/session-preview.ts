@@ -1,6 +1,5 @@
-// Preview capabilities are separate from the installed connection types.
-// VNC is reserved here; this does not install or enable a VNC connector.
-export type PreviewProtocol = 'ssh' | 'rdp' | 'vnc'
+// Native RDP has no frame provider. Embedded desktop previews come from the actual display.
+export type PreviewProtocol = 'ssh' | 'rdp' | 'vnc' | 'local' | 'adb' | 'wdb'
 
 export interface PreviewFrame {
   sessionId: string
@@ -24,7 +23,7 @@ export interface PreviewSelection {
 }
 
 export const DEFAULT_PREVIEW_INTERVAL_MS = 5_000
-const priority: Record<PreviewProtocol, number> = { vnc: 3, rdp: 2, ssh: 1 }
+const priority: Record<PreviewProtocol, number> = { vnc: 3, rdp: 2, ssh: 1, local: 1, adb: 4, wdb: 4 }
 
 function matchingFrame(session: PreviewSession): PreviewFrame | undefined {
   return session.frame?.sessionId === session.id && session.frame.protocol === session.protocol

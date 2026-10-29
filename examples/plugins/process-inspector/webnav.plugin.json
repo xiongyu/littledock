@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "id": "example.process-inspector",
+  "name": "进程诊断示例",
+  "version": "1.0.0",
+  "description": "进程诊断示例，仅演示公开界面扩展，不执行调试或进程操作",
+  "author": "WebNav",
+  "license": "MIT",
+  "category": "development",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.1",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "extension:process-inspector",
+      "version": 1
+    }
+  ],
+  "dataVersion": 1,
+  "icon": "icon.svg",
+  "frontend": "ui/main.js",
+  "reload": "hot",
+  "contributes": {
+    "menuItems": [
+      {
+        "id": "inspect",
+        "title": "打开扩展诊断",
+        "target": {
+          "plugin": "builtin.taskManager",
+          "point": "process",
+          "version": 1
+        },
+        "access": "read"
+      },
+      {
+        "id": "host-inspect",
+        "title": "打开扩展详情",
+        "target": {
+          "plugin": "example.ui-extension-host",
+          "point": "item",
+          "version": 1
+        },
+        "access": "read"
+      }
+    ],
+    "uiItems": [
+      {
+        "id": "process-details",
+        "title": "扩展诊断",
+        "target": {
+          "plugin": "builtin.taskManager",
+          "point": "process-details",
+          "version": 1
+        }
+      },
+      {
+        "id": "host-summary",
+        "title": "跨插件内容",
+        "target": {
+          "plugin": "example.ui-extension-host",
+          "point": "summary",
+          "version": 1
+        }
+      },
+      {
+        "id": "host-action",
+        "title": "示例操作",
+        "target": {
+          "plugin": "example.ui-extension-host",
+          "point": "actions",
+          "version": 1
+        }
+      },
+      {
+        "id": "host-details",
+        "title": "扩展详情",
+        "target": {
+          "plugin": "example.ui-extension-host",
+          "point": "details",
+          "version": 1
+        }
+      }
+    ]
+  },
+  "readme": "README.md"
+}

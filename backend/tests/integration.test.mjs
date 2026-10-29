@@ -12,7 +12,7 @@ import ssh2 from 'ssh2'
 import { createApp } from '../src/app.ts'
 import { parseSshConfig } from '../src/plugins/ssh-import.ts'
 import { TextTranscript } from '../src/plugins/terminal-history.ts'
-import { credentialKey } from '../src/plugins/storage.ts'
+import { bookmarkCredentialKey, credentialKey } from '../src/plugins/storage.ts'
 import { rdpArguments, rdpFile } from '../src/plugins/rdp-local.ts'
 import { rdpCredentialPayload } from '../src/plugins/rdp-credentials.ts'
 
@@ -43,6 +43,112 @@ function catalog(port=22) {return {schemaVersion:1,groups:[],servers:[{id:'test-
 async function authorized(t,f){const page=await browser(f.origin);t.after(()=>page.ws.terminate());assert.equal((await page.rpc('auth.status')).authorized,true);return page}
 const waitUntil=async(fn,timeout=5000)=>{const end=Date.now()+timeout;while(!fn()){if(Date.now()>end)throw new Error('Condition timed out');await new Promise(resolve=>setTimeout(resolve,10))}}
 
+const syntheticJpeg=Buffer.from([0xff,0xd8,0xff,0xd9])
+const bookmark=(id='website')=>({id,name:'Synthetic website',url:'https://example.invalid/'})
+test('web bookmarks transact credentials, publish only metadata, preserve logins on catalog replacement and persist across restart',async t=>{
+  const captured=[]
+  const f=await fixture(t,{webCapture:async url=>{captured.push(url);return syntheticJpeg}}),page=await authorized(t,f),doc=bookmark()
+  await page.rpc('bookmarks.watch')
+  const params={bookmark:doc,expectedVersion:0,login:{username:'synthetic-account',password:'synthetic-password'}}
+  f.ctx.storage.db.exec("CREATE TEMP TRIGGER reject_web_login BEFORE INSERT ON credentials WHEN NEW.kind='web-login' BEGIN SELECT RAISE(ABORT,'synthetic failure'); END")
+  await assert.rejects(page.rpc('bookmarks.save',params),{code:'INTERNAL'})
+  assert.equal(f.ctx.webBookmarks.snapshot().bookmarks.length,0)
+  f.ctx.storage.db.exec('DROP TRIGGER reject_web_login')
+  const operation=randomUUID(),saved=await page.rpc('bookmarks.save',params,operation)
+  assert.deepEqual(await page.rpc('bookmarks.save',params,operation),saved)
+  await waitUntil(()=>f.ctx.webBookmarks.snapshot().bookmarks[0].previewState==='ready')
+  assert.deepEqual(captured,[doc.url])
+  assert.equal(f.ctx.webBookmarks.snapshot().bookmarks[0].hasLogin,true)
+  assert.deepEqual(await page.rpc('bookmarks.reveal',{id:doc.id,version:1}),params.login)
+  assert.equal(JSON.stringify(saved).includes('synthetic-account'),false)
+  assert.equal(JSON.stringify(page.events).includes('synthetic-password'),false)
+  assert.equal(JSON.stringify(page.events).includes('synthetic-account'),false)
+  assert.equal(JSON.stringify(page.events).includes('data:image'),false)
+  assert.equal((await page.rpc('bookmarks.thumbnail',{id:doc.id})).dataUrl,'data:image/jpeg;base64,'+syntheticJpeg.toString('base64'))
+  await page.rpc('catalog.replace',{catalog:catalog(),expectedRevision:0})
+  assert.deepEqual(f.ctx.credentials.bookmarkLogin(doc.id),params.login)
+  const exported=await page.rpc('exports.config')
+  assert.equal(exported.text.includes('synthetic-password'),false)
+  assert.equal(exported.text.includes('synthetic-account'),false)
+  await assert.rejects(page.rpc('bookmarks.save',{bookmark:doc,expectedVersion:0}),{code:'REVISION_CONFLICT'})
+  await assert.rejects(page.rpc('bookmarks.save',{bookmark:{...doc,url:'javascript:alert(1)'},expectedVersion:1}),{code:'INVALID_ARGUMENT'})
+  await page.rpc('bookmarks.save',{bookmark:doc,expectedVersion:1,login:{password:'new-password'}})
+  assert.deepEqual(await page.rpc('bookmarks.reveal',{id:doc.id,version:2}),{username:'synthetic-account',password:'new-password'})
+  page.ws.terminate();await f.ctx.stop();f.ctx=await createApp(f.config)
+  const restored=await browser(f.origin,page.cookie);t.after(()=>restored.ws.terminate())
+  assert.equal((await restored.rpc('bookmarks.watch')).bookmarks[0].version,2)
+  assert.equal((await restored.rpc('bookmarks.reveal',{id:doc.id,version:2})).password,'new-password')
+  await restored.rpc('bookmarks.save',{bookmark:doc,expectedVersion:2,login:null})
+  assert.equal(f.ctx.webBookmarks.snapshot().bookmarks[0].hasLogin,false)
+  await restored.rpc('bookmarks.remove',{id:doc.id,expectedVersion:3})
+  assert.equal(f.ctx.webBookmarks.snapshot().bookmarks.length,0)
+  assert.equal(f.ctx.storage.db.prepare('SELECT id FROM credentials WHERE id=?').get(bookmarkCredentialKey(doc.id)),undefined)
+})
+
+test('web login reveal verifies master password every time, never caches plaintext or extends unlock, and migrates with SSH secrets',async t=>{
+  let now=100000
+  const f=await fixture(t,{webCapture:async()=>syntheticJpeg,credentialClock:()=>now}),page=await authorized(t,f),doc=bookmark()
+  const login={username:'private-username',password:'private-password'}
+  await page.rpc('bookmarks.save',{bookmark:doc,expectedVersion:0,login})
+  await waitUntil(()=>f.ctx.webBookmarks.snapshot().bookmarks[0].previewState==='ready')
+  await page.rpc('catalog.replace',{catalog:catalog(),expectedRevision:0})
+  await page.rpc('credentials.save',{serverId:'test-server',connectionId:'ssh',kind:'password',secret:'synthetic-ssh'})
+  const row=()=>f.ctx.storage.db.prepare('SELECT secret FROM credentials WHERE id=?').get(bookmarkCredentialKey(doc.id)).secret
+  assert.deepEqual(JSON.parse(Buffer.from(row(),'base64').toString()),login)
+  await page.rpc('vault.update',{mode:'master',password:'synthetic-master',unlockMinutes:5})
+  assert.equal(row().split('.').length,3)
+  assert.equal(row().includes(login.password),false)
+  const expires=(await page.rpc('vault.status')).expiresAt
+  await assert.rejects(page.rpc('bookmarks.reveal',{id:doc.id,version:1}),{code:'MASTER_PASSWORD_REQUIRED'})
+  await assert.rejects(page.rpc('bookmarks.reveal',{id:doc.id,version:1,masterPassword:'wrong-password'}),{code:'WRONG_PASSWORD'})
+  now+=2001
+  const operation=randomUUID()
+  assert.deepEqual(await page.rpc('bookmarks.reveal',{id:doc.id,version:1,masterPassword:'synthetic-master'},operation),login)
+  assert.equal((await page.rpc('operations.get',{operationId:operation})).state,'unknown')
+  assert.equal((await page.rpc('vault.status')).expiresAt,expires)
+  await assert.rejects(page.rpc('bookmarks.reveal',{id:doc.id,version:1}),{code:'MASTER_PASSWORD_REQUIRED'})
+  await page.rpc('vault.update',{mode:'master',password:'rotated-master',unlockMinutes:5})
+  await assert.rejects(page.rpc('bookmarks.reveal',{id:doc.id,version:1,masterPassword:'synthetic-master'}),{code:'WRONG_PASSWORD'})
+  now+=2001
+  assert.deepEqual(await page.rpc('bookmarks.reveal',{id:doc.id,version:1,masterPassword:'rotated-master'}),login)
+  assert.equal((await f.ctx.credentials.resolve('test-server','ssh')).password,'synthetic-ssh')
+  await page.rpc('vault.lock')
+  await assert.rejects(page.rpc('bookmarks.reveal',{id:doc.id,version:1,masterPassword:'rotated-master'}),{code:'VAULT_LOCKED'})
+  await page.rpc('vault.unlock',{password:'rotated-master'})
+  await page.rpc('vault.update',{mode:'local',unlockMinutes:0})
+  assert.deepEqual(await page.rpc('bookmarks.reveal',{id:doc.id,version:1}),login)
+  assert.deepEqual(JSON.parse(Buffer.from(row(),'base64').toString()),login)
+})
+
+test('website screenshot queue is serial, discards outdated URLs, retains failed refresh images, and aborts removal',async t=>{
+  const jobs=[]
+  let active=0,maxActive=0
+  const f=await fixture(t,{webCapture:(url,signal)=>new Promise((resolve,reject)=>{
+    active++;maxActive=Math.max(active,maxActive)
+    const done=value=>{active--;resolve(value)}
+    jobs.push({url,resolve:done,reject:()=>{active--;reject(new Error('synthetic failure'))}})
+    signal.addEventListener('abort',()=>{active--;reject(new Error('aborted'))},{once:true})
+  })}),page=await authorized(t,f),doc=bookmark()
+  await page.rpc('bookmarks.save',{bookmark:doc,expectedVersion:0})
+  await waitUntil(()=>jobs.length===1)
+  const changed={...doc,url:'https://second.example.invalid/'}
+  await page.rpc('bookmarks.save',{bookmark:changed,expectedVersion:1})
+  jobs[0].resolve(syntheticJpeg)
+  await waitUntil(()=>jobs.length===2)
+  assert.equal((await page.rpc('bookmarks.thumbnail',{id:doc.id})).dataUrl,null)
+  jobs[1].resolve(syntheticJpeg)
+  await waitUntil(()=>f.ctx.webBookmarks.snapshot().bookmarks[0].previewState==='ready')
+  await page.rpc('bookmarks.refresh',{id:doc.id})
+  await waitUntil(()=>jobs.length===3);jobs[2].reject()
+  await waitUntil(()=>f.ctx.webBookmarks.snapshot().bookmarks[0].previewState==='failed')
+  assert.ok((await page.rpc('bookmarks.thumbnail',{id:doc.id})).dataUrl)
+  await page.rpc('bookmarks.refresh',{id:doc.id})
+  await waitUntil(()=>jobs.length===4)
+  await page.rpc('bookmarks.remove',{id:doc.id,expectedVersion:2})
+  assert.equal(f.ctx.webBookmarks.snapshot().bookmarks.length,0)
+  assert.equal(maxActive,1)
+})
+
 test('SSH config: aliases merge, wildcard defaults, distinct identities and no invented RDP',()=>{
   const result=parseSshConfig('Host dev alias\n HostName 192.0.2.10\n User Administrator\n IdentityFile ~/.ssh/key\n Port 2200\nHost second\n HostName 192.0.2.10\n IdentityFile ~/.ssh/other\n Port 2200\nHost *\n User Administrator',tmpdir())
   assert.equal(result.aliases,3);assert.equal(result.catalog.servers.length,2);assert.equal(result.references.length,2)
@@ -63,6 +169,55 @@ test('RDP parameters are separate arguments and reject command text',()=>{
   assert.equal(rdpCredentialPayload('[2001:db8::1]','tester',password).target,'TERMSRV/2001:db8::1')
   assert.throws(()=>rdpCredentialPayload('host','user','a'.repeat(1281)))
   assert.throws(()=>rdpCredentialPayload('host','user','nul\0password'))
+})
+
+test('RDP files explicitly select display mode and validate resolution before launching',()=>{
+  const lines = display => rdpFile('host',3389,'',display).trimEnd().split('\r\n')
+  assert.deepEqual(lines(undefined),['full address:s:host:3389'])
+  assert.deepEqual(lines({mode:'windowed',width:1512,height:982}),[
+    'full address:s:host:3389','screen mode id:i:1','use multimon:i:0',
+    'desktopwidth:i:1512','desktopheight:i:982','dynamic resolution:i:0',
+  ])
+  assert.deepEqual(lines({mode:'fullscreen'}),['full address:s:host:3389','screen mode id:i:2','use multimon:i:0'])
+  assert.deepEqual(lines({mode:'multimon'}),['full address:s:host:3389','screen mode id:i:2','use multimon:i:1'])
+  for(const display of [
+    {mode:'windowed',width:199,height:1080},{mode:'windowed',width:1920,height:8193},
+    {mode:'windowed',width:'1920\r\nredirectclipboard:i:1',height:1080},
+    {mode:'fullscreen',width:1920},{mode:'/multimon'},null,
+  ]) assert.throws(()=>rdpFile('host',3389,'tester',display),{code:'INVALID_ARGUMENT'})
+  assert.match(rdpFile('host',3389,'tester',{mode:'windowed',width:200,height:8192}),/desktopheight:i:8192/)
+})
+
+test('per-entry RDP display survives WS save, export/import and restart; works without saved usernames',async t=>{
+  const calls=[]
+  const f=await fixture(t,{rdpLauncher:{
+    async writeCredential(){assert.fail('No credentials expected')},
+    async launch(args){calls.push({args,text:args[0].endsWith('.rdp')?await readFile(args[0],'utf16le'):undefined})},
+  }}),page=await authorized(t,f),doc=catalog()
+  const displays=[undefined,{mode:'windowed',width:1280,height:720},{mode:'windowed',width:1512,height:982},{mode:'fullscreen'},{mode:'multimon'}]
+  doc.servers[0].connections=displays.map((rdpDisplay,index)=>({id:`rdp-${index}`,type:'rdp',rdpClient:'native',name:`Desktop ${index}`,port:3389,...(rdpDisplay?{rdpDisplay}:{})}))
+  await page.rpc('catalog.replace',{catalog:doc,expectedRevision:0})
+  const invalid=structuredClone(doc);invalid.servers[0].connections[1].rdpDisplay.width=0
+  await assert.rejects(page.rpc('catalog.replace',{catalog:invalid,expectedRevision:1}),{code:'INVALID_ARGUMENT'})
+  assert.equal(f.ctx.storage.snapshot().revision,1)
+  const exported=JSON.parse((await page.rpc('exports.config')).text)
+  assert.deepEqual(exported,doc)
+  const preview=await page.rpc('imports.preview',{catalog:exported})
+  await page.rpc('imports.apply',{token:preview.token})
+  page.ws.terminate();await f.ctx.stop();f.ctx=await createApp(f.config)
+  const restored=await browser(f.origin,page.cookie);t.after(()=>restored.ws.terminate())
+  assert.deepEqual((await restored.rpc('catalog.watch')).snapshot,doc)
+  for(const connection of doc.servers[0].connections) {
+    assert.equal((await restored.rpc('connections.open',{serverId:'test-server',connectionId:connection.id})).state,'client-started')
+  }
+  assert.deepEqual(calls[0].args,['/v:127.0.0.1:3389'])
+  for(let index=1;index<calls.length;index++){
+    assert.equal(calls[index].args.length,1)
+    assert.equal(calls[index].text,'\ufeff'+rdpFile('127.0.0.1',3389,'',displays[index]))
+  }
+  assert.equal(new Set(calls.slice(1).map(call=>call.args[0])).size,4)
+  await f.ctx.stop()
+  assert.equal((await readdir(join(f.config.directory,'rdp'))).length,0)
 })
 
 test('RDP passwords save atomically with new entries, stay out of snapshots, and follow vault mode',async t=>{
@@ -118,7 +273,7 @@ test('RDP hands credentials to Windows before launching and cleans files without
     async writeCredential(host,username,password){calls.push({host,username,password});if(credentialFailure)throw new Error('synthetic failure')},
     async launch(args){if(launchFailure)throw new Error('synthetic failure');calls.push({args,text:await readFile(args[0],'utf16le')})},
   }}),page=await authorized(t,f),doc=catalog()
-  doc.servers[0].connections=[{id:'rdp',type:'rdp',name:'RDP',port:3390,username:'DOMAIN\\tester'}]
+  doc.servers[0].connections=[{id:'rdp',type:'rdp',rdpClient:'native',name:'RDP',port:3390,username:'DOMAIN\\tester'}]
   await page.rpc('vault.configure',{mode:'local'})
   await page.rpc('catalog.replace',{catalog:doc,expectedRevision:0,rdpPasswords:[{serverId:'test-server',connectionId:'rdp',secret:'synthetic-rdp-password'}]})
   const result=await page.rpc('connections.open',{serverId:'test-server',connectionId:'rdp'})
@@ -333,4 +488,46 @@ test('SSH: stored password and private key, host trust, byte ACK, input echo and
   await assert.rejects(page.rpc('sessions.hostKeyDecision',{sessionId:changed.session.sessionId,accept:true,fingerprint}),{code:'HOSTKEY_CHANGED'})
   await page.rpc('sessions.hostKeyDecision',{sessionId:changed.session.sessionId,accept:false})
   assert.equal(accepted,2)
+})
+
+test('terminal palettes persist, validate versions, publish subscribed snapshots and respect the vault', async t => {
+  const { builtInTerminalThemes } = await import('@webnav/shared')
+  const f = await fixture(t), page = await authorized(t, f), observer = await browser(f.origin, page.cookie), silent = await browser(f.origin, page.cookie)
+  t.after(() => { observer.ws.terminate(); silent.ws.terminate() })
+  const watched = await observer.rpc('terminalThemes.watch')
+  assert.equal(watched.revision, 0)
+  const settings = { revision: 0, defaultId: 'custom', themes: [{ ...structuredClone(builtInTerminalThemes[0]), id: 'custom', name: 'Synthetic palette' }] }
+  const operation = randomUUID()
+  const saved = await page.rpc('terminalThemes.save', { settings }, operation)
+  assert.equal(saved.revision, 1)
+  assert.deepEqual(await page.rpc('terminalThemes.save', { settings }, operation), saved)
+  await waitUntil(() => observer.events.some(event => event.event === 'terminalThemes.changed'))
+  assert.equal(observer.events.at(-1).subscriptionId, watched.subscriptionId)
+  assert.equal(silent.events.some(event => event.event === 'terminalThemes.changed'), false)
+  await assert.rejects(page.rpc('terminalThemes.save', { settings }), { code: 'REVISION_CONFLICT' })
+  await assert.rejects(page.rpc('terminalThemes.save', { settings: { ...saved, themes: [{ ...saved.themes[0], colors: {} }] } }), { code: 'INVALID_ARGUMENT' })
+  await page.rpc('catalog.replace', { catalog: catalog(), expectedRevision: 0 })
+  assert.equal((await page.rpc('terminalThemes.watch')).defaultId, 'custom')
+  page.ws.terminate(); observer.ws.terminate(); silent.ws.terminate()
+  await f.ctx.stop(); f.ctx = await createApp(f.config)
+  const restored = await browser(f.origin, page.cookie); t.after(() => restored.ws.terminate())
+  assert.deepEqual(f.ctx.terminalThemes.snapshot(), saved)
+  await restored.rpc('vault.update', { mode: 'master', password: 'synthetic-master', unlockMinutes: 0 })
+  await restored.rpc('vault.lock')
+  await assert.rejects(restored.rpc('terminalThemes.watch'), { code: 'VAULT_LOCKED' })
+  await assert.rejects(restored.rpc('terminalThemes.save', { settings: saved }), { code: 'VAULT_LOCKED' })
+})
+
+test('closing an already ended session is idempotent without allowing another browser to close live sessions', async t => {
+  const f = await fixture(t), page = await authorized(t, f), other = await browser(f.origin)
+  t.after(() => other.ws.terminate())
+  const data = catalog()
+  data.servers[0].connections.push({id:'vnc',name:'VNC',type:'vnc',port:5900})
+  await page.rpc('catalog.replace',{catalog:data,expectedRevision:0})
+  for (const [connectionId,method] of [['ssh','sessions.close'],['vnc','desktops.close']]) {
+    const session = await page.rpc('connections.open',{serverId:'test-server',connectionId})
+    await assert.rejects(other.rpc(method,{sessionId:session.sessionId}),{code:'NOT_FOUND'})
+    assert.deepEqual(await page.rpc(method,{sessionId:session.sessionId}),{closed:true})
+    assert.deepEqual(await page.rpc(method,{sessionId:session.sessionId}),{closed:true})
+  }
 })

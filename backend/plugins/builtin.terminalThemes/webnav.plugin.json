@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.terminalThemes",
+  "name": "终端配色",
+  "version": "0.1.0",
+  "description": "为所有 SSH 终端统一管理默认配色、自定义方案与入口级引用，更新颜色无需重连终端。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "appearance",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:terminalThemes",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "为所有 SSH 终端统一管理默认配色、自定义方案与入口级引用，更新颜色无需重连终端。 AI 可通过工作台调用下列能力。",
+    "tools": [
+      {
+        "id": "themes_list",
+        "version": 1,
+        "title": "终端配色",
+        "description": "读取当前终端配色，不重建已有终端。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scopes": [
+          "catalog.read"
+        ],
+        "access": "read",
+        "execution": "request",
+        "binding": {
+          "kind": "service",
+          "capability": "service:terminalThemes"
+        },
+        "contract": {
+          "id": "themes_list",
+          "version": 1
+        }
+      }
+    ]
+  }
+}

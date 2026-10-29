@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "id": "example.collaboration-source",
+  "name": "协作计数器",
+  "version": "1.0.0",
+  "description": "演示工具、设置、字体与服务注册",
+  "author": "WebNav",
+  "license": "MIT",
+  "category": "development",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.1",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "extension:collaboration-source",
+      "version": 1
+    }
+  ],
+  "dataVersion": 1,
+  "icon": "icon.svg",
+  "backend": "backend.mjs",
+  "frontend": "ui/main.js",
+  "styles": [
+    "ui/style.css"
+  ],
+  "reload": "hot",
+  "contributes": {
+    "tools": [
+      {
+        "id": "main",
+        "title": "协作计数器",
+        "placement": "sidebar.tools"
+      }
+    ],
+    "fonts": [
+      {
+        "flag": "value",
+        "name": "当前计数",
+        "group": "主面板",
+        "defaultSize": 30,
+        "minSize": 18,
+        "maxSize": 48
+      }
+    ],
+    "settings": {
+      "id": "main",
+      "title": "计数器设置",
+      "entry": "settings/main.js",
+      "styles": []
+    }
+  },
+  "configFields": [
+    {
+      "key": "label",
+      "label": "计数器标题",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "interop": {
+    "provides": [
+      {
+        "id": "example.counter",
+        "version": 1,
+        "methods": [
+          {
+            "id": "read",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "access": "read"
+          },
+          {
+            "id": "add",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "type": "integer",
+                  "minimum": -10,
+                  "maximum": 10
+                },
+                "operationId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "amount",
+                "operationId"
+              ],
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "access": "write"
+          }
+        ],
+        "events": [
+          {
+            "id": "state",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ],
+    "requires": []
+  }
+}

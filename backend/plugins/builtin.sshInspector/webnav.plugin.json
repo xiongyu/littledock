@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.sshInspector",
+  "name": "SSH 系统信息",
+  "version": "0.1.0",
+  "description": "通过所属 SSH 的独立通道显示 CPU、内存、磁盘和系统信息，并提供有界目录查询。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "monitoring",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:sshInspector",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "通过所属 SSH 的独立通道显示 CPU、内存、磁盘和系统信息，并提供有界目录查询。 AI 可通过工作台调用下列能力。",
+    "tools": [
+      {
+        "id": "system_read",
+        "version": 1,
+        "title": "系统信息",
+        "description": "使用独立通道执行固定只读探测，不污染交互终端。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "taskId"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scopes": [
+          "system.read"
+        ],
+        "access": "read",
+        "execution": "request",
+        "binding": {
+          "kind": "service",
+          "capability": "service:sshInspector"
+        },
+        "contract": {
+          "id": "system_read",
+          "version": 1
+        }
+      }
+    ]
+  }
+}

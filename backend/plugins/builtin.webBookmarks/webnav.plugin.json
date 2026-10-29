@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.webBookmarks",
+  "name": "网页收藏",
+  "version": "0.1.0",
+  "description": "用圆角截图卡片整理常用网站，支持独立账密、按需截图、新标签页打开和全局主密码保护。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "bookmarks",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:webBookmarks",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "用圆角截图卡片整理常用网站，支持独立账密、按需截图、新标签页打开和全局主密码保护。 AI 可通过工作台调用下列能力。",
+    "tools": [
+      {
+        "id": "bookmarks_list",
+        "version": 1,
+        "title": "网页收藏",
+        "description": "仅返回名称和 URL，不返回账号密码。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scopes": [
+          "bookmarks.read"
+        ],
+        "access": "read",
+        "execution": "request",
+        "binding": {
+          "kind": "service",
+          "capability": "service:webBookmarks"
+        },
+        "contract": {
+          "id": "bookmarks_list",
+          "version": 1
+        }
+      }
+    ]
+  }
+}

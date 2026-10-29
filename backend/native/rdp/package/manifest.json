@@ -1,0 +1,7 @@
+{
+  "protocolVersion": 1,
+  "platform": "win32-x64",
+  "freerdp": "3.32.2",
+  "openssl": "3.5.9",
+  "sha256": "af6e9831faa3cd932bbfd17b7896cba04117ba1efb8737d097fdaab6ccd9a0fa"
+}

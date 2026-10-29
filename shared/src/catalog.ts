@@ -1,6 +1,13 @@
-export type Protocol = 'ssh' | 'rdp' | 'web'
+export type Protocol = 'ssh' | 'rdp' | 'vnc' | 'web' | 'local' | 'adb' | 'wdb' | `plugin:${string}`
+export type WorkspaceProtocol = 'ssh' | 'rdp' | 'vnc' | 'local' | 'adb' | 'wdb'
 export interface Group { id: string; name: string; parentId?: string }
-export interface Connection { id: string; type: Protocol; name: string; port: number; username?: string; url?: string; saveHistory?: boolean }
+export type RdpDisplay = { mode: 'windowed'; width: number; height: number } | { mode: 'fullscreen' | 'multimon' }
+export interface RdpOptions { domain?: string; security?: 'any' | 'nla' | 'tls' | 'rdp'; certificate?: 'verify' | 'tofu' }
+export interface Connection { id: string; type: Protocol; name: string; port: number; username?: string; url?: string; saveHistory?: boolean; terminalThemeId?: string; rdpDisplay?: RdpDisplay; rdpClient?: 'native' | 'browser'; rdpOptions?: RdpOptions; providerId?: string; pluginSettings?: Record<string, string | number | boolean> }
+export const DEFAULT_BROWSER_RDP_DISPLAY = { mode: 'windowed', width: 1920, height: 1080 } as const
+// Missing values include existing entries and older imports: RDP opens in the workspace by default.
+export function getRdpClient(connection: Pick<Connection, 'rdpClient'>): 'native' | 'browser' { return connection.rdpClient ?? 'browser' }
+export function getRdpCertificatePolicy(connection: Pick<Connection, 'rdpOptions'>): 'verify' | 'tofu' { return connection.rdpOptions?.certificate ?? 'tofu' }
 export interface Server {
   id: string
   name: string
@@ -12,7 +19,7 @@ export interface Server {
   connections: Connection[]
 }
 
-export const protocolNames: Record<Protocol, string> = { ssh: 'SSH', rdp: 'RDP', web: '网页' }
+export const protocolNames: Record<Protocol, string> = new Proxy({ ssh: 'SSH', rdp: 'RDP', vnc: 'VNC', web: '网页', local: '本地终端', adb: 'ADB', wdb: 'WDB' }, { get: (target, key: string) => target[key as keyof typeof target] ?? key.replace(/^plugin:/, '') })
 
 export function orderedGroups(groups: Group[]): (Group & { depth: number })[] {
   const result: (Group & { depth: number })[] = []

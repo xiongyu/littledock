@@ -1,0 +1,92 @@
+[
+  {
+    "id": "file-extensions",
+    "title": "显示文件扩展名",
+    "group": "文件管理",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+    "name": "HideFileExt",
+    "value": 0,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "hidden-files",
+    "title": "显示普通隐藏文件",
+    "group": "文件管理",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+    "name": "Hidden",
+    "value": 1,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "explorer-home",
+    "title": "资源管理器打开此电脑",
+    "group": "文件管理",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+    "name": "LaunchTo",
+    "value": 1,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "sync-suggestions",
+    "title": "减少资源管理器建议",
+    "group": "推荐与提示",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+    "name": "ShowSyncProviderNotifications",
+    "value": 0,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "transparency",
+    "title": "关闭透明效果",
+    "group": "视觉效果",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+    "name": "EnableTransparency",
+    "value": 0,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "start-suggestions",
+    "title": "减少开始菜单建议",
+    "group": "推荐与提示",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+    "name": "SubscribedContent-338388Enabled",
+    "value": 0,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "windows-tips",
+    "title": "减少 Windows 使用提示",
+    "group": "推荐与提示",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+    "name": "SubscribedContent-338389Enabled",
+    "value": 0,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "welcome-tips",
+    "title": "减少更新后的欢迎建议",
+    "group": "推荐与提示",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+    "name": "SubscribedContent-310093Enabled",
+    "value": 0,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "settings-suggestions",
+    "title": "减少设置中的建议",
+    "group": "推荐与提示",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+    "name": "SubscribedContent-338393Enabled",
+    "value": 0,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  },
+  {
+    "id": "setup-reminders",
+    "title": "减少设备设置提醒",
+    "group": "推荐与提示",
+    "path": "Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+    "name": "ScoobeSystemSettingEnabled",
+    "value": 0,
+    "note": "写入后需重新登录或重新打开资源管理器核对；不自动重启。"
+  }
+]

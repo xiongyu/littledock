@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.rdp",
+  "name": "Windows 远程桌面",
+  "version": "0.1.0",
+  "description": "调用系统远程桌面客户端，按每个连接入口保存显示设置与凭据，保留系统客户端的独立窗口。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "desktop",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:rdp",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "调用系统远程桌面客户端，按每个连接入口保存显示设置与凭据，保留系统客户端的独立窗口。 此版本仅提供人工界面，没有开放 AI 执行工具。",
+    "tools": []
+  }
+}

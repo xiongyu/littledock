@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "webnav.plugin.json contributes; no plugin code executed",
+  "points": [
+    {
+      "key": "builtin.mcp/terminal",
+      "plugin": "builtin.mcp",
+      "pluginName": "MCP 工作台接入",
+      "pluginVersion": "0.1.0",
+      "source": "backend/plugins/builtin.mcp/webnav.plugin.json",
+      "id": "terminal",
+      "title": "AI 终端菜单",
+      "description": "AI 工作终端内容菜单；人工控制权限变化会使当前菜单失效。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "sessionId": {
+          "type": "string",
+          "required": true,
+          "description": "当前 AI 终端会话 ID"
+        },
+        "connected": {
+          "type": "boolean",
+          "required": true,
+          "description": "观察通道是否已连接"
+        },
+        "writable": {
+          "type": "boolean",
+          "required": true,
+          "description": "当前人工是否持有输入权"
+        },
+        "hasSelection": {
+          "type": "boolean",
+          "required": true,
+          "description": "是否选中文本，不包含正文"
+        }
+      },
+      "kind": "menu"
+    },
+    {
+      "key": "builtin.sessions/terminal",
+      "plugin": "builtin.sessions",
+      "pluginName": "SSH 终端",
+      "pluginVersion": "0.1.0",
+      "source": "backend/plugins/builtin.sessions/webnav.plugin.json",
+      "id": "terminal",
+      "title": "终端右键菜单",
+      "description": "SSH / 本地终端的内容菜单。仅传会话元数据，不公开终端输出或剪贴板正文。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "sessionId": {
+          "type": "string",
+          "required": true,
+          "description": "当前终端会话 ID"
+        },
+        "ready": {
+          "type": "boolean",
+          "required": true,
+          "description": "终端是否就绪"
+        },
+        "hasSelection": {
+          "type": "boolean",
+          "required": true,
+          "description": "是否选中文本，不包含正文"
+        }
+      },
+      "kind": "menu"
+    },
+    {
+      "key": "builtin.sessions/workspace",
+      "plugin": "builtin.sessions",
+      "pluginName": "SSH 终端",
+      "pluginVersion": "0.1.0",
+      "source": "backend/plugins/builtin.sessions/webnav.plugin.json",
+      "id": "workspace",
+      "title": "工作区标签菜单",
+      "description": "连接工作区主标签和分屏标题菜单。groupId 非空表示整组菜单。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "sessionId": {
+          "type": "string",
+          "required": true,
+          "description": "当前会话 ID"
+        },
+        "protocol": {
+          "type": "string",
+          "required": true,
+          "description": "会话协议"
+        },
+        "groupId": {
+          "type": "string",
+          "required": true,
+          "description": "分屏组 ID，无则为空"
+        }
+      },
+      "kind": "menu"
+    },
+    {
+      "key": "builtin.sshFiles/entry",
+      "plugin": "builtin.sshFiles",
+      "pluginName": "SSH 文件管理",
+      "pluginVersion": "0.1.0",
+      "source": "backend/plugins/builtin.sshFiles/webnav.plugin.json",
+      "id": "entry",
+      "title": "SSH 文件菜单",
+      "description": "SSH 文件项或当前目录的操作菜单。路径属于指定会话；写入仍需后端校验版本及权限。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "sessionId": {
+          "type": "string",
+          "required": true,
+          "description": "所属 SSH 会话 ID"
+        },
+        "path": {
+          "type": "string",
+          "required": true,
+          "description": "所选项或当前目录的远端完整路径"
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "description": "所选项名称，目录空白处为空"
+        },
+        "kind": {
+          "type": "string",
+          "required": true,
+          "description": "file、directory、link 或其他文件类型"
+        }
+      },
+      "kind": "menu"
+    },
+    {
+      "key": "builtin.taskManager/process",
+      "plugin": "builtin.taskManager",
+      "pluginName": "任务管理器",
+      "pluginVersion": "0.4.0",
+      "source": "backend/plugins/builtin.taskManager/webnav.plugin.json",
+      "id": "process",
+      "title": "进程右键菜单",
+      "description": "选中进程的操作菜单。可添加诊断、调试入口；操作前必须核对完整目标和进程身份。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "monitorId": {
+          "type": "string",
+          "required": true,
+          "description": "当前监控连接 ID，绑定目标与用户"
+        },
+        "bootId": {
+          "type": "string",
+          "required": true,
+          "description": "目标系统启动标识"
+        },
+        "targetKind": {
+          "type": "string",
+          "required": true,
+          "description": "local 或 ssh"
+        },
+        "serverId": {
+          "type": "string",
+          "required": false,
+          "description": "SSH 目标服务器 ID"
+        },
+        "connectionId": {
+          "type": "string",
+          "required": false,
+          "description": "SSH 连接入口 ID"
+        },
+        "platform": {
+          "type": "string",
+          "required": true,
+          "description": "目标 OS：win32、linux、darwin"
+        },
+        "arch": {
+          "type": "string",
+          "required": true,
+          "description": "采集器架构：x64 或 arm64；不是被观察进程的位数"
+        },
+        "pid": {
+          "type": "number",
+          "required": true,
+          "description": "进程 PID，不能单独用作进程身份"
+        },
+        "startedAt": {
+          "type": "number",
+          "required": true,
+          "description": "进程创建时间，与启动标识和 PID 一同核对；0 表示未知"
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "description": "进程显示名称"
+        },
+        "executable": {
+          "type": "string",
+          "required": false,
+          "description": "可访问时的可执行文件路径"
+        }
+      },
+      "kind": "menu"
+    },
+    {
+      "key": "builtin.taskManager/process-details",
+      "plugin": "builtin.taskManager",
+      "pluginName": "任务管理器",
+      "pluginVersion": "0.4.0",
+      "source": "backend/plugins/builtin.taskManager/webnav.plugin.json",
+      "id": "process-details",
+      "title": "进程详情",
+      "description": "当前选中进程的详情标签区。可添加调试、诊断、分析标签；切换目标或进程时旧实例失效。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "monitorId": {
+          "type": "string",
+          "required": true,
+          "description": "当前监控连接 ID，绑定目标与用户"
+        },
+        "bootId": {
+          "type": "string",
+          "required": true,
+          "description": "目标系统启动标识"
+        },
+        "targetKind": {
+          "type": "string",
+          "required": true,
+          "description": "local 或 ssh"
+        },
+        "serverId": {
+          "type": "string",
+          "required": false,
+          "description": "SSH 目标服务器 ID"
+        },
+        "connectionId": {
+          "type": "string",
+          "required": false,
+          "description": "SSH 连接入口 ID"
+        },
+        "platform": {
+          "type": "string",
+          "required": true,
+          "description": "目标 OS：win32、linux、darwin"
+        },
+        "arch": {
+          "type": "string",
+          "required": true,
+          "description": "采集器架构：x64 或 arm64；不是被观察进程的位数"
+        },
+        "pid": {
+          "type": "number",
+          "required": true,
+          "description": "进程 PID，不能单独用作进程身份"
+        },
+        "startedAt": {
+          "type": "number",
+          "required": true,
+          "description": "进程创建时间，与启动标识和 PID 一同核对；0 表示未知"
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "description": "进程显示名称"
+        },
+        "executable": {
+          "type": "string",
+          "required": false,
+          "description": "可访问时的可执行文件路径"
+        }
+      },
+      "kind": "tabs"
+    },
+    {
+      "key": "example.ui-extension-host/actions",
+      "plugin": "example.ui-extension-host",
+      "pluginName": "界面扩展示例",
+      "pluginVersion": "1.0.0",
+      "source": "examples/plugins/ui-extension-host/webnav.plugin.json",
+      "id": "actions",
+      "title": "示例操作栏",
+      "description": "示例操作栏，用于演示独立插件向其他插件开放扩展位置。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "itemId": {
+          "type": "string",
+          "required": true,
+          "description": "当前示例项目标识"
+        }
+      },
+      "kind": "actions"
+    },
+    {
+      "key": "example.ui-extension-host/details",
+      "plugin": "example.ui-extension-host",
+      "pluginName": "界面扩展示例",
+      "pluginVersion": "1.0.0",
+      "source": "examples/plugins/ui-extension-host/webnav.plugin.json",
+      "id": "details",
+      "title": "示例详情标签",
+      "description": "示例详情标签，用于演示独立插件向其他插件开放扩展位置。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "itemId": {
+          "type": "string",
+          "required": true,
+          "description": "当前示例项目标识"
+        }
+      },
+      "kind": "tabs"
+    },
+    {
+      "key": "example.ui-extension-host/item",
+      "plugin": "example.ui-extension-host",
+      "pluginName": "界面扩展示例",
+      "pluginVersion": "1.0.0",
+      "source": "examples/plugins/ui-extension-host/webnav.plugin.json",
+      "id": "item",
+      "title": "示例项目菜单",
+      "description": "示例项目菜单，用于演示独立插件向其他插件开放扩展位置。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "itemId": {
+          "type": "string",
+          "required": true,
+          "description": "当前示例项目标识"
+        }
+      },
+      "kind": "menu"
+    },
+    {
+      "key": "example.ui-extension-host/summary",
+      "plugin": "example.ui-extension-host",
+      "pluginName": "界面扩展示例",
+      "pluginVersion": "1.0.0",
+      "source": "examples/plugins/ui-extension-host/webnav.plugin.json",
+      "id": "summary",
+      "title": "示例摘要面板",
+      "description": "示例摘要面板，用于演示独立插件向其他插件开放扩展位置。",
+      "version": 1,
+      "public": true,
+      "fields": {
+        "itemId": {
+          "type": "string",
+          "required": true,
+          "description": "当前示例项目标识"
+        }
+      },
+      "kind": "panel"
+    }
+  ]
+}

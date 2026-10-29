@@ -8,6 +8,9 @@ import { AppError } from '../core/errors.ts'
 
 declare module 'cordis' { interface Context { storage: StorageService } }
 export class StorageService extends Service {
+  private listeners = new Set<() => void>()
+  subscribe(listener: () => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
+  notify() { for (const listener of this.listeners) listener() }
   db: Database.Database
   directory: string
   constructor(ctx: Context, config: { directory: string }) {
@@ -25,6 +28,8 @@ export class StorageService extends Service {
       INSERT OR IGNORE INTO catalog VALUES (1,0,'{"schemaVersion":1,"groups":[],"servers":[]}');
       CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS credentials (id TEXT PRIMARY KEY, kind TEXT NOT NULL, path TEXT NOT NULL DEFAULT '', secret TEXT, updated INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS web_bookmarks (id TEXT PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL, version INTEGER NOT NULL,
+        thumbnail BLOB, captured_at INTEGER, preview_state TEXT NOT NULL DEFAULT 'pending');
       CREATE TABLE IF NOT EXISTS hostkeys (endpoint TEXT PRIMARY KEY, fingerprint TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS browser_sessions (hash TEXT PRIMARY KEY, authorized INTEGER NOT NULL, expires INTEGER NOT NULL);`)
     ctx.on('dispose', () => { if (this.db.open) { this.db.pragma('wal_checkpoint(TRUNCATE)'); this.db.close() } })
@@ -41,7 +46,7 @@ export class StorageService extends Service {
       if (current.revision !== expectedRevision) throw new AppError('REVISION_CONFLICT', '目录已改变，请同步后重试。')
       this.db.prepare('UPDATE catalog SET revision=?,data=? WHERE id=1').run(current.revision + 1, serializeCatalog(data.groups, data.servers))
       const retained = new Set(data.servers.flatMap(server => server.connections.map(connection => credentialKey(server.id, connection.id))))
-      for (const row of this.db.prepare('SELECT id FROM credentials').all() as {id:string}[]) if (!retained.has(row.id)) this.db.prepare('DELETE FROM credentials WHERE id=?').run(row.id)
+      for (const row of this.db.prepare("SELECT id FROM credentials WHERE kind IN ('password','key')").all() as {id:string}[]) if (!retained.has(row.id)) this.db.prepare('DELETE FROM credentials WHERE id=?').run(row.id)
       return this.snapshot()
     })()
   }
@@ -55,3 +60,4 @@ export class StorageService extends Service {
   }
 }
 export function credentialKey(serverId: string, connectionId: string) { return JSON.stringify([serverId, connectionId]) }
+export function bookmarkCredentialKey(id: string) { return `bookmark:${id}` }

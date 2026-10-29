@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "example.deep-sea",
+  "name": "深海主题",
+  "version": "0.1.0",
+  "description": "海军蓝侧栏与柔和的浅蓝灰工作区，配以青绿色交互。纯静态主题，无安装脚本或执行入口。",
+  "author": "WebNav 示例",
+  "license": "MIT",
+  "category": "themes",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "theme:appearance",
+      "version": 1
+    }
+  ],
+  "theme": {
+    "background": "#eaf1f4",
+    "sidebar": "#132c3b",
+    "accent": "#237a82"
+  },
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1
+}
+

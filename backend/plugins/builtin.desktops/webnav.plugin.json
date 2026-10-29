@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.desktops",
+  "name": "VNC 桌面",
+  "version": "0.1.0",
+  "description": "使用浏览器打开 VNC，提供桌面会话与一次性票据、显示缩放、键鼠输入和共享桌面通道。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "desktop",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:desktops",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "使用浏览器打开 VNC，提供桌面会话与一次性票据、显示缩放、键鼠输入和共享桌面通道。 此版本仅提供人工界面，没有开放 AI 执行工具。",
+    "tools": []
+  }
+}

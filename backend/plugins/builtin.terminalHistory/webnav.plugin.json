@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.terminalHistory",
+  "name": "终端输出历史",
+  "version": "0.1.0",
+  "description": "保存 SSH 纯文本输出，按会话查询、搜索、分页，以固定范围查看历史，手动刷新才纳入新输出。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "terminal",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:terminalHistory",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "保存 SSH 纯文本输出，按会话查询、搜索、分页，以固定范围查看历史，手动刷新才纳入新输出。 AI 可通过工作台调用下列能力。",
+    "tools": [
+      {
+        "id": "history_list",
+        "version": 1,
+        "title": "历史会话",
+        "description": "仅列出当前 AI 创建的、且目标仍获授权的已保存 SSH 输出记录。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scopes": [
+          "history.read"
+        ],
+        "access": "read",
+        "execution": "request",
+        "binding": {
+          "kind": "service",
+          "capability": "service:terminalHistory"
+        },
+        "contract": {
+          "id": "history_list",
+          "version": 1
+        }
+      },
+      {
+        "id": "history_read",
+        "version": 1,
+        "title": "读取固定历史范围",
+        "description": "首次不传 snapshot；随后传返回的 snapshot 和 after。历史不包含主动记录的输入。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "snapshot": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "after": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "search": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "taskId"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scopes": [
+          "history.read"
+        ],
+        "access": "read",
+        "execution": "request",
+        "binding": {
+          "kind": "service",
+          "capability": "service:terminalHistory"
+        },
+        "contract": {
+          "id": "history_read",
+          "version": 1
+        }
+      }
+    ]
+  }
+}

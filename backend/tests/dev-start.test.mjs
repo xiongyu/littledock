@@ -20,7 +20,7 @@ async function freePort() {
 async function launch(directory, backendPort, uiPort, cwd) {
   const child = spawn(process.execPath, ['--experimental-strip-types', fileURLToPath(new URL('../../scripts/dev.mjs', import.meta.url))], {
     cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-    env: { ...process.env, WEBNAV_DATA_DIR: directory, WEBNAV_PORT: String(backendPort), WEBNAV_UI_PORT: String(uiPort) },
+    env: { ...process.env, LOCALAPPDATA: directory, XDG_STATE_HOME: directory, WEBNAV_NO_TRAY: '1', WEBNAV_DATA_DIR: directory, WEBNAV_PORT: String(backendPort), WEBNAV_UI_PORT: String(uiPort) },
   })
   let output = ''
   const append = bytes => { output = (output + bytes).slice(-6000) }

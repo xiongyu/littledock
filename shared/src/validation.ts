@@ -1,4 +1,13 @@
-import type { Connection, Group, Server } from './catalog.js'
+import type { Connection, Group, RdpDisplay, RdpOptions, Server } from './catalog.js'
+import { pluginId } from './plugins.js'
+import { builtinConnectionSettings } from './builtin-connections.js'
+
+export function isConnectionType(value: unknown): value is Connection['type'] { return typeof value === 'string' && (['ssh','rdp','vnc','web','local','adb','wdb'].includes(value) || /^plugin:[a-z][a-z0-9.-]{1,100}$/.test(value)) }
+function pluginSettings(input: unknown): NonNullable<Connection['pluginSettings']> {
+  const data=object(input)
+  if(Object.keys(data).length>64||JSON.stringify(data).length>16384||Object.entries(data).some(([key,value])=>!/^\w{1,80}$/.test(key)||['__proto__','constructor','prototype'].includes(key)||!['string','number','boolean'].includes(typeof value)||(typeof value==='number'&&!Number.isFinite(value))))throw new Error('插件公开配置格式无效。认证秘密应由凭据服务保存。')
+  return {...data} as NonNullable<Connection['pluginSettings']>
+}
 
 export interface CatalogDocument { schemaVersion: 1; groups: Group[]; servers: Server[] }
 export const MAX_CATALOG_BYTES = 1024 * 1024
@@ -25,6 +34,21 @@ function id(value: unknown): string {
   const result = text(value, '记录 ID', 100)
   if (!/^[a-zA-Z0-9_-]+$/.test(result)) throw new Error('记录 ID 只能包含字母、数字、横线或下划线。')
   return result
+}
+export function parseRdpDisplay(input: unknown): RdpDisplay {
+  const display = object(input)
+  if (display.mode === 'windowed') {
+    keys(display, ['mode', 'width', 'height'])
+    for (const dimension of [display.width, display.height]) {
+      if (typeof dimension !== 'number' || !Number.isInteger(dimension) || dimension < 200 || dimension > 8192) throw new Error('RDP 分辨率宽高必须是 200 到 8192 之间的整数。')
+    }
+    return { mode: 'windowed', width: display.width as number, height: display.height as number }
+  }
+  if (display.mode === 'fullscreen' || display.mode === 'multimon') {
+    keys(display, ['mode'])
+    return { mode: display.mode }
+  }
+  throw new Error('RDP 显示模式不正确。')
 }
 export function validHost(host: string): boolean {
   if (!host || host.length > 253 || /[\s/@?#\\]/.test(host)) return false
@@ -57,6 +81,14 @@ export function validateGroups(groups: Group[]) {
     if (seen.size > 5) throw new Error('分组最多支持 5 层。')
   }
 }
+export function parseRdpOptions(input: unknown): RdpOptions {
+  const options = object(input)
+  keys(options, ['domain', 'security', 'certificate'])
+  if (options.domain !== undefined && (typeof options.domain !== 'string' || options.domain.length > 100 || /[\r\n\0]/.test(options.domain))) throw new Error('RDP 域名不正确。')
+  if (options.security !== undefined && (typeof options.security !== 'string' || !['any', 'nla', 'tls', 'rdp'].includes(options.security))) throw new Error('RDP 安全模式不正确。')
+  if (options.certificate !== undefined && (typeof options.certificate !== 'string' || !['verify', 'tofu'].includes(options.certificate))) throw new Error('RDP 证书选项不正确。')
+  return { ...options } as RdpOptions
+}
 export function validateServer(server: Server, groups: Group[]) {
   text(server.name, '服务器名称', 60)
   if (!validHost(server.host)) throw new Error('请输入有效 IP 或主机名，不要包含协议、端口、空格或路径。')
@@ -66,8 +98,22 @@ export function validateServer(server: Server, groups: Group[]) {
   if (server.tags.length > 12 || server.tags.some(tag => !tag.trim() || tag.length > 30)) throw new Error('最多 12 个标签，每个标签不超过 30 字。')
   text(server.note, '备注', 500, true)
   for (const connection of server.connections) {
+    if (connection.terminalThemeId !== undefined && (!['ssh','local'].includes(connection.type) || !/^[\w-]{1,80}$/.test(connection.terminalThemeId))) throw new Error('终端配色标识无效。')
+    if (!isConnectionType(connection.type)) throw new Error('连接类型不正确。')
+    if (connection.providerId !== undefined && connection.providerId !== 'builtin') pluginId(connection.providerId)
+    if (connection.pluginSettings !== undefined) pluginSettings(connection.pluginSettings)
+    builtinConnectionSettings(connection)
+    if (connection.rdpClient !== undefined && (connection.type !== 'rdp' || !['native', 'browser'].includes(connection.rdpClient))) throw new Error('RDP 打开方式不正确。')
+    if (connection.rdpOptions !== undefined) {
+      if (connection.type !== 'rdp') throw new Error('RDP 参数与协议不匹配。')
+      parseRdpOptions(connection.rdpOptions)
+    }
     text(connection.name, '入口名称', 30)
     if (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535) throw new Error('端口必须是 1 到 65535 之间的整数。')
+    if (connection.rdpDisplay !== undefined) {
+      if (connection.type !== 'rdp') throw new Error('显示设置仅适用于 RDP 入口。')
+      parseRdpDisplay(connection.rdpDisplay)
+    }
     if (connection.type === 'web') {
       let url: URL
       try { url = new URL(connection.url ?? '') } catch { throw new Error('网页入口需要完整的 http:// 或 https:// 地址。') }
@@ -92,15 +138,23 @@ export function parseCatalogImport(input: unknown): CatalogDocument {
     const server = object(value); keys(server, ['id', 'name', 'host', 'groupId', 'tags', 'note', 'favorite', 'connections'])
     if (!Array.isArray(server.tags) || !Array.isArray(server.connections) || typeof server.favorite !== 'boolean') throw new Error('服务器标签、收藏或连接格式不正确。')
     const connections: Connection[] = server.connections.map((value: unknown) => {
-      const connection = object(value); keys(connection, ['id', 'type', 'name', 'port', 'username', 'url', 'saveHistory'])
-      if (typeof connection.type !== 'string' || !['ssh', 'rdp', 'web'].includes(connection.type) || typeof connection.port !== 'number') throw new Error('连接类型或端口格式不正确。')
+      const connection = object(value); keys(connection, ['id', 'type', 'name', 'port', 'username', 'url', 'saveHistory', 'terminalThemeId', 'rdpDisplay', 'rdpClient', 'rdpOptions', 'providerId', 'pluginSettings'])
+      if (!isConnectionType(connection.type) || typeof connection.port !== 'number') throw new Error('连接类型或端口格式不正确。')
       if (connection.saveHistory !== undefined && typeof connection.saveHistory !== 'boolean') throw new Error('历史记录开关格式不正确。')
       const type = connection.type as Connection['type']
-      if ((type !== 'web' && connection.url !== undefined) || (type !== 'ssh' && connection.saveHistory !== undefined)) throw new Error('连接参数与协议不匹配。')
+      if ((type !== 'web' && connection.url !== undefined) || (!['ssh','local'].includes(type) && connection.saveHistory !== undefined) || (type !== 'rdp' && (connection.rdpDisplay !== undefined || connection.rdpClient !== undefined || connection.rdpOptions !== undefined))) throw new Error('连接参数与协议不匹配。')
+      if (connection.rdpClient !== undefined && (typeof connection.rdpClient !== 'string' || !['native', 'browser'].includes(connection.rdpClient))) throw new Error('RDP 打开方式不正确。')
       return { id: id(connection.id), type, name: text(connection.name, '入口名称', 30), port: connection.port,
+        ...(connection.providerId!==undefined?{providerId:connection.providerId==='builtin'?'builtin':pluginId(connection.providerId)}:{}),
+        ...(connection.pluginSettings!==undefined?{pluginSettings:pluginSettings(connection.pluginSettings)}:{}),
         ...(connection.username !== undefined ? { username: text(connection.username, '用户名', 100, true) } : {}),
         ...(type === 'web' ? { url: text(connection.url, '网页地址', 2048) } : {}),
-        ...(type === 'ssh' ? { saveHistory: connection.saveHistory !== false } : {}) }
+        ...(type === 'ssh' ? { saveHistory: connection.saveHistory !== false } : {}),
+        ...(type === 'local' ? { saveHistory: connection.saveHistory === true } : {}),
+        ...(connection.terminalThemeId !== undefined ? { terminalThemeId: text(connection.terminalThemeId, '终端配色', 80) } : {}),
+        ...(connection.rdpDisplay !== undefined ? { rdpDisplay: parseRdpDisplay(connection.rdpDisplay) } : {}),
+        ...(connection.rdpClient !== undefined ? { rdpClient: connection.rdpClient as 'native' | 'browser' } : {}),
+        ...(connection.rdpOptions !== undefined ? { rdpOptions: parseRdpOptions(connection.rdpOptions) } : {}) }
     })
     const result: Server = { id: id(server.id), name: text(server.name, '服务器名称', 60), host: text(server.host, '服务器地址', 253), groupId: server.groupId === '' ? '' : id(server.groupId), tags: server.tags.map((tag: unknown) => text(tag, '标签', 30)), note: text(server.note, '备注', 500, true), favorite: server.favorite, connections }
     validateServer(result, groups)

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "example.midnight-themes",
+  "name": "午夜配色示例",
+  "version": "1.0.0",
+  "description": "可独立安装的示例插件：用午夜蓝作为初始默认配色，替换配色服务与设置视图，数据保存在插件目录。",
+  "author": "WebNav 示例",
+  "license": "MIT",
+  "category": "appearance",
+  "secondaryCategories": [
+    "terminal",
+    "development"
+  ],
+  "apiVersion": 1,
+  "webnav": "^0.1.2",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:terminalThemes",
+      "version": 1
+    }
+  ],
+  "backend": "backend.mjs",
+  "frontend": "ui/index.js",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1
+}

@@ -6,12 +6,24 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "test:updates:installed": "node --experimental-strip-types backend/tests/updates-installed.mjs",
+    "release:build": "node --experimental-strip-types scripts/release.mjs",
+    "release:keygen": "node --experimental-strip-types scripts/release.mjs --keygen",
+    "editor:cache": "node --experimental-strip-types scripts/editor-cache.mjs",
+    "collector:build": "node scripts/task-manager-build.mjs",
+    "rdp:build": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File backend/native/rdp/build.ps1",
     "dev": "node --experimental-strip-types scripts/dev.mjs",
+    "dev:console": "node --experimental-strip-types scripts/dev-worker.mjs",
     "dev:ui": "pnpm --filter @webnav/frontend dev:ui",
-    "build": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend build && pnpm --filter @webnav/frontend build",
-    "typecheck": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend typecheck && pnpm --filter @webnav/frontend typecheck",
-    "test": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend test && pnpm --filter @webnav/frontend test",
-    "start": "pnpm --filter @webnav/backend start",
-    "preview": "pnpm --filter @webnav/frontend preview"
+    "plugins:build": "node scripts/build-bundled-plugins.mjs",
+    "build": "pnpm --filter @webnav/shared build && pnpm plugins:build && pnpm --filter @webnav/backend build && pnpm --filter @webnav/extension build && pnpm --filter @webnav/frontend build",
+    "extension:build": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/extension build",
+    "typecheck": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend typecheck && pnpm --filter @webnav/frontend typecheck && pnpm --filter @webnav/extension typecheck",
+    "test": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend test && pnpm --filter @webnav/frontend test && pnpm --filter @webnav/extension test",
+    "start": "node --experimental-strip-types scripts/start.mjs",
+    "start:console": "pnpm --filter @webnav/backend start",
+    "preview": "pnpm --filter @webnav/frontend preview",
+    "plugins:catalog": "node scripts/plugin-ui-catalog.mjs",
+    "plugins:catalog:check": "node scripts/plugin-ui-catalog.mjs --check"
   }
 }

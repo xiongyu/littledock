@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.wdb",
+  "name": "WDB 远程控制",
+  "version": "0.1.0",
+  "description": "连接 WDB Agent 内置网页服务，在工作区查看 H.264 画面并按需开启键鼠控制。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "desktop",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:wdb",
+      "version": 1
+    },
+    {
+      "id": "connector:wdb",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "连接 WDB Agent 内置网页服务，在工作区查看 H.264 画面并按需开启键鼠控制。 此版本仅提供人工界面，没有开放 AI 执行工具。",
+    "tools": []
+  }
+}

@@ -1,0 +1,123 @@
+/* Distinct panel chrome and resource severity remain legible in every WebNav theme. */
+.task-manager {
+  --tm-header: color-mix(in srgb, var(--accent) 25%, #173c44);
+  --tm-selection-bg: #dcecff;
+  --tm-selection-ink: #123b67;
+  --tm-selection-border: #347bc1;
+  --tm-header-ink: #f4fbfb;
+  --tm-header-muted: #d4e7e8;
+  --tm-header-border: color-mix(in srgb, var(--accent) 25%, #315b63);
+  --tm-panel-border: color-mix(in srgb, var(--ink) 32%, var(--surface));
+  --tm-canvas: color-mix(in srgb, var(--ink) 7%, var(--page));
+  --tm-rail: color-mix(in srgb, var(--ink) 14%, var(--surface));
+  --tm-low-bg: color-mix(in srgb, #5eae73 24%, var(--surface));
+  --tm-medium-bg: color-mix(in srgb, #e5c44c 42%, var(--surface));
+  --tm-high-bg: color-mix(in srgb, #e9983a 46%, var(--surface));
+  --tm-critical-bg: color-mix(in srgb, #d85b50 44%, var(--surface));
+  --tm-cell-ink: var(--ink);
+  --tm-chart-line: #117dbb;
+  --tm-chart-fill: #dceff8;
+  --tm-chart-secondary: #667daa;
+  --tm-chart-surface: color-mix(in srgb, white 80%, var(--surface));
+  --tm-chart-grid: #e1e8ec;
+  --tm-chart-border: #b3c4ce;
+}
+.task-manager .tm-recording-entry{font-size:var(--tm-font-caption, var(--font-body));min-height:34px;padding:6px 10px}.task-manager .tm-state.tm-history-connection{padding:18px 14px;gap:11px;flex:none;border:1px solid var(--border);border-radius:7px;background:var(--surface)}.task-manager .tm-history-connection .tm-state-icon{display:none}.task-manager .tm-history-connection h2{font-size:var(--tm-font-heading, var(--font-body))}.task-manager .tm-history-connection>p{font-size:var(--tm-font-caption, var(--font-body))}
+:root[data-theme="dark"] .task-manager {
+  --tm-header: #406f75;
+  --tm-selection-bg: #203f60;
+  --tm-selection-ink: #ecf5ff;
+  --tm-selection-border: #7cb8f4;
+  --tm-header-ink: #ffffff;
+  --tm-header-muted: #ecf6f6;
+  --tm-header-border: #6a999d;
+  --tm-panel-border: color-mix(in srgb, var(--ink) 35%, var(--surface));
+  --tm-canvas: color-mix(in srgb, #071212 42%, var(--page));
+  --tm-low-bg: color-mix(in srgb, #3b9360 35%, var(--surface));
+  --tm-medium-bg: color-mix(in srgb, #b79520 44%, var(--surface));
+  --tm-high-bg: color-mix(in srgb, #bd6e22 47%, var(--surface));
+  --tm-critical-bg: color-mix(in srgb, #b54040 48%, var(--surface));
+  --tm-chart-line: #62bceb;
+  --tm-chart-fill: color-mix(in srgb, #278cc4 22%, var(--surface));
+  --tm-chart-secondary: #b0bae5;
+  --tm-chart-surface: color-mix(in srgb, #101c23 65%, var(--surface));
+  --tm-chart-grid: #30424c;
+  --tm-chart-border: #506775;
+}
+.task-manager .tm-viewbar{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--tm-header-border);margin-top:-6px}.task-manager .tm-main-tabs{display:flex;align-self:stretch;gap:4px}.task-manager .tm-main-tabs button{font-size:var(--tm-font-process-table, var(--font-body));padding:10px 19px;border-bottom:3px solid transparent;color:var(--muted)}.task-manager .tm-main-tabs button.active{border-color:var(--accent);color:var(--accent);font-weight:650}.task-manager .tm-view-spacer{flex:1}.task-manager .tm-process-view{display:flex;flex-direction:column;gap:12px;min-width:0}.task-manager .tm-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--tm-header-border);border-radius:8px;overflow:hidden;background:var(--surface)}.task-manager .tm-summary-card{text-align:left;min-width:0;padding:12px 15px 9px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:5px}.task-manager .tm-summary-card:last-child{border:0}.task-manager .tm-summary-card:hover{background:var(--hover)}.task-manager .tm-summary-card header{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:var(--tm-font-caption, var(--font-body));font-weight:600}.task-manager .tm-summary-card header small{font-size:var(--tm-font-caption, var(--font-body));font-weight:400;color:var(--muted)}.task-manager .tm-summary-card>strong{font-size:var(--tm-font-metric, var(--font-body));font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}.task-manager .tm-summary-card strong small{font-size:var(--tm-font-caption, var(--font-body));font-weight:400;color:var(--muted)}.task-manager .tm-summary-card svg{width:100%;height:58px;border:1px solid color-mix(in srgb,var(--accent) 17%,var(--border));background:color-mix(in srgb,var(--accent) 3%,var(--surface))}.task-manager .tm-summary-card footer{font-size:var(--tm-font-caption, var(--font-body));color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:auto;padding-top:3px}.task-manager .tm-summary-rates{height:58px;display:flex;gap:10px;align-items:center;font-size:var(--tm-font-caption, var(--font-body));color:var(--muted);flex-wrap:wrap}.task-manager .tm-summary-rates span{min-width:0}.task-manager .tm-summary-rates b{font-size:var(--tm-font-process-table, var(--font-body));color:var(--ink);display:block;font-weight:500;margin-top:4px}.task-manager .tm-heat-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:var(--tm-font-caption, var(--font-body));color:var(--muted)}.task-manager .tm-heat-legend>span:not(:first-child){padding:2px 6px;border-radius:3px;color:var(--tm-cell-ink);border:1px solid color-mix(in srgb,var(--ink) 10%,transparent)}.task-manager .tm-heat-legend>small{font-size:var(--tm-font-caption, var(--font-body));margin-left:auto}.task-manager .tm-table thead th{background:var(--tm-header);color:var(--ink);font-size:var(--tm-font-caption, var(--font-body));font-weight:650;border-top:1px solid color-mix(in srgb,var(--surface) 70%,transparent);border-bottom:1px solid var(--tm-header-border);box-shadow:inset 0 -1px color-mix(in srgb,var(--ink) 8%,transparent);height:37px}.task-manager .tm-inspector{padding-top:0;overflow:hidden}.task-manager .tm-inspector>header{background:var(--tm-header);border-bottom:1px solid var(--tm-header-border);margin:0 -16px;padding:8px 13px;min-height:39px;box-shadow:inset 0 1px color-mix(in srgb,var(--surface) 65%,transparent);font-size:var(--tm-font-process-table, var(--font-body))}.task-manager .tm-inspector>header .icon-button{color:var(--ink)}.task-manager .tm-detail-tabs{background:var(--tm-header);border-bottom:1px solid var(--tm-header-border);padding:0 8px;box-shadow:inset 0 1px color-mix(in srgb,var(--surface) 65%,transparent)}.task-manager .tm-detail-tabs button[role=tab]{color:var(--ink);border-bottom:3px solid transparent;padding:10px 13px;margin-top:4px}.task-manager .tm-detail-tabs button.active{background:var(--surface);border-color:var(--accent);color:var(--accent);border-radius:4px 4px 0 0}.task-manager .tm-detail-tabs>.icon-button{color:var(--ink)}.task-manager .tm-heat-cell{font-variant-numeric:tabular-nums;color:var(--tm-cell-ink);font-weight:600;border-left:1px solid color-mix(in srgb,var(--ink) 8%,transparent);border-right:1px solid color-mix(in srgb,var(--ink) 8%,transparent)}.task-manager .tm-heat-cell small{font-size:var(--tm-font-caption, var(--font-body));font-weight:400;display:inline-block;min-width:37px;text-align:right;margin-left:9px;opacity:.85}.task-manager .heat-low{background:var(--tm-low-bg)}.task-manager .heat-medium{background:var(--tm-medium-bg)}.task-manager .heat-high{background:var(--tm-high-bg)}.task-manager .heat-critical{background:var(--tm-critical-bg)}.task-manager .heat-unknown{color:var(--muted);background:var(--surface-soft)}.task-manager .tm-processes tbody tr.selected{box-shadow:inset 3px 0 var(--accent)}.task-manager .tm-processes tbody tr.selected .tm-heat-cell{outline:1px solid color-mix(in srgb,var(--accent) 40%,transparent);outline-offset:-1px}.task-manager .tm-selected-name{padding-top:3px}
+@media(max-width:1100px){.task-manager .tm-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.task-manager .tm-summary-card:nth-child(2){border-right:0}.task-manager .tm-summary-card:nth-child(-n+2){border-bottom:1px solid var(--border)}.task-manager .tm-summary-card strong small{font-size:var(--tm-font-caption, var(--font-body))}.task-manager .tm-heat-legend>small{margin-left:0;flex-basis:100%}}
+@media(max-width:520px){.task-manager .tm-summary-card{padding:10px}.task-manager .tm-summary-card>strong{font-size:var(--tm-font-heading, var(--font-body))}.task-manager .tm-summary-card strong small{display:block;font-size:var(--tm-font-caption, var(--font-body))}.task-manager .tm-summary-card header small{font-size:var(--tm-font-caption, var(--font-body))}.task-manager .tm-summary-rates{height:auto;min-height:48px;gap:5px}.task-manager .tm-summary-rates b{font-size:var(--tm-font-caption, var(--font-body))}.task-manager .tm-summary-card svg{height:48px}.task-manager .tm-summary-card footer{font-size:var(--tm-font-caption, var(--font-body))}.task-manager .tm-viewbar{gap:3px}.task-manager .tm-main-tabs button{padding:10px 12px}.task-manager .tm-viewbar .tm-interval>span{display:none}.task-manager .tm-heat-legend{gap:5px}.task-manager .tm-detail-tabs button[role=tab]{padding:10px 9px}}
+/* Clear page / title band / card body hierarchy, shared by processes, performance and history. */
+.task-manager{background:var(--tm-canvas);min-height:100%}
+.task-manager .tm-heading{padding:16px 18px;border:1px solid var(--tm-header-border);border-radius:10px;background:var(--tm-header);color:var(--tm-header-ink)}
+.task-manager .tm-heading .tm-title>svg,.task-manager .tm-heading>.icon-button{color:var(--tm-header-ink)}
+.task-manager .tm-heading .tm-subtitle{color:var(--tm-header-muted)}
+.task-manager .tm-heading .tm-pill{background:#ffffff14;border-color:#ffffff55;color:var(--tm-header-ink)}
+.task-manager .tm-heading .tm-target{color:var(--ink);border-color:transparent}
+.task-manager .tm-viewbar{margin-top:0;border:1px solid var(--tm-panel-border);border-radius:8px;padding:0 8px;background:var(--surface)}
+.task-manager .tm-overview{gap:12px;border:0;border-radius:0;background:transparent;overflow:visible}
+.task-manager .tm-overview .tm-summary-card{padding:0;gap:0;border:1px solid var(--tm-panel-border);border-radius:9px;background:var(--surface);overflow:hidden;box-shadow:0 2px 4px #102d2d0a}
+.task-manager .tm-summary-card>header{padding:10px 14px;background:var(--tm-header);color:var(--tm-header-ink);border-bottom:1px solid var(--tm-header-border)}
+.task-manager .tm-summary-card>header small{color:var(--tm-header-muted)}
+.task-manager .tm-summary-card>strong{margin:10px 14px 8px}
+.task-manager .tm-summary-card>svg{width:calc(100% - 28px);margin:0 14px;background:var(--tm-chart-surface)}
+.task-manager .tm-summary-card>.tm-summary-rates{margin:0 14px}
+.task-manager .tm-summary-card>footer{margin:10px 14px;padding:0}
+.task-manager .tm-processes,.task-manager .tm-inspector,.task-manager .tm-details,.task-manager .tm-performance,.task-manager .tm-recorder,.task-manager .tm-history-query,.task-manager .tm-history-selected,.task-manager .tm-history-charts{border-color:var(--tm-panel-border);box-shadow:0 2px 5px #102d2d0a}
+.task-manager .tm-table thead th,.task-manager .tm-history-processes thead th,.task-manager .tm-hardware-table-scroll thead th,.task-manager .tm-inspector>header,.task-manager .tm-detail-tabs,.task-manager .tm-recorder>header,.task-manager .tm-history-query>header,.task-manager .tm-history-selected>header{background:var(--tm-header);color:var(--tm-header-ink);box-shadow:none}
+.task-manager .tm-table thead th{height:40px;border-top:0}
+.task-manager .tm-inspector>header .icon-button,.task-manager .tm-detail-tabs button[role=tab],.task-manager .tm-detail-tabs>.icon-button{color:var(--tm-header-ink)}
+.task-manager .tm-detail-tabs button.active{background:var(--surface);color:var(--ink);border-color:var(--accent)}
+.task-manager .tm-history-query>header>span,.task-manager .tm-history-selected>header>span,.task-manager .tm-history-process-heading label{color:var(--tm-header-muted)}
+.task-manager .tm-recorder>header .button,.task-manager .tm-recording-badge{color:var(--ink)}
+.task-manager .tm-table-footer{background:var(--tm-rail);border-top-color:var(--tm-panel-border)}
+.task-manager .tm-performance-heading{padding:14px 16px;border:1px solid var(--tm-header-border);border-radius:8px;background:var(--tm-header);color:var(--tm-header-ink)}
+.task-manager .tm-performance-heading p{color:var(--tm-header-muted)}
+.task-manager .tm-performance-heading .segmented{background:var(--surface);color:var(--ink)}
+.task-manager .tm-performance-nav{border-color:var(--tm-panel-border)}
+.task-manager .tm-core{border:1px solid var(--tm-panel-border);border-radius:6px;overflow:hidden;background:var(--surface)}
+.task-manager .tm-core>header{margin:0;padding:7px 8px;background:var(--tm-header);color:var(--tm-header-ink)}
+.task-manager .tm-core>header>span{color:var(--tm-header-muted)}
+.task-manager .tm-chart-caption,.task-manager .tm-history-chart>header{padding:9px 11px;margin-bottom:0;background:var(--tm-header);color:var(--tm-header-ink);border:1px solid var(--tm-header-border);border-bottom:0;border-radius:6px 6px 0 0}
+.task-manager .tm-history-chart>header small{color:var(--tm-header-muted)}
+.task-manager .tm-hardware-content section{border:1px solid var(--tm-panel-border);border-radius:7px;overflow:hidden;padding:0 12px 12px;background:var(--surface)}
+.task-manager .tm-hardware-content section>header{margin:0 -12px 12px;padding:10px 12px;background:var(--tm-header);color:var(--tm-header-ink)}
+.task-manager .tm-hardware-content section>header h4 small,.task-manager .tm-hardware-content section>header .tm-hardware-pages,.task-manager .tm-hardware-content section>header .icon-button{color:var(--tm-header-muted)}
+.task-manager .tm-history-gpu{padding-top:0;background:var(--surface-soft);border-color:var(--tm-panel-border);overflow:hidden}
+.task-manager .tm-history-gpu>h5{margin:0 -12px 12px;padding:10px 12px;background:var(--tm-rail);border-bottom:1px solid var(--tm-panel-border)}
+/* Column handles own pointer capture; widths remain fixed while samples and selection change. */
+.task-manager table[data-resizable-columns]{table-layout:fixed;max-width:none;min-width:0}
+.task-manager table[data-resizable-columns] th{overflow:visible;padding:8px 10px 8px 8px;border-right:1px solid var(--tm-header-border)}
+.task-manager table[data-resizable-columns] td{max-width:none;padding-left:8px;padding-right:8px;overflow:hidden;text-overflow:ellipsis}
+.task-manager table[data-resizable-columns] th button{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.task-manager .table-column-grip{position:absolute;right:0;top:0;bottom:0;width:10px;cursor:col-resize;touch-action:none;user-select:none;z-index:2}
+.task-manager .table-column-grip::after{content:'';position:absolute;right:0;top:9px;bottom:9px;width:2px;background:var(--tm-header-muted);opacity:.55;border-radius:2px}
+.task-manager .table-column-grip:hover::after,.task-manager .table-column-grip:focus-visible::after{width:3px;background:#fff;opacity:1}
+.task-manager .table-column-grip:focus-visible{outline:2px solid var(--tm-header-ink);outline-offset:-3px}
+.task-manager table[data-column-resizing]{user-select:none;cursor:col-resize}
+.task-manager .tm-process-name{min-width:0;max-width:100%;gap:6px}
+.task-manager .tm-process-name>svg,.task-manager .tm-process-name>.tm-branch{flex-shrink:0}
+.task-manager .tm-name-select{min-width:0;flex:1}
+.task-manager .tm-detail-content{overflow-x:auto}
+@media(max-width:520px){.task-manager .tm-heading{padding:14px 12px}.task-manager .tm-overview{gap:9px}.task-manager .tm-summary-card>header{padding:9px 10px}.task-manager .tm-summary-card>strong{margin:9px 10px 7px}.task-manager .tm-summary-card>svg{width:calc(100% - 20px);margin:0 10px}.task-manager .tm-summary-card>.tm-summary-rates{margin:0 10px}.task-manager .tm-summary-card>footer{margin:9px 10px}.task-manager .tm-performance-heading{padding:12px}}
+/* Selection is persistent blue; hover remains a light neutral tint. Keep resource heat visible. */
+.task-manager .tm-search-mode{flex-shrink:0;font-size:var(--tm-font-caption,var(--font-body));padding:2px 6px;border-radius:4px;background:var(--surface-soft);color:var(--muted);white-space:nowrap}
+.task-manager .tm-search-selected{border-color:var(--tm-selection-border);background:var(--tm-selection-bg);color:var(--tm-selection-ink)}
+.task-manager .tm-search-selected input,.task-manager .tm-search-selected button{color:var(--tm-selection-ink)}
+.task-manager .tm-search-selected .tm-search-mode{background:var(--tm-selection-border);color:var(--surface)}
+:root[data-theme="dark"] .task-manager .tm-search-selected .tm-search-mode{color:#102d49}
+.task-manager .tm-processes tbody tr:not(.selected):hover{background:var(--hover)}
+.task-manager .tm-processes tbody tr.selected,.task-manager .tm-processes tbody tr.selected:hover{background:var(--tm-selection-bg);color:var(--tm-selection-ink);box-shadow:none}
+.task-manager .tm-processes tbody tr.selected>td{box-shadow:inset 0 1px var(--tm-selection-border),inset 0 -1px var(--tm-selection-border)}
+.task-manager .tm-processes tbody tr.selected>td:first-child{box-shadow:inset 4px 0 var(--tm-selection-border),inset 0 1px var(--tm-selection-border),inset 0 -1px var(--tm-selection-border)}
+.task-manager .tm-processes tbody tr.selected>td:last-child{box-shadow:inset -1px 0 var(--tm-selection-border),inset 0 1px var(--tm-selection-border),inset 0 -1px var(--tm-selection-border)}
+.task-manager .tm-processes tbody tr.selected .tm-heat-cell{outline:none}
+.task-manager .tm-selected-icon{color:var(--tm-selection-ink)}
+.task-manager .tm-processes .tm-row-missing{color:var(--muted);cursor:default}
+.task-manager .tm-processes .tm-row-missing button{opacity:.65}
+
+/* Multi-process observation and on-demand command lines. */
+.task-manager .tm-process-check{width:15px;height:15px;flex:none;accent-color:var(--accent);margin:0 9px 0 0;vertical-align:middle;cursor:pointer}.task-manager .tm-processes th:first-child>button{display:inline-block;width:calc(100% - 28px)}.tm-process-entry{display:flex;align-items:center;min-width:0}.task-manager .tm-process-entry .tm-process-name{min-width:0;flex:1}
+.tm-multiselect{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:11px 13px;border:1px solid var(--tm-panel-border);border-radius:8px;background:var(--surface)}.tm-multiselect>strong{margin-right:7px;font-size:var(--tm-font-caption)}.tm-multiselect .button{padding:6px 10px;min-height:32px;font-size:var(--tm-font-caption)}
+.tm-watch{border:1px solid var(--tm-panel-border);border-radius:9px;overflow:hidden;background:var(--surface)}.tm-watch>header{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 14px;background:var(--tm-header);color:var(--tm-header-ink)}.tm-watch>header small{margin-left:8px;font-weight:400}.tm-watch>header>span,.tm-watch>footer{font-size:var(--tm-font-caption)}.tm-watch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px;padding:12px}.tm-watch-grid>article{border:1px solid var(--tm-panel-border);border-radius:7px;overflow:hidden}.tm-watch-grid>article>header{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--tm-rail);font-size:var(--tm-font-caption)}.tm-watch-grid strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tm-watch-grid>article>header>span{flex:none;color:var(--muted)}.tm-watch-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px}.tm-watch-metrics>div{min-width:0}.tm-watch-metrics span{color:var(--muted);font-size:12px}.tm-watch-metrics b{display:block;font-size:18px;font-weight:600;margin-bottom:7px}.tm-watch-grid article>footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:0 10px 9px;font-size:12px;color:var(--muted)}.tm-watch-grid article>footer strong{color:var(--ink);font-weight:500}.tm-watch>footer{display:flex;justify-content:space-between;gap:9px;padding:8px 12px;border-top:1px solid var(--border);color:var(--muted)}.tm-watch>footer>div{white-space:nowrap}.tm-watch-missing{padding:7px 10px 0;color:var(--muted);font-size:12px}
+.tm-command-line{margin-bottom:14px;border:1px solid var(--tm-panel-border);border-radius:6px;overflow:hidden}.tm-command-line>header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--tm-rail)}.tm-command-line>header>div{display:flex;align-items:center;gap:5px}.tm-command-line>header small{font-weight:400;color:var(--muted)}.tm-command-line .button{padding:3px 7px;min-height:28px}.tm-command-line pre{margin:0;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:170px;overflow:auto;font:inherit;font-family:Consolas,monospace;user-select:text}.tm-command-line>p,.tm-command-line>small{display:block;padding:10px;overflow-wrap:anywhere}.tm-batch-dialog ul{list-style:none;padding:0;max-height:290px;overflow:auto}.tm-batch-dialog li{display:flex;flex-direction:column;border-bottom:1px solid var(--border);padding:8px 0;overflow-wrap:anywhere}.tm-batch-dialog li span{color:var(--muted);font-size:12px}

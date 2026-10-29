@@ -2,9 +2,27 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { MAX_CATALOG_BYTES, parseCatalogImport, serializeCatalog, validHost, validateGroups, validateServer } from '../src/catalog-management.ts'
 import { orderedGroups } from '../src/catalog.ts'
+import { opensInWorkspace } from '../src/connectors.ts'
+import { getRdpClient } from '@webnav/shared'
 import { exampleGroups, exampleServers } from './fixtures/catalog.ts'
 
 const document = () => structuredClone({ schemaVersion: 1, groups: exampleGroups, servers: exampleServers })
+
+test('embedded RDP and VNC roundtrip; legacy RDP opens in the workspace without rewriting configuration', () => {
+  const legacy = { id: 'old', type: 'rdp', name: 'RDP', port: 3389 }
+  assert.equal(getRdpClient(legacy), 'browser'); assert.equal(opensInWorkspace(legacy), true)
+  assert.equal(opensInWorkspace({ ...legacy, rdpClient: 'browser' }), true)
+  assert.equal(getRdpClient({ ...legacy, rdpClient: 'native' }), 'native'); assert.equal(opensInWorkspace({ ...legacy, rdpClient: 'native' }), false)
+  assert.equal('rdpClient' in legacy, false)
+  const data = document(), connection = { id: 'browser-rdp', type: 'rdp', name: '网页桌面', port: 3389, username: 'test', rdpClient: 'browser', rdpDisplay: { mode: 'windowed', width: 1920, height: 1080 }, rdpOptions: { domain: 'LAB', security: 'nla', certificate: 'tofu' } }
+  data.servers[0].connections.push(connection, { id: 'vnc', type: 'vnc', name: 'VNC', port: 5900 })
+  const result = parseCatalogImport(JSON.parse(serializeCatalog(data.groups, data.servers)))
+  assert.deepEqual(result, data)
+  for (const options of [{ security: ['nla'] }, { certificate: ['verify'] }, { domain: 'bad\nvalue' }, { password: 'secret' }]) {
+    const invalid = document(); invalid.servers[0].connections.push({ ...connection, rdpOptions: options }); assert.throws(() => parseCatalogImport(invalid))
+  }
+  const invalid = document(); invalid.servers[0].connections.push({ ...connection, rdpClient: ['browser'] }); assert.throws(() => parseCatalogImport(invalid))
+})
 
 test('configuration roundtrips with same-protocol entries and URL paths', () => {
   const data = document()
@@ -47,6 +65,39 @@ test('failed import does not mutate supplied catalog', () => {
   const before = structuredClone(data)
   assert.throws(() => parseCatalogImport(data))
   assert.deepEqual(data, before)
+})
+
+test('RDP display settings roundtrip independently and old entries remain unchanged', () => {
+  const data = document(), server = data.servers.find(server => server.connections.some(connection => connection.type === 'rdp'))
+  const original = structuredClone(server.connections[0])
+  server.connections = [original, ...[
+    { mode: 'windowed', width: 1920, height: 1080 },
+    { mode: 'windowed', width: 1512, height: 982 },
+    { mode: 'fullscreen' }, { mode: 'multimon' },
+  ].map((rdpDisplay, index) => ({ ...original, id: `display-${index}`, rdpDisplay }))]
+  const restored = parseCatalogImport(JSON.parse(serializeCatalog(data.groups, data.servers)))
+  assert.deepEqual(restored, data)
+  assert.equal('rdpDisplay' in restored.servers.find(item => item.id === server.id).connections[0], false)
+})
+
+test('RDP display rejects malformed, conflicting and wrong-protocol options before saving or importing', () => {
+  for (const rdpDisplay of [
+    null, [], 'fullscreen', {}, { mode: 'span' }, { mode: 'fullscreen', width: 1920 },
+    { mode: 'multimon', height: 1080 }, { mode: 'windowed' },
+    { mode: 'windowed', width: '1920', height: 1080 },
+    { mode: 'windowed', width: 199, height: 1080 }, { mode: 'windowed', width: 1920, height: 8193 },
+    { mode: 'windowed', width: 1920.5, height: 1080 }, { mode: 'windowed', width: NaN, height: 1080 },
+    { mode: 'windowed', width: 1920, height: 1080, args: '/admin' },
+  ]) {
+    const data = document(), server = data.servers.find(server => server.connections[0].type === 'rdp')
+    server.connections[0].rdpDisplay = rdpDisplay
+    assert.throws(() => validateServer(server, data.groups))
+    assert.throws(() => parseCatalogImport(data))
+  }
+  const data = document()
+  data.servers[0].connections[0].rdpDisplay = { mode: 'fullscreen' }
+  assert.throws(() => validateServer(data.servers[0], data.groups))
+  assert.throws(() => parseCatalogImport(data))
 })
 
 test('group IDs cannot collide with system navigation', () => {

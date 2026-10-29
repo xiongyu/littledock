@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.taskManager",
+  "name": "任务管理器",
+  "version": "0.4.0",
+  "description": "管理本机与 SSH 服务器的进程，查看逐核、内存、磁盘与 GPU 性能；可开启目标独立持续监控，回溯历史高占用进程。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "monitoring",
+  "secondaryCategories": [
+    "development"
+  ],
+  "apiVersion": 1,
+  "webnav": "^0.1.2",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:taskManager",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "contributes": {
+    "tools": [
+      {
+        "id": "main",
+        "title": "任务管理器",
+        "placement": "sidebar.tools"
+      }
+    ],
+    "fonts": [
+      {
+        "flag": "process.table",
+        "name": "进程表正文",
+        "group": "进程列表",
+        "defaultSize": 16,
+        "minSize": 12,
+        "maxSize": 28
+      },
+      {
+        "flag": "heading",
+        "name": "页面与区块标题",
+        "group": "通用界面",
+        "defaultSize": 20,
+        "minSize": 16,
+        "maxSize": 32
+      },
+      {
+        "flag": "chart",
+        "name": "图表刻度与图例",
+        "group": "性能图表",
+        "defaultSize": 14,
+        "minSize": 12,
+        "maxSize": 24
+      },
+      {
+        "flag": "caption",
+        "name": "状态与辅助说明",
+        "group": "通用界面",
+        "defaultSize": 14,
+        "minSize": 12,
+        "maxSize": 24
+      },
+      {
+        "flag": "metric",
+        "name": "核心指标数字",
+        "group": "性能图表",
+        "defaultSize": 30,
+        "minSize": 20,
+        "maxSize": 48
+      }
+    ],
+    "menuPoints": [
+      {
+        "id": "process",
+        "title": "进程右键菜单",
+        "description": "选中进程的操作菜单。可添加诊断、调试入口；操作前必须核对完整目标和进程身份。",
+        "version": 1,
+        "fields": {
+          "monitorId": {
+            "type": "string",
+            "required": true,
+            "description": "当前监控连接 ID，绑定目标与用户"
+          },
+          "bootId": {
+            "type": "string",
+            "required": true,
+            "description": "目标系统启动标识"
+          },
+          "targetKind": {
+            "type": "string",
+            "required": true,
+            "description": "local 或 ssh"
+          },
+          "serverId": {
+            "type": "string",
+            "required": false,
+            "description": "SSH 目标服务器 ID"
+          },
+          "connectionId": {
+            "type": "string",
+            "required": false,
+            "description": "SSH 连接入口 ID"
+          },
+          "platform": {
+            "type": "string",
+            "required": true,
+            "description": "目标 OS：win32、linux、darwin"
+          },
+          "arch": {
+            "type": "string",
+            "required": true,
+            "description": "采集器架构：x64 或 arm64；不是被观察进程的位数"
+          },
+          "pid": {
+            "type": "number",
+            "required": true,
+            "description": "进程 PID，不能单独用作进程身份"
+          },
+          "startedAt": {
+            "type": "number",
+            "required": true,
+            "description": "进程创建时间，与启动标识和 PID 一同核对；0 表示未知"
+          },
+          "name": {
+            "type": "string",
+            "required": true,
+            "description": "进程显示名称"
+          },
+          "executable": {
+            "type": "string",
+            "required": false,
+            "description": "可访问时的可执行文件路径"
+          }
+        }
+      }
+    ],
+    "uiPoints": [
+      {
+        "id": "process-details",
+        "title": "进程详情",
+        "description": "当前选中进程的详情标签区。可添加调试、诊断、分析标签；切换目标或进程时旧实例失效。",
+        "version": 1,
+        "fields": {
+          "monitorId": {
+            "type": "string",
+            "required": true,
+            "description": "当前监控连接 ID，绑定目标与用户"
+          },
+          "bootId": {
+            "type": "string",
+            "required": true,
+            "description": "目标系统启动标识"
+          },
+          "targetKind": {
+            "type": "string",
+            "required": true,
+            "description": "local 或 ssh"
+          },
+          "serverId": {
+            "type": "string",
+            "required": false,
+            "description": "SSH 目标服务器 ID"
+          },
+          "connectionId": {
+            "type": "string",
+            "required": false,
+            "description": "SSH 连接入口 ID"
+          },
+          "platform": {
+            "type": "string",
+            "required": true,
+            "description": "目标 OS：win32、linux、darwin"
+          },
+          "arch": {
+            "type": "string",
+            "required": true,
+            "description": "采集器架构：x64 或 arm64；不是被观察进程的位数"
+          },
+          "pid": {
+            "type": "number",
+            "required": true,
+            "description": "进程 PID，不能单独用作进程身份"
+          },
+          "startedAt": {
+            "type": "number",
+            "required": true,
+            "description": "进程创建时间，与启动标识和 PID 一同核对；0 表示未知"
+          },
+          "name": {
+            "type": "string",
+            "required": true,
+            "description": "进程显示名称"
+          },
+          "executable": {
+            "type": "string",
+            "required": false,
+            "description": "可访问时的可执行文件路径"
+          }
+        },
+        "kind": "tabs"
+      }
+    ]
+  },
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "此版本提供人工任务管理界面，不开放 AI 执行工具。",
+    "tools": []
+  },
+  "execution": {
+    "backend": "dedicated"
+  }
+}

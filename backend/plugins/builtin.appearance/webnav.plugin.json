@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.appearance",
+  "name": "WebNav 默认主题",
+  "version": "0.1.0",
+  "description": "清爽的灰绿工作台配色。恢复默认界面，保留浏览器里的其他外观方案；内置外观面板还提供浅砂、远山、夜航与雾岚湖畔。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "themes",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "theme:appearance",
+      "version": 1
+    }
+  ],
+  "theme": {
+    "background": "#f3f5f2",
+    "sidebar": "#e9eee8",
+    "accent": "#426653"
+  },
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "清爽的灰绿工作台配色。恢复默认界面，保留浏览器里的其他外观方案；内置外观面板还提供浅砂、远山、夜航与雾岚湖畔。 此版本仅提供人工界面，没有开放 AI 执行工具。",
+    "tools": []
+  }
+}

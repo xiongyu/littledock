@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "webnav.system-optimizer",
+  "name": "系统优化",
+  "version": "0.1.1",
+  "description": "查看开机启动与应用，调整用户级设置，预览更改并保留加密恢复记录。",
+  "author": "WebNav",
+  "license": "MIT",
+  "category": "productivity",
+  "secondaryCategories": [
+    "monitoring",
+    "backup"
+  ],
+  "apiVersion": 1,
+  "webnav": "^0.1.2",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64",
+      "minRelease": "10.0.22000"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "extension:system-optimizer",
+      "version": 1
+    }
+  ],
+  "dataVersion": 1,
+  "icon": "icon.svg",
+  "backend": "runtime/backend.js",
+  "execution": { "backend": "dedicated" },
+  "frontend": "ui/main.js",
+  "styles": [
+    "ui/style.css"
+  ],
+  "reload": "hot",
+  "configFields": [
+    {
+      "key": "hideReadOnly",
+      "label": "仅显示可修改的启动项",
+      "type": "boolean",
+      "required": false
+    }
+  ],
+  "contributes": {
+    "tools": [
+      {
+        "id": "main",
+        "title": "系统优化",
+        "placement": "sidebar.tools"
+      }
+    ],
+    "fonts": [
+      {
+        "flag": "body",
+        "name": "列表与按钮",
+        "group": "系统优化",
+        "defaultSize": 16,
+        "minSize": 12,
+        "maxSize": 24
+      },
+      {
+        "flag": "heading",
+        "name": "页面标题",
+        "group": "系统优化",
+        "defaultSize": 26,
+        "minSize": 18,
+        "maxSize": 36
+      },
+      {
+        "flag": "caption",
+        "name": "辅助说明",
+        "group": "系统优化",
+        "defaultSize": 14,
+        "minSize": 12,
+        "maxSize": 22
+      },
+      {
+        "flag": "metric",
+        "name": "概览数字",
+        "group": "系统优化",
+        "defaultSize": 36,
+        "minSize": 24,
+        "maxSize": 48
+      }
+    ]
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.mcp",
+  "name": "MCP 工作台接入",
+  "version": "0.1.0",
+  "description": "将已声明的插件能力统一提供给本机 AI，包含独立身份、授权模板、后台任务与可观察 SSH 终端。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "automation",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "extension:mcp",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "标准 MCP stdio 入口；通过工作台 AI 接入设置启停和配对。身份与授权由宿主管理。",
+    "tools": []
+  },
+  "contributes": {
+    "tools": [],
+    "fonts": [],
+    "settings": {
+      "id": "main",
+      "title": "AI 接入",
+      "styles": []
+    },
+    "menuPoints": [
+      {
+        "id": "terminal",
+        "title": "AI 终端菜单",
+        "description": "AI 工作终端内容菜单；人工控制权限变化会使当前菜单失效。",
+        "version": 1,
+        "fields": {
+          "sessionId": {
+            "type": "string",
+            "required": true,
+            "description": "当前 AI 终端会话 ID"
+          },
+          "connected": {
+            "type": "boolean",
+            "required": true,
+            "description": "观察通道是否已连接"
+          },
+          "writable": {
+            "type": "boolean",
+            "required": true,
+            "description": "当前人工是否持有输入权"
+          },
+          "hasSelection": {
+            "type": "boolean",
+            "required": true,
+            "description": "是否选中文本，不包含正文"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.remoteEditor",
+  "name": "远程 VS Code",
+  "version": "0.1.0",
+  "description": "为当前 SSH 目录打开独立远端编辑器，缓存安装包，通过 SSH 转发访问 Linux / Windows 的网页编辑器。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "development",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:remoteEditor",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "为当前 SSH 目录打开独立远端编辑器，缓存安装包，通过 SSH 转发访问 Linux / Windows 的网页编辑器。 此版本仅提供人工界面，没有开放 AI 执行工具。",
+    "tools": []
+  }
+}

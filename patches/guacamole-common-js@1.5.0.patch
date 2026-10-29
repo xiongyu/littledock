@@ -1,0 +1,58 @@
+diff --git a/dist/cjs/guacamole-common.js b/dist/cjs/guacamole-common.js
+index 9117f2cc1034393fcee219d51b86f92ab60b012a..b892f868b055a3374650f0b3dc349a5f8b5a4da1 100644
+--- a/dist/cjs/guacamole-common.js
++++ b/dist/cjs/guacamole-common.js
+@@ -4856,12 +4856,22 @@ Guacamole.Display = function() {
+             var bitmap;
+ 
+             // Draw image once loaded
++            var cancelled = false;
+             task = scheduleTask(function drawImageBitmap() {
+-                layer.drawImage(x, y, bitmap);
++                try { layer.drawImage(x, y, bitmap); }
++                finally { bitmap.close(); bitmap = null; }
+             }, true);
++            var cancel = task.cancel;
++            task.cancel = function cancelBitmap() {
++                cancelled = true;
++                if (bitmap) { bitmap.close(); bitmap = null; }
++                cancel();
++            };
+ 
+-            // Load image from provided blob
++            // Release decoded GPU resources after drawing, including late decodes
++            // belonging to a display which has already been disconnected.
+             window.createImageBitmap(blob).then(function bitmapLoaded(decoded) {
++                if (cancelled) { decoded.close(); return; }
+                 bitmap = decoded;
+                 task.unblock();
+             });
+diff --git a/dist/esm/guacamole-common.js b/dist/esm/guacamole-common.js
+index 0eb036296ba0bdac76b602a432f3483c1b1f12b8..9ba098262557201d93b9b06e9ccec9fc0028299d 100644
+--- a/dist/esm/guacamole-common.js
++++ b/dist/esm/guacamole-common.js
+@@ -4856,12 +4856,22 @@ Guacamole.Display = function() {
+             var bitmap;
+ 
+             // Draw image once loaded
++            var cancelled = false;
+             task = scheduleTask(function drawImageBitmap() {
+-                layer.drawImage(x, y, bitmap);
++                try { layer.drawImage(x, y, bitmap); }
++                finally { bitmap.close(); bitmap = null; }
+             }, true);
++            var cancel = task.cancel;
++            task.cancel = function cancelBitmap() {
++                cancelled = true;
++                if (bitmap) { bitmap.close(); bitmap = null; }
++                cancel();
++            };
+ 
+-            // Load image from provided blob
++            // Release decoded GPU resources after drawing, including late decodes
++            // belonging to a display which has already been disconnected.
+             window.createImageBitmap(blob).then(function bitmapLoaded(decoded) {
++                if (cancelled) { decoded.close(); return; }
+                 bitmap = decoded;
+                 task.unblock();
+             });

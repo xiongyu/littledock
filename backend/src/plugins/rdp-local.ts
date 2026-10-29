@@ -4,6 +4,7 @@ import { win32 } from 'node:path'
 import { join } from 'node:path'
 import { mkdir, writeFile, unlink, readdir, stat } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
+import { parseRdpDisplay, type RdpDisplay } from '@webnav/shared'
 import { AppError } from '../core/errors.ts'
 import { writeRdpCredential } from './rdp-credentials.ts'
 
@@ -12,10 +13,18 @@ export function rdpArguments(host: string, port: number) {
   const address = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host
   return [`/v:${address}:${port}`]
 }
-export function rdpFile(host: string, port: number, username: string) {
+export function rdpFile(host: string, port: number, username: string, display?: RdpDisplay) {
   const [argument] = rdpArguments(host, port)
   if (username.length > 100 || /[\r\n\0]/.test(username)) throw new AppError('INVALID_ARGUMENT', 'RDP 用户名不正确。')
-  return `full address:s:${argument!.slice(3)}\r\nusername:s:${username}\r\nprompt for credentials:i:0\r\n`
+  const lines = [`full address:s:${argument!.slice(3)}`]
+  if (username) lines.push(`username:s:${username}`, 'prompt for credentials:i:0')
+  if (display !== undefined) {
+    try { display = parseRdpDisplay(display) }
+    catch { throw new AppError('INVALID_ARGUMENT', 'RDP 显示设置不正确。') }
+    lines.push(`screen mode id:i:${display.mode === 'windowed' ? 1 : 2}`, `use multimon:i:${display.mode === 'multimon' ? 1 : 0}`)
+    if (display.mode === 'windowed') lines.push(`desktopwidth:i:${display.width}`, `desktopheight:i:${display.height}`, 'dynamic resolution:i:0')
+  }
+  return lines.join('\r\n') + '\r\n'
 }
 
 export type RdpLauncher = {
@@ -53,12 +62,12 @@ export class RdpService extends Service {
       }
     })
     void ready.catch(() => {}) // Report initialization failure when opening a connection.
-    const unregister = ctx.connectors.register('rdp', async (_owner, serverId, connectionId) => {
+    const unregister = ctx.connectors.register('rdp-native', async (_owner, serverId, connectionId) => {
       if (!config.launcher && process.platform !== 'win32') throw new AppError('UNSUPPORTED', '本机 RDP 启动仅支持 Windows。')
       const { server, connection } = ctx.storage.connection(serverId, connectionId)
       let args = rdpArguments(server.host, connection.port)
       const username = connection.username ?? ''
-      const contents = username ? rdpFile(server.host, connection.port, username) : undefined
+      const contents = username || connection.rdpDisplay !== undefined ? rdpFile(server.host, connection.port, username, connection.rdpDisplay) : undefined
       const password = ctx.credentials.rdpPassword(serverId, connectionId)
       await ready
       if (disposed) throw new AppError('UNAVAILABLE', '本地服务正在关闭。')

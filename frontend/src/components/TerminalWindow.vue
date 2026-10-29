@@ -1,9 +1,27 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { PhArrowSquareIn, PhTerminalWindow, PhX } from '@phosphor-icons/vue'
+import { PhArrowSquareIn, PhX, PhMinus, PhCornersOut } from '@phosphor-icons/vue'
+import type { RdpDisplay, WorkspaceProtocol } from '@webnav/shared'
+import { pluginViews } from '../plugins'
+import { connectorViews } from '../connectors'
 
 const TerminalPane = defineAsyncComponent(() => import('./TerminalPane.vue'))
+const AiTerminalPane = defineAsyncComponent(() => import('./AiTerminalPane.vue'))
+const DevicePane = defineAsyncComponent(() => import('./DevicePane.vue'))
+const DesktopPane = defineAsyncComponent(() => import('./DesktopPane.vue'))
 const props = defineProps<{
+  protocol: WorkspaceProtocol
+  ai?: boolean
+  paneNumber?: number
+  locateRequest?: number
+  themeId?: string
+  ownerDocument?: Document
+  detached?: boolean
+  split?: boolean
+  focused?: boolean
+  minimized?: boolean
+  collapsedRail?: boolean
+  display?: RdpDisplay
   sessionId: string
   attachToken: string
   name: string
@@ -12,9 +30,11 @@ const props = defineProps<{
   order: number
   focusRequest: number
 }>()
-const emit = defineEmits<{ status: [text: string]; history: []; float: []; dock: []; close: []; raise: [] }>()
+const emit = defineEmits<{ status: [text: string]; running: [value: boolean]; frame: [blob: Blob]; history: []; float: []; dock: []; close: []; raise: []; select: []; reconnect: []; configure: []; colors: []; menu: [event:MouseEvent]; minimize: [] }>()
 const windowElement = ref<HTMLElement>()
-const pane = ref<InstanceType<typeof TerminalPane>>()
+const locatePulse = ref(0)
+watch(() => props.locateRequest, request => { if (request) locatePulse.value=request })
+const pane = ref<{ focus(): void }>()
 const position = ref({ left: 0, top: 0, width: 540, height: 380 })
 const bounds = ref({ left: 0, top: 72, width: 1000, height: 600 })
 let drag: { id: number; x: number; y: number; left: number; top: number } | undefined
@@ -47,7 +67,7 @@ function constrain() {
   position.value.top = Math.max(area.top, Math.min(position.value.top, area.top + area.height - position.value.height))
 }
 function startDrag(event: PointerEvent) {
-  if (event.button !== 0 || (event.target instanceof Element && event.target.closest('button'))) return
+  if (!props.floating || event.button !== 0 || (event.target instanceof Element && event.target.closest('button'))) return
   event.preventDefault()
   drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: position.value.left, top: position.value.top }
   ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
@@ -59,6 +79,10 @@ function moveDrag(event: PointerEvent) {
   constrain()
 }
 function stopDrag() { drag = undefined }
+function keyboardMenu(event:KeyboardEvent){
+  const target=event.currentTarget as HTMLElement,bounds=target.getBoundingClientRect()
+  target.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:bounds.left+12,clientY:bounds.bottom}))
+}
 watch(() => props.floating, async floating => {
   if (floating) {
     updateBounds()
@@ -98,12 +122,16 @@ onBeforeUnmount(() => { cancelAnimationFrame(sizeFrame); resize?.disconnect(); w
 </script>
 
 <template>
-  <section ref="windowElement" v-show="active || floating" :id="`workspace-panel-${sessionId}`" class="terminal-window" :class="{ 'is-floating': floating }" :style="windowStyle" :role="floating ? 'region' : 'tabpanel'" :aria-label="floating ? `悬浮终端 ${name}` : undefined" :aria-labelledby="floating ? undefined : `workspace-tab-${sessionId}`" @pointerdown.capture="floating && emit('raise')">
-    <header v-if="floating" class="floating-terminal-header" @pointerdown="startDrag" @pointermove="moveDrag" @pointerup="stopDrag" @pointercancel="stopDrag" @lostpointercapture="stopDrag">
-      <PhTerminalWindow :size="17" /><strong :title="name">{{ name }}</strong>
-      <button class="icon-button" title="收回标签页" aria-label="收回标签页" @click="emit('dock')"><PhArrowSquareIn :size="17" /></button>
-      <button class="icon-button" :title="`关闭终端 ${name}`" :aria-label="`关闭终端 ${name}`" @click="emit('close')"><PhX :size="17" /></button>
+  <section ref="windowElement" v-show="active || floating || detached" :id="`terminal-pane-${sessionId}`" class="terminal-window" :class="{ 'is-floating': floating, 'is-detached':detached, 'is-split':split, 'is-focused':focused, 'is-minimized':minimized, 'collapsed-rail':collapsedRail }" :style="windowStyle" role="region" :aria-label="`${(protocol === 'ssh' || protocol === 'local') ? '终端' : '桌面'} ${name}`" @pointerdown.capture="floating ? emit('raise') : emit('select')" @focusin="!floating && emit('select')">
+    <div v-if="locatePulse" :key="locatePulse" class="terminal-locate-pulse" aria-hidden="true" @animationend.self="locatePulse=0"><span>{{ paneNumber }}</span></div>
+    <header v-if="floating || detached || split" class="floating-terminal-header" tabindex="0" :aria-label="`${name} 窗格标题`" :title="`${name} · 右键管理窗格`" @contextmenu.prevent.stop="emit('menu',$event)" @keydown.shift.f10.prevent.stop="keyboardMenu" @pointerdown="startDrag" @pointermove="moveDrag" @pointerup="stopDrag" @pointercancel="stopDrag" @lostpointercapture="stopDrag">
+      <span v-if="paneNumber" class="terminal-pane-number" :title="'终端 '+paneNumber">{{ paneNumber }}</span><component :is="connectorViews[protocol].icon" :size="17" /><strong :title="name">{{ ai ? 'AI · ' + name : name }}</strong>
+      <button v-if="floating || detached" class="icon-button" title="收回标签页" aria-label="收回标签页" @click="emit('dock')"><PhArrowSquareIn :size="17" /></button>
+      <button v-if="split && !floating && !detached" class="icon-button" :aria-label="minimized ? '还原终端' : '最小化终端'" :title="minimized ? '还原终端' : '最小化终端'" @click="emit('minimize')"><PhCornersOut v-if="minimized" :size="16"/><PhMinus v-else :size="16"/></button>
+      <button class="icon-button" :title="`${(protocol === 'ssh' || protocol === 'local') ? '关闭终端' : '关闭桌面'} ${name}`" :aria-label="`${(protocol === 'ssh' || protocol === 'local') ? '关闭终端' : '关闭桌面'} ${name}`" @click="emit('close')"><PhX :size="17" /></button>
     </header>
-    <TerminalPane ref="pane" :session-id="sessionId" :attach-token="attachToken" :active="active || floating" :floating="floating" @status="emit('status', $event)" @history="emit('history')" @float="emit('float')" />
+    <component :is="ai ? AiTerminalPane : pluginViews.terminal ?? TerminalPane" :key="attachToken" v-show="!minimized" v-if="(protocol === 'ssh' || protocol === 'local')" ref="pane" :session-id="sessionId" :attach-token="attachToken" :active="!minimized && (active || floating || detached)" :floating="floating || detached" :theme-id="themeId" :owner-document="ownerDocument" @reconnect="emit('reconnect')" @configure="emit('configure')" @colors="emit('colors')" @close="emit('close')" @status="emit('status', $event)" @running="emit('running', $event)" @history="emit('history')" @float="emit('float')" />
+    <DevicePane :key="attachToken" v-else-if="protocol==='adb'||protocol==='wdb'" ref="pane" :session-id="sessionId" :attach-token="attachToken" :protocol="protocol" :active="active || floating" :floating="floating" @status="emit('status',$event)" @running="emit('running',$event)" @frame="emit('frame',$event)" @float="emit('float')" @reconnect="emit('reconnect')"/>
+    <component :is="pluginViews.desktop ?? DesktopPane" :key="attachToken" v-else ref="pane" :session-id="sessionId" :attach-token="attachToken" :protocol="protocol" :display="display" :active="active || floating || detached" :floating="floating || detached" @status="emit('status', $event)" @running="emit('running', $event)" @frame="emit('frame', $event)" @float="emit('float')" />
   </section>
 </template>

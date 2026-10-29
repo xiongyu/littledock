@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.freeRdp",
+  "name": "FreeRDP 网页桌面",
+  "version": "0.1.0",
+  "description": "随应用附带 FreeRDP 本机组件，在浏览器内显示 Windows 远程桌面，支持剪贴板、证书确认与完整帧刷新。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "desktop",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:freeRdp",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "随应用附带 FreeRDP 本机组件，在浏览器内显示 Windows 远程桌面，支持剪贴板、证书确认与完整帧刷新。 此版本仅提供人工界面，没有开放 AI 执行工具。",
+    "tools": []
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.sessions",
+  "name": "SSH 终端",
+  "version": "0.1.0",
+  "description": "通过 SSH 打开交互终端，支持分屏、悬浮窗口、独立显示、主机指纹校验与有界输出背压。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "terminal",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:sessions",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "automation": {
+    "version": 1,
+    "description": "通过 SSH 打开交互终端，支持分屏、悬浮窗口、独立显示、主机指纹校验与有界输出背压。 AI 可通过工作台调用下列能力。",
+    "tools": [
+      {
+        "id": "ssh_open",
+        "version": 1,
+        "title": "创建 AI SSH 工作",
+        "description": "准备独立 AI SSH 任务，随后 workbench_apply。默认只读观察，真实 PTY 显示在 AI 标签。不向用户原有终端输入。整个工作结束必须 task_finish。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "serverId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "connectionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "timeoutSeconds": {
+              "type": "integer",
+              "minimum": 30,
+              "maximum": 3600
+            }
+          },
+          "required": [
+            "serverId",
+            "connectionId",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scopes": [
+          "ssh.execute"
+        ],
+        "access": "execute",
+        "execution": "request",
+        "binding": {
+          "kind": "service",
+          "capability": "service:sessions"
+        },
+        "contract": {
+          "id": "ssh_open",
+          "version": 1
+        }
+      },
+      {
+        "id": "ssh_input",
+        "version": 1,
+        "title": "输入终端",
+        "description": "向自有任务的同一 PTY 输入。有执行权限且控制者为 AI 才能调用；每控制代次从 seq=1 递增，重发同一 seq 不重复写入。timeout 不自动重放。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "controlEpoch": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16384
+            }
+          },
+          "required": [
+            "taskId",
+            "controlEpoch",
+            "seq",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scopes": [
+          "ssh.execute"
+        ],
+        "access": "control",
+        "execution": "request",
+        "binding": {
+          "kind": "service",
+          "capability": "service:sessions"
+        },
+        "contract": {
+          "id": "ssh_input",
+          "version": 1
+        }
+      }
+    ]
+  },
+  "contributes": {
+    "menuPoints": [
+      {
+        "id": "terminal",
+        "title": "终端右键菜单",
+        "description": "SSH / 本地终端的内容菜单。仅传会话元数据，不公开终端输出或剪贴板正文。",
+        "version": 1,
+        "fields": {
+          "sessionId": {
+            "type": "string",
+            "required": true,
+            "description": "当前终端会话 ID"
+          },
+          "ready": {
+            "type": "boolean",
+            "required": true,
+            "description": "终端是否就绪"
+          },
+          "hasSelection": {
+            "type": "boolean",
+            "required": true,
+            "description": "是否选中文本，不包含正文"
+          }
+        }
+      },
+      {
+        "id": "workspace",
+        "title": "工作区标签菜单",
+        "description": "连接工作区主标签和分屏标题菜单。groupId 非空表示整组菜单。",
+        "version": 1,
+        "fields": {
+          "sessionId": {
+            "type": "string",
+            "required": true,
+            "description": "当前会话 ID"
+          },
+          "protocol": {
+            "type": "string",
+            "required": true,
+            "description": "会话协议"
+          },
+          "groupId": {
+            "type": "string",
+            "required": true,
+            "description": "分屏组 ID，无则为空"
+          }
+        }
+      }
+    ]
+  }
+}

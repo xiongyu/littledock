@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "example.collaboration-client",
+  "name": "协作观察器",
+  "version": "1.0.0",
+  "description": "演示跨插件调用与状态订阅",
+  "author": "WebNav",
+  "license": "MIT",
+  "category": "development",
+  "secondaryCategories": [],
+  "apiVersion": 1,
+  "webnav": "^0.1.2",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "extension:collaboration-client",
+      "version": 1
+    }
+  ],
+  "dataVersion": 1,
+  "icon": "icon.svg",
+  "backend": "backend.mjs",
+  "frontend": "ui/main.js",
+  "styles": [
+    "ui/style.css"
+  ],
+  "reload": "hot",
+  "contributes": {
+    "tools": [
+      {
+        "id": "main",
+        "title": "协作观察器",
+        "placement": "sidebar.tools"
+      }
+    ],
+    "fonts": [
+      {
+        "flag": "value",
+        "name": "当前计数",
+        "group": "主面板",
+        "defaultSize": 30,
+        "minSize": 18,
+        "maxSize": 48
+      }
+    ]
+  },
+  "interop": {
+    "provides": [],
+    "requires": [
+      {
+        "id": "example.counter",
+        "version": 1,
+        "provider": "example.collaboration-source",
+        "optional": true
+      }
+    ]
+  }
+}

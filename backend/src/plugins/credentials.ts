@@ -1,17 +1,18 @@
 import { Service, type Context } from 'cordis'
-import { createCipheriv, createDecipheriv, randomBytes, scrypt as derive } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHash, randomBytes, scrypt as derive } from 'node:crypto'
+import type { SyncSecret } from './config-sync/snapshot.ts'
 import { readFile, stat } from 'node:fs/promises'
 import { isAbsolute } from 'node:path'
 import ssh2 from 'ssh2'
 const { utils } = ssh2
 import { AppError, integer, record, string } from '../core/errors.ts'
-import { credentialKey } from './storage.ts'
-import type { CatalogDocument } from '@webnav/shared'
+import { bookmarkCredentialKey, credentialKey } from './storage.ts'
+import type { CatalogDocument, WebsiteLogin } from '@webnav/shared'
 
 function scrypt(password:string,salt:Buffer):Promise<Buffer>{return new Promise((resolve,reject)=>derive(password,salt,32,{N:32768,r:8,p:1,maxmem:64*1024*1024},(error,key)=>error?reject(error):resolve(key)))}
 type VaultSettings = ({ mode: 'local' } | { mode: 'master'; salt: string; verifier: string }) & { unlockMinutes?: number }
 export type VaultStatus = { configured: true; mode: 'local' | 'master'; unlocked: boolean; unlockMinutes: number; expiresAt: number | null }
-type CredentialRow = { id: string; kind: 'password' | 'key'; path: string; secret: string | null; updated: number }
+type CredentialRow = { id: string; kind: 'password' | 'key' | 'web-login' | 'sync-token' | 'extension-key'; path: string; secret: string | null; updated: number }
 declare module 'cordis' { interface Context { credentials: CredentialService } }
 
 export function seal(key: Buffer, text: string, aad: string): string {
@@ -100,8 +101,9 @@ export class CredentialService extends Service {
       // Derivation is asynchronous: expiry during it must not allow a partial migration.
       this.requireUnlocked()
       const rows = this.ctx.storage.db.prepare('SELECT * FROM credentials WHERE secret IS NOT NULL').all() as CredentialRow[]
-      const migrated = rows.map(row => ({ id: row.id, secret: this.decode(row) }))
+      const migrated = rows.filter(row => !(mode === 'local' && row.kind === 'sync-token')).map(row => ({ id: row.id, secret: this.decode(row) }))
       this.ctx.storage.db.transaction(() => {
+        if (mode === 'local') this.ctx.storage.db.prepare("DELETE FROM credentials WHERE kind='sync-token'").run()
         for (const row of migrated) this.ctx.storage.db.prepare('UPDATE credentials SET secret=? WHERE id=?').run(nextKey ? seal(nextKey, row.secret, row.id) : Buffer.from(row.secret).toString('base64'), row.id)
         this.ctx.storage.setSetting('vault', JSON.stringify(settings))
       })()
@@ -126,28 +128,113 @@ export class CredentialService extends Service {
     finally { key?.fill(0); this.busy = false }
   }
   requireUnlocked() { if (!this.status().unlocked) throw new AppError('VAULT_LOCKED', '请输入主密码解锁 WebNav。') }
+  /** A reveal verifies again; it never reuses or extends the global unlock period. */
+  async verifyReveal(password: string) {
+    this.requireUnlocked()
+    const settings = this.settings()
+    if (settings.mode === 'local') return
+    if (!password) throw new AppError('MASTER_PASSWORD_REQUIRED', '查看账号密码需要再次输入主密码。')
+    if (this.busy || this.now() < this.retryAt) throw new AppError('BUSY', '请稍后再试。')
+    this.busy = true
+    let key: Buffer | undefined
+    try {
+      key = await scrypt(password, Buffer.from(settings.salt, 'base64'))
+      try {
+        if (unseal(key, settings.verifier, 'vault-verifier') !== 'WebNav vault v1') throw new Error()
+      } catch { this.retryAt = this.now() + 2000; throw new AppError('WRONG_PASSWORD', '主密码不正确。') }
+      this.retryAt = 0
+      this.requireUnlocked()
+    } finally { key?.fill(0); this.busy = false }
+  }
+  /** Called only inside the bookmark transaction. Undefined fields retain their saved values. */
+  saveBookmarkLogin(bookmarkId: string, input: unknown) {
+    if (input === undefined) return
+    this.requireUnlocked()
+    const id = bookmarkCredentialKey(bookmarkId)
+    if (input === null) { this.ctx.storage.db.prepare('DELETE FROM credentials WHERE id=?').run(id); return }
+    const params = record(input)
+    if (Object.keys(params).some(key => !['username', 'password'].includes(key))) throw new AppError('INVALID_ARGUMENT', '网站账密字段不正确。')
+    const old = this.bookmarkLogin(bookmarkId)
+    const login = {
+      username: params.username === undefined ? old.username : string(params.username, 256, true),
+      password: params.password === undefined ? old.password : string(params.password, 4096, true),
+    }
+    if (login.username.includes('\0') || login.password.includes('\0')) throw new AppError('INVALID_ARGUMENT', '账号密码不能包含 NUL。')
+    if (!login.username && !login.password) { this.ctx.storage.db.prepare('DELETE FROM credentials WHERE id=?').run(id); return }
+    const text = JSON.stringify(login)
+    const stored = this.settings().mode === 'local' ? Buffer.from(text).toString('base64') : seal(this.key!, text, id)
+    this.ctx.storage.db.prepare('INSERT OR REPLACE INTO credentials VALUES (?,?,?,?,?)').run(id, 'web-login', '', stored, Date.now())
+  }
+  bookmarkLogin(bookmarkId: string): WebsiteLogin {
+    this.requireUnlocked()
+    const row = this.ctx.storage.db.prepare("SELECT * FROM credentials WHERE id=? AND kind='web-login'").get(bookmarkCredentialKey(bookmarkId)) as CredentialRow | undefined
+    return row ? JSON.parse(this.decode(row)) as WebsiteLogin : { username: '', password: '' }
+  }
+  /** Local extension identity keys migrate with the vault, but never enter portable sync/export. */
+  saveExtensionKey(pairId: string, key: string) {
+    this.requireUnlocked()
+    const id = `extension:${pairId}`, secret = this.settings().mode === 'local' ? Buffer.from(key).toString('base64') : seal(this.key!, key, id)
+    this.ctx.storage.db.prepare('INSERT INTO credentials VALUES (?,?,?,?,?)').run(id, 'extension-key', '', secret, Date.now())
+  }
+  extensionKey(pairId: string): string | undefined {
+    this.requireUnlocked()
+    const row = this.ctx.storage.db.prepare("SELECT * FROM credentials WHERE id=? AND kind='extension-key'").get(`extension:${pairId}`) as CredentialRow | undefined
+    return row ? this.decode(row) : undefined
+  }
+  /** Internal sync boundary. Paths, trust, tokens and the local vault format never leave this service. */
+  exportSyncSecrets(): SyncSecret[] {
+    this.requireUnlocked()
+    const rows = this.ctx.storage.db.prepare("SELECT * FROM credentials WHERE kind IN ('password','key','web-login') ORDER BY id").all() as CredentialRow[]
+    return rows.map(row => ({ id: row.id, kind: row.kind as SyncSecret['kind'], secret: this.decode(row) }))
+  }
+  syncRevision(): string { return createHash('sha256').update(JSON.stringify(this.ctx.storage.db.prepare("SELECT * FROM credentials WHERE kind IN ('password','key','web-login') ORDER BY id").all())).digest('hex') }
+  hasSyncToken() { return !!this.ctx.storage.db.prepare("SELECT 1 FROM credentials WHERE id='config-sync-token' AND kind='sync-token'").get() }
+  syncToken(): string { const row = this.ctx.storage.db.prepare("SELECT * FROM credentials WHERE id='config-sync-token' AND kind='sync-token'").get() as CredentialRow | undefined; return row ? this.decode(row) : '' }
+  saveSyncToken(token: string | null) {
+    this.requireUnlocked()
+    if (token === null) { this.ctx.storage.db.prepare("DELETE FROM credentials WHERE id='config-sync-token'").run(); return }
+    if (this.settings().mode !== 'master') throw new AppError('MASTER_PASSWORD_REQUIRED', '保存仓库令牌需要先设置本地主密码。')
+    const id = 'config-sync-token'
+    this.ctx.storage.db.prepare('INSERT OR REPLACE INTO credentials VALUES (?,?,?,?,?)').run(id, 'sync-token', '', seal(this.key!, token, id), Date.now())
+  }
+  prepareSyncSecrets(secrets: SyncSecret[] | null, include: boolean, catalog: CatalogDocument, bookmarks: { id: string }[]): () => void {
+    this.requireUnlocked()
+    if (!include || secrets === null) return () => {}
+    const valid = new Set(catalog.servers.flatMap(s => s.connections.map(c => credentialKey(s.id, c.id))).concat(bookmarks.map(b => bookmarkCredentialKey(b.id))))
+    const prepared = secrets.map(s => {
+      if (!valid.has(s.id)) throw new AppError('INVALID_ARGUMENT', '凭据引用无效。')
+      const old = this.ctx.storage.db.prepare('SELECT * FROM credentials WHERE id=?').get(s.id) as CredentialRow | undefined
+      return { ...s, path: s.kind === 'key' && old?.kind === 'key' ? old.path : '', encoded: this.settings().mode === 'local' ? Buffer.from(s.secret).toString('base64') : seal(this.key!, s.secret, s.id) }
+    })
+    return () => {
+      this.requireUnlocked()
+      this.ctx.storage.db.prepare("DELETE FROM credentials WHERE kind IN ('password','key','web-login')").run()
+      for (const s of prepared) this.ctx.storage.db.prepare('INSERT INTO credentials VALUES (?,?,?,?,?)').run(s.id, s.kind, s.path, s.encoded, Date.now())
+    }
+  }
   private row(serverId: string, connectionId: string) { return this.ctx.storage.db.prepare('SELECT * FROM credentials WHERE id=?').get(credentialKey(serverId, connectionId)) as CredentialRow | undefined }
   describe(serverId: string, connectionId: string) {
     const { connection } = this.ctx.storage.connection(serverId, connectionId)
     const row = this.row(serverId, connectionId)
-    return row ? { configured: true, kind: row.kind, path: row.path, hasSecret: !!row.secret } : { configured: false, kind: connection.type === 'rdp' ? 'password' : 'key', path: '', hasSecret: false }
+    return row ? { configured: true, kind: row.kind, path: row.path, hasSecret: !!row.secret } : { configured: false, kind: ['rdp', 'vnc', 'wdb'].includes(connection.type) ? 'password' : 'key', path: '', hasSecret: false }
   }
   /** Prepare only; the caller commits these writes inside the catalog transaction. */
-  prepareRdpPasswords(input: unknown, catalog: CatalogDocument): () => void {
+  prepareRdpPasswords(input: unknown, catalog: CatalogDocument): () => void { return this.prepareDesktopPasswords(input, catalog, true) }
+  prepareDesktopPasswords(input: unknown, catalog: CatalogDocument, rdpOnly = false): () => void {
     if (input === undefined) return () => {}
-    if (!Array.isArray(input) || input.length > 12) throw new AppError('INVALID_ARGUMENT', 'RDP 密码更新数量不正确。')
+    if (!Array.isArray(input) || input.length > 12) throw new AppError('INVALID_ARGUMENT', '桌面密码更新数量不正确。')
     if (input.length) this.requireUnlocked()
     const seen = new Set<string>()
     const updates = input.map(value => {
       const item = record(value), serverId = string(item.serverId), connectionId = string(item.connectionId)
       const connection = catalog.servers.find(server => server.id === serverId)?.connections.find(connection => connection.id === connectionId)
-      if (connection?.type !== 'rdp') throw new AppError('INVALID_ARGUMENT', '密码必须对应本次保存的 RDP 入口。')
+      if (!connection || !(rdpOnly ? ['rdp'] : ['rdp', 'vnc', 'wdb']).includes(connection.type)) throw new AppError('INVALID_ARGUMENT', '密码必须对应本次保存的远程桌面入口。')
       const id = credentialKey(serverId, connectionId)
       if (seen.has(id)) throw new AppError('INVALID_ARGUMENT', '不能重复更新同一个入口的密码。')
       seen.add(id)
       if (item.secret === null) return { id, secret: null }
       const secret = string(item.secret, 1280)
-      if (secret.includes('\0') || !connection.username?.trim() || /[\r\n\0]/.test(connection.username)) throw new AppError('INVALID_ARGUMENT', '请填写有效的 RDP 用户名和密码。')
+      if (secret.includes('\0') || (['rdp','wdb'].includes(connection.type) && (!connection.username?.trim() || /[\r\n\0]/.test(connection.username)))) throw new AppError('INVALID_ARGUMENT', '请填写有效的远程桌面账号密码。')
       return { id, secret: this.settings()?.mode === 'local' ? Buffer.from(secret).toString('base64') : seal(this.key!, secret, id) }
     })
     return () => {
@@ -158,9 +245,13 @@ export class CredentialService extends Service {
     }
   }
   rdpPassword(serverId: string, connectionId: string): string | undefined {
+    return this.desktopPassword(serverId, connectionId)
+  }
+  desktopPassword(serverId: string, connectionId: string): string | undefined {
+    this.requireUnlocked()
     const row = this.row(serverId, connectionId)
     if (!row) return undefined
-    if (row.kind !== 'password') throw new AppError('INVALID_ARGUMENT', '请重新设置此 RDP 入口的登录密码。')
+    if (row.kind !== 'password') throw new AppError('INVALID_ARGUMENT', '请重新设置此桌面入口的登录密码。')
     return this.decode(row)
   }
   private decode(row: CredentialRow) { this.requireUnlocked(); if (!row.secret) return ''; return this.settings()?.mode === 'local' ? Buffer.from(row.secret, 'base64').toString('utf8') : unseal(this.key!, row.secret, row.id) }

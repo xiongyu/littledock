@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.configSync",
+  "name": "配置同步",
+  "version": "0.1.0",
+  "description": "以 GitHub / Gitee 保存加密配置，通过自定义同步账号密码跨电脑恢复，提供冲突预览与加密历史。",
+  "author": "WebNav",
+  "license": "随 WebNav 项目许可证",
+  "category": "backup",
+  "secondaryCategories": [
+    "exchange"
+  ],
+  "apiVersion": 1,
+  "webnav": "^0.1.0",
+  "node": ">=22.12.0",
+  "platforms": [
+    {
+      "os": "win32",
+      "arch": "x64"
+    },
+    {
+      "os": "win32",
+      "arch": "arm64"
+    },
+    {
+      "os": "linux",
+      "arch": "x64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "x64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "service:configSync",
+      "version": 1
+    }
+  ],
+  "backend": "index.ts",
+  "icon": "icon.svg",
+  "readme": "README.md",
+  "dataVersion": 1,
+  "commands": [
+    "git"
+  ],
+  "automation": {
+    "version": 1,
+    "description": "以 GitHub / Gitee 保存加密配置，通过自定义同步账号密码跨电脑恢复，提供冲突预览与加密历史。 此版本仅提供人工界面，没有开放 AI 执行工具。",
+    "tools": []
+  },
+  "contributes": {
+    "tools": [],
+    "fonts": [],
+    "settings": {
+      "id": "main",
+      "title": "配置同步",
+      "styles": []
+    }
+  }
+}
