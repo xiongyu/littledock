@@ -161,7 +161,7 @@ onBeforeUnmount(() => { disposed = true; metadataVersion++ })
 
 <template>
   <section class="plugin-center" :aria-label="i18nT('mb1e1262a1205')">
-    <header class="plugin-hero"><img src="/plugin-market-logo.png" alt="" class="plugin-market-logo" /><div><span class="plugin-eyebrow">WEBNAV · EXTENSIONS</span><h1>{{ tab === 'installed' ? i18nT('m7e58a7fa3def') : i18nT('m810e3924c3ab') }}</h1><p>{{ i18nT('m83de121e6daa') }}</p></div><button class="button primary" :aria-expanded="gitOpen" @click="gitOpen = !gitOpen"><PhGitBranch :size="18" />{{ i18nT('m4eb33f143984') }}</button></header>
+    <header class="plugin-hero"><img src="/brand/littledock-otter.png" alt="" class="plugin-market-logo" /><div><span class="plugin-eyebrow">LITTLEDOCK · EXTENSIONS</span><h1>{{ tab === 'installed' ? i18nT('m7e58a7fa3def') : i18nT('m810e3924c3ab') }}</h1><p>{{ i18nT('m83de121e6daa') }}</p></div><button class="button primary" :aria-expanded="gitOpen" @click="gitOpen = !gitOpen"><PhGitBranch :size="18" />{{ i18nT('m4eb33f143984') }}</button></header>
     <p v-for="pending in state?.pending ?? []" :key="pending.id" class="plugin-notice" role="status"><strong>{{ pending.kind==='restart'?i18nT('m4ae418c95643'):pending.kind==='waiting'?i18nT('mbbd6faa39ade'):i18nT('mc552117c20f1') }} · {{ state?.installed.find(p=>p.manifest.id===pending.id)?.manifest.name ?? pending.id }}</strong><br />{{ pending.reason }}<span v-if="pending.kind==='restart'">{{ i18nT('mcf71f81513ec') }}</span></p>
     <p v-for="message in state?.bundledErrors ?? []" :key="message" class="plugin-notice">{{ message }}</p>
     <p v-if="state?.safeMode" class="plugin-notice">{{ i18nT('ma1dbcb6e87ad') }}</p>
