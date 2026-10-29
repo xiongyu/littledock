@@ -617,6 +617,8 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
 .panel-dialog.terminal-themes-dialog { width:min(760px,100vw) }
 .terminal-themes-panel>.theme-toolbar:first-child { position:sticky;top:-24px;z-index:2;background:var(--surface);padding:12px 0 }
 .terminal-themes-dialog .theme-presets { grid-template-columns:repeat(4,minmax(0,1fr));max-height:220px }
+.connection-theme-target { font-weight:600;overflow-wrap:anywhere }
+.connection-theme-panel .theme-toolbar { flex-wrap:wrap }
 @media(max-width:600px) { .terminal-themes-dialog .theme-presets { grid-template-columns:repeat(2,minmax(0,1fr)) } }
 
 /* Compact SSH tools share the workspace skin; only terminal canvases use ANSI palettes. */

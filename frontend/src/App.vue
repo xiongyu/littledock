@@ -15,6 +15,7 @@ import ContextMenu from './components/ContextMenu.vue'
 import { menuBinding, pluginMenuNotice } from './plugin-menus'
 watch(pluginMenuNotice, value => { if (value) notify(value.message) })
 import TerminalThemesPanel from './components/TerminalThemesPanel.vue'
+import TerminalConnectionThemePanel from './components/TerminalConnectionThemePanel.vue'
 import { openSessionPage, type SessionPage } from './session-page'
 import { filterLayout, joinPane, layoutGeometry, paneIds, removePane, replacePane, setSplitRatio, type LayoutRect, type SplitDirection, type SplitHandle, type TerminalGroup } from './terminal-workspace'
 import ServerItem from './components/ServerItem.vue'
@@ -85,8 +86,9 @@ const recent = ref<string[]>([])
 const mobileOpen = ref(false)
 const searchInput = ref<HTMLInputElement>()
 const panelDialog = ref<HTMLDialogElement>()
-const panel = ref<'appearance' | 'editor' | 'connection' | 'vault' | 'credentials' | 'history' | 'terminalThemes' | 'browserExtension' | 'updates'>('appearance')
-const dialogTitle = computed(() => ({ appearance: '让工作台，更像你。', editor: editingServer.value ? '编辑服务器' : '添加服务器', connection: '连接入口', vault: '全局设置', credentials: 'SSH 认证', history: '查看历史', terminalThemes: '终端配色', browserExtension: '浏览器自动填写', updates: '工作台更新' })[panel.value])
+const panel = ref<'appearance' | 'editor' | 'connection' | 'vault' | 'credentials' | 'history' | 'terminalThemes' | 'terminalConnectionTheme' | 'browserExtension' | 'updates'>('appearance')
+const themeTarget = ref<{ serverId: string; connectionId: string }>()
+const dialogTitle = computed(() => ({ appearance: '让工作台，更像你。', editor: editingServer.value ? '编辑服务器' : '添加服务器', connection: '连接入口', vault: '全局设置', credentials: 'SSH 认证', history: '查看历史', terminalThemes: '终端配色', terminalConnectionTheme: '终端配色', browserExtension: '浏览器自动填写', updates: '工作台更新' })[panel.value])
 const favoriteServers = computed(() => servers.value.filter(server => server.favorite))
 const groupName = (id: string) => groups.value.find(group => group.id === id)?.name ?? '未分组'
 const groupCount = (id: string) => {
@@ -153,13 +155,13 @@ const editorGroupId = ref('')
 const editorSaveError = ref('')
 const editorRevision = ref(0)
 const editor = ref<InstanceType<typeof ServerEditor>>()
-const themeEditor = ref<InstanceType<typeof TerminalThemesPanel>>()
+const themeEditor = ref<InstanceType<typeof TerminalThemesPanel> | InstanceType<typeof TerminalConnectionThemePanel>>()
 const editorBusy = ref(false)
 const unsavedDialog = ref<HTMLDialogElement>()
 let pendingPanelAction: (() => void) | undefined
 function requestPanelAction(action: () => void) {
   if (editorBusy.value || themeEditor.value?.busy || unsavedDialog.value?.open) return
-  if (panelDialog.value?.open && ((panel.value === 'editor' && editor.value?.dirty) || (panel.value === 'terminalThemes' && themeEditor.value?.dirty))) {
+  if (panelDialog.value?.open && ((panel.value === 'editor' && editor.value?.dirty) || (['terminalThemes', 'terminalConnectionTheme'].includes(panel.value) && themeEditor.value?.dirty))) {
     pendingPanelAction = action
     unsavedDialog.value?.showModal()
     return
@@ -179,7 +181,7 @@ async function saveAndLeave() {
   const action = pendingPanelAction
   // Reveal the editor before validation so invalid fields can receive focus.
   continueEditing()
-  if (panel.value === 'terminalThemes') { if (await themeEditor.value?.save()) action?.(); return }
+  if (['terminalThemes', 'terminalConnectionTheme'].includes(panel.value)) { if (await themeEditor.value?.save()) action?.(); return }
   const server = editor.value?.getValidatedServer()
   if (server && await persistServer(server)) action?.()
 }
@@ -343,6 +345,14 @@ function configureTerminal(id:string){
   if(server)edit(server);else notify('这个服务器入口已被删除。')
 }
 function terminalTheme(id:string){const item=terminals.value.find(item=>item.sessionId===id);return servers.value.find(server=>server.id===item?.serverId)?.connections.find(connection=>connection.id===item?.connectionId)?.terminalThemeId}
+function openTerminalColors(id?: string) {
+  focusMain()
+  requestPanelAction(() => {
+    const item = terminals.value.find(item => item.sessionId === id)
+    themeTarget.value = item ? { serverId: item.serverId, connectionId: item.connectionId } : undefined
+    void showPanel(item ? 'terminalConnectionTheme' : 'terminalThemes')
+  })
+}
 function inWorkspace(id:string){return geometry.value.panes.has(id)}
 function rectStyle(rect:LayoutRect){return {left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'}}
 function paneStyle(id:string){const rect=geometry.value.panes.get(id);return docked(id)&&rect?rectStyle(rect):undefined}
@@ -615,7 +625,7 @@ onBeforeUnmount(() => { closeSessionPages();window.removeEventListener('pagehide
         <div class="session-main">
       <section ref="workspaceArea" v-if="terminals.length" class="terminal-workspace" :class="{ idle: !activeTerminal }" aria-label="连接工作区">
         <div v-for="tab in workspaceTabs" :key="tab.sessionId" :id="'workspace-panel-'+tab.sessionId" v-show="activeGroup?.id===tab.sessionId" class="workspace-group-panel" role="tabpanel" :aria-labelledby="'workspace-tab-'+tab.sessionId" :aria-owns="tab.paneIds.map(id=>'terminal-pane-'+id).join(' ')"></div>
-        <Teleport v-for="item in terminals" :key="item.sessionId" :to="item.page?.mount ?? workspaceArea" :disabled="!item.page"><TerminalWindow :ai="item.ai" :locate-request="paneLocatePulse?.id===item.sessionId?paneLocatePulse.request:0" :pane-number="terminalNumbers.get(item.sessionId)" :style="paneStyle(item.sessionId)" :theme-id="terminalTheme(item.sessionId)" :detached="!!item.page" :owner-document="item.page?.window.document" :split="hasPaneHeader(item.sessionId)||minimized.has(item.sessionId)" :minimized="minimized.has(item.sessionId)" :collapsed-rail="collapsedRail(item.sessionId)" @minimize="minimizeTerminal(item.sessionId)" :focused="activeTerminal===item.sessionId" :session-id="item.sessionId" :attach-token="item.attachToken" :protocol="item.protocol" :display="item.display" @running="previews.running(item.sessionId, $event)" @frame="previewFrame(item.sessionId, item.serverId, $event)" :name="item.name" :active="inWorkspace(item.sessionId)" :floating="item.floating" :order="item.order" :focus-request="item.focusRequest" @status="item.status = $event" @history="focusMain();showHistory(item.serverId)" @reconnect="reconnectTerminal(item.sessionId)" @configure="configureTerminal(item.sessionId)" @colors="focusMain();openPanel('terminalThemes')" @select="!item.page && selectTerminal(item.sessionId)" @menu="menuTerminal(item.sessionId,$event)" @float="floatTerminal(item.sessionId)" @dock="dockTerminal(item.sessionId)" @close="closeTerminal(item.sessionId)" @raise="raiseTerminal(item.sessionId)" /></Teleport>
+        <Teleport v-for="item in terminals" :key="item.sessionId" :to="item.page?.mount ?? workspaceArea" :disabled="!item.page"><TerminalWindow :ai="item.ai" :locate-request="paneLocatePulse?.id===item.sessionId?paneLocatePulse.request:0" :pane-number="terminalNumbers.get(item.sessionId)" :style="paneStyle(item.sessionId)" :theme-id="terminalTheme(item.sessionId)" :detached="!!item.page" :owner-document="item.page?.window.document" :split="hasPaneHeader(item.sessionId)||minimized.has(item.sessionId)" :minimized="minimized.has(item.sessionId)" :collapsed-rail="collapsedRail(item.sessionId)" @minimize="minimizeTerminal(item.sessionId)" :focused="activeTerminal===item.sessionId" :session-id="item.sessionId" :attach-token="item.attachToken" :protocol="item.protocol" :display="item.display" @running="previews.running(item.sessionId, $event)" @frame="previewFrame(item.sessionId, item.serverId, $event)" :name="item.name" :active="inWorkspace(item.sessionId)" :floating="item.floating" :order="item.order" :focus-request="item.focusRequest" @status="item.status = $event" @history="focusMain();showHistory(item.serverId)" @reconnect="reconnectTerminal(item.sessionId)" @configure="configureTerminal(item.sessionId)" @colors="openTerminalColors(item.sessionId)" @select="!item.page && selectTerminal(item.sessionId)" @menu="menuTerminal(item.sessionId,$event)" @float="floatTerminal(item.sessionId)" @dock="dockTerminal(item.sessionId)" @close="closeTerminal(item.sessionId)" @raise="raiseTerminal(item.sessionId)" /></Teleport>
         <div v-for="handle in geometry.handles" :key="handle.branch.id" class="terminal-split-handle" :class="handle.branch.direction" :style="rectStyle(handle)" tabindex="0" role="separator" :aria-orientation="handle.branch.direction === 'horizontal' ? 'vertical' : 'horizontal'" aria-label="调整终端分屏大小" :aria-valuenow="Math.round(handle.branch.ratio)" aria-valuemin="20" aria-valuemax="80" @pointerdown="resizeSplit($event,handle)" @keydown.left.prevent="adjustSplit(handle.branch.id,handle.branch.ratio-5)" @keydown.right.prevent="adjustSplit(handle.branch.id,handle.branch.ratio+5)" @keydown.up.prevent="adjustSplit(handle.branch.id,handle.branch.ratio-5)" @keydown.down.prevent="adjustSplit(handle.branch.id,handle.branch.ratio+5)" @dblclick="adjustSplit(handle.branch.id,50)"></div>
       </section>
           <div v-if="inspectorTerminal && fileTerminal && workspacePreferences.filesOpen" class="files-dock" :style="{height:workspacePreferences.filesHeight+'px'}"><div class="files-resizer" role="separator" aria-label="调整文件栏高度" aria-orientation="horizontal" tabindex="0" :aria-valuenow="workspacePreferences.filesHeight" aria-valuemin="140" aria-valuemax="420" @pointerdown="resizeFiles" @keydown.up.prevent="workspacePreferences.filesHeight=Math.min(420,workspacePreferences.filesHeight+16)" @keydown.down.prevent="workspacePreferences.filesHeight=Math.max(140,workspacePreferences.filesHeight-16)"></div><component :is="pluginViews.files ?? SshFilesPanel" :session-id="fileTerminal.sessionId" :name="fileTerminal.name" :ready="fileTerminal.ready" :targets="fileTargets" :locate-request="fileLocateRequest" @locate="locateFilePane" @close="workspacePreferences.filesOpen=false"/></div>
@@ -625,15 +635,16 @@ onBeforeUnmount(() => { closeSessionPages();window.removeEventListener('pagehide
 
     <ContextMenu v-if="tabMenu" :key="tabMenu.id+(tabMenu.groupId??'')" :owner="tabMenu.owner" :x="tabMenu.x" :y="tabMenu.y" :items="tabMenuItems" label="标签右键菜单" :extension="tabMenuExtension" :execute="tabAction" @close="tabMenu=undefined" />
     <TerminalSplitPicker v-if="splitPicker" :direction="splitPicker.direction" :candidates="splitCandidates" :busy="openingConnection || connectionState !== 'ready'" @close="splitPicker=undefined" @select="applySplit" @create="newSplit" />
-    <dialog aria-labelledby="panel-title"  ref="panelDialog" :class="['panel-dialog', { 'connection-dialog': panel === 'connection', 'history-dialog': panel === 'history', 'terminal-themes-dialog':panel === 'terminalThemes' }]" v-on="backdropEvents" @cancel.prevent="closePanel"><div class="panel-shell"><header class="panel-header"><div><span class="panel-kicker">{{ panel === 'appearance' ? '外观设置' : panel === 'connection' ? 'WebNav' : '管理中心' }}</span><h2 id="panel-title">{{ dialogTitle }}</h2></div><button class="icon-button" aria-label="关闭面板" :disabled="editorBusy || themeEditor?.busy" @click="closePanel"><PhX :size="22" /></button></header><div class="panel-body" :class="{ 'editor-panel-body': panel === 'editor' }">
+    <dialog aria-labelledby="panel-title"  ref="panelDialog" :class="['panel-dialog', { 'connection-dialog': panel === 'connection', 'history-dialog': panel === 'history', 'terminal-themes-dialog':['terminalThemes', 'terminalConnectionTheme'].includes(panel) }]" v-on="backdropEvents" @cancel.prevent="closePanel"><div class="panel-shell"><header class="panel-header"><div><span class="panel-kicker">{{ panel === 'appearance' ? '外观设置' : panel === 'connection' ? 'WebNav' : '管理中心' }}</span><h2 id="panel-title">{{ dialogTitle }}</h2></div><button class="icon-button" aria-label="关闭面板" :disabled="editorBusy || themeEditor?.busy" @click="closePanel"><PhX :size="22" /></button></header><div class="panel-body" :class="{ 'editor-panel-body': panel === 'editor' }">
       <AppearancePanel v-if="panel === 'appearance'" :appearance="appearance" />
 
       <ServerEditor v-else-if="panel === 'editor'" ref="editor" :key="editorRevision" :server="editingServer" :groups="groups" :initial-group-id="editorGroupId" :save-error="editorSaveError" :busy="editorBusy" @save="saveServer" @cancel="closePanel" @remove="deleteServer" @credentials="credentials" @history="showHistory" />
 
-      <template v-else-if="panel === 'vault'"><button class="button settings-section-link" @click="openPanel('terminalThemes')">终端配色 <span>默认配色、自定义方案 →</span></button><button class="button settings-section-link" @click="openCapabilitySettings('service:configSync')">配置同步 <span>GitHub / Gitee 加密同步 →</span></button><button class="button settings-section-link" @click="openPanel('browserExtension')">浏览器自动填写 <span>配对浏览器、管理网站授权 →</span></button><button class="button settings-section-link" @click="openCapabilitySettings('extension:mcp')">AI 接入 <span>MCP、授权与任务 →</span></button><button class="button settings-section-link" @click="openPanel('updates')">工作台更新 <span>检查版本、下载与安装 →</span></button><VaultPanel /></template>
+      <template v-else-if="panel === 'vault'"><button class="button settings-section-link" @click="openTerminalColors()">终端配色 <span>默认配色、自定义方案 →</span></button><button class="button settings-section-link" @click="openCapabilitySettings('service:configSync')">配置同步 <span>GitHub / Gitee 加密同步 →</span></button><button class="button settings-section-link" @click="openPanel('browserExtension')">浏览器自动填写 <span>配对浏览器、管理网站授权 →</span></button><button class="button settings-section-link" @click="openCapabilitySettings('extension:mcp')">AI 接入 <span>MCP、授权与任务 →</span></button><button class="button settings-section-link" @click="openPanel('updates')">工作台更新 <span>检查版本、下载与安装 →</span></button><VaultPanel /></template>
       <UpdatePanel v-else-if="panel === 'updates'" @back="openPanel('vault')" />
       <BrowserExtensionPanel v-else-if="panel === 'browserExtension'" @back="openPanel('vault')" />
-      <component :is="pluginViews.themes ?? TerminalThemesPanel" v-else-if="panel === 'terminalThemes'" ref="themeEditor" @back="openPanel('vault')" />
+      <TerminalConnectionThemePanel v-else-if="panel === 'terminalConnectionTheme' && themeTarget" ref="themeEditor" :server-id="themeTarget.serverId" :connection-id="themeTarget.connectionId" @manage="openPanel('terminalThemes')" />
+      <component :is="pluginViews.themes ?? TerminalThemesPanel" v-else-if="panel === 'terminalThemes'" ref="themeEditor" :connection-context="!!themeTarget" @back="openPanel(themeTarget ? 'terminalConnectionTheme' : 'vault')" />
       <CredentialPanel v-else-if="panel === 'credentials' && credentialTarget" :key="credentialTarget.serverId + credentialTarget.connectionId" :server-id="credentialTarget.serverId" :connection-id="credentialTarget.connectionId" @saved="closePanel(); notify('认证信息已保存。')" />
       <component :is="pluginViews.history ?? HistoryPanel" v-else-if="panel === 'history'" :key="historyServer" :server-id="historyServer" />
       <div v-else-if="panel === 'connection' && previewConnection" class="connection-preview"><span class="connection-preview-icon"><PhTerminalWindow v-if="previewConnection.connection.type === 'ssh'" :size="35" /><PhDesktop v-else-if="previewConnection.connection.type === 'rdp'" :size="35" /><PhGlobeHemisphereWest v-else :size="35" /></span><h3>{{ previewConnection.server.name }}</h3><p class="server-address">{{ previewConnection.connection.type === 'web' ? previewConnection.connection.url : `${previewConnection.server.host}:${previewConnection.connection.port}` }}</p><div class="connection-summary"><span>连接类型<strong>{{ protocolNames[previewConnection.connection.type] }}</strong></span><span v-if="previewConnection.connection.username">用户名<strong>{{ previewConnection.connection.username }}</strong></span><span>当前状态<strong>尚未连接</strong></span></div><a v-if="previewConnection.connection.type === 'web'" class="button primary" :href="previewConnection.connection.url" target="_blank" rel="noopener noreferrer">打开网页</a><button class="button" @click="closePanel">返回工作台</button></div>

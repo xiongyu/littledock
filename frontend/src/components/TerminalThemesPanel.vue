@@ -2,6 +2,8 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { builtInTerminalThemes, terminalColorKeys, parseTerminalThemes, type TerminalTheme, type TerminalThemeSettings } from '@webnav/shared'
 import { terminalThemes, rpc, connectionState } from '../backend'
+import TerminalThemePreview from './TerminalThemePreview.vue'
+defineProps<{ connectionContext?: boolean }>()
 const emit = defineEmits<{ back: [] }>()
 const draft = ref<TerminalThemeSettings>(structuredClone(JSON.parse(JSON.stringify(terminalThemes.value))))
 const selected = ref(draft.value.defaultId), busy = ref(false), error = ref(''), message = ref('')
@@ -39,12 +41,12 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 </script>
 <template>
   <form class="terminal-themes-panel" @submit.prevent="save">
-    <div class="theme-toolbar"><button type="button" class="button" @click="emit('back')">返回设置</button><button class="button primary" :disabled="busy || connectionState !== 'ready'">{{ busy ? '保存中…' : '保存配色' }}</button></div>
+    <div class="theme-toolbar"><button type="button" class="button" @click="emit('back')">{{ connectionContext ? '返回当前连接' : '返回设置' }}</button><button class="button primary" :disabled="busy || connectionState !== 'ready'">{{ busy ? '保存中…' : '保存配色' }}</button></div>
     <label class="form-field"><span>默认配色</span><select v-model="draft.defaultId"><option v-for="item in all" :key="item.id" :value="item.id">{{ item.name }}</option></select></label>
     <div class="theme-presets" aria-label="终端配色方案"><button v-for="item in all" :key="item.id" type="button" :class="{ selected: selected === item.id }" :aria-pressed="selected === item.id" @click="selected = item.id"><span class="theme-chip" :style="{ background: item.colors.background, color: item.colors.foreground }">Aa <i :style="{ background: item.colors.green }"></i><i :style="{ background: item.colors.blue }"></i></span><span>{{ item.name }}</span></button></div>
     <div class="theme-toolbar"><strong>{{ editable ? '自定义配色' : '内置配色' }}</strong><div><button type="button" class="button" @click="add">新建配色</button><button v-if="editable" type="button" class="button danger" @click="remove">删除</button></div></div>
     <label v-if="editable" class="form-field"><span>配色名称</span><input v-model="theme.name" required maxlength="40" /></label>
-    <div class="terminal-theme-preview" :style="{ background: theme.colors.background, color: theme.colors.foreground }" aria-label="配色预览"><div><span :style="{ color: theme.colors.green }">user@server</span><span :style="{ color: theme.colors.blue }"> ~/workspace</span> $ ls</div><div><span :style="{ color: theme.colors.cyan }">documents/</span> README.md <span :style="{ color: theme.colors.yellow }">warning</span> <span :style="{ color: theme.colors.red }">error</span></div><div><span :style="{ background: theme.colors.selectionBackground }">Selected text</span> <span :style="{ background: theme.colors.cursor }">&nbsp;</span></div></div>
+    <TerminalThemePreview :theme="theme" />
     <p class="field-hint">{{ editable ? '修改下面的颜色，预览会即时更新。' : '以当前配色为基础新建，即可调整所有颜色。' }}</p>
     <div class="terminal-color-grid"><label v-for="key in terminalColorKeys" :key="key"><input v-model="theme.colors[key]" type="color" :aria-label="labels[key]" :disabled="!editable" /><span>{{ labels[key] }}</span><input v-model="theme.colors[key]" :aria-label="`${labels[key]}色值`" pattern="#[0-9a-fA-F]{6}" maxlength="7" :disabled="!editable" /></label></div>
     <p class="field-hint">SSH 入口可单独选用。删除自定义配色后，引用它的入口自动使用默认配色。</p>
