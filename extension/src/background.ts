@@ -14,7 +14,7 @@ const extensionOrigin = ownOrigin === 'null' ? browser.runtime.getURL('').replac
 function permissionPatterns(origin: string) { const url = new URL(origin); return [`http://${url.hostname}/*`, `https://${url.hostname}/*`] }
 async function client() {
   const config = await readConfig()
-  if (!config) throw new Error('请先在 WebNav 全局设置中生成配对码。')
+  if (!config) throw new Error('请先在小站全局设置中生成配对码。')
   if (!connection || connectionId !== config.pairing.id) { connection?.close(); connection = new LocalConnection(config.pairing, extensionOrigin); connectionId = config.pairing.id }
   return connection
 }
@@ -115,7 +115,7 @@ async function savePage(message: Record<string, unknown>) {
     if (typeof value.username !== 'string' || typeof value.password !== 'string' || value.username.length > 256 || value.password.length > 4096 || (!value.username && !value.password) || value.username.includes('\0') || value.password.includes('\0')) throw new Error('请填写账号或密码，或取消保存账号密码。')
     login = { username: value.username, password: value.password }
   }
-  // A draft is single-use once submitted. Unknown outcomes are checked in WebNav, never replayed.
+  // A draft is single-use once submitted. Unknown outcomes are checked in 小站, never replayed.
   captures.delete(id); inFlight.add(draft.tabId)
   try {
     return await draft.local.request('saveBookmark', { site: { origin, topOrigin: origin }, bookmark, expectedVersion: target?.version ?? 0, operationId: id, ...(login ? { login } : {}) })

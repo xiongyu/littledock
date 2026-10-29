@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('core')
+
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { PhLockKey } from '@phosphor-icons/vue'
 import { connectionState, unlockVault, vaultStatus } from '../backend'
@@ -16,7 +19,7 @@ onBeforeUnmount(() => { password.value = ''; dialog.value?.close() })
 async function unlock() {
   busy.value = true; error.value = ''
   try { await unlockVault(password.value) }
-  catch (cause) { error.value = cause instanceof Error ? cause.message : '解锁失败。' }
+  catch (cause) { error.value = cause instanceof Error ? cause.message : i18nT('meb153b568f9b') }
   finally { password.value = ''; busy.value = false }
 }
 </script>
@@ -24,12 +27,12 @@ async function unlock() {
   <dialog ref="dialog" class="vault-unlock" aria-labelledby="unlock-title" aria-describedby="unlock-description" @cancel.prevent>
     <form @submit.prevent="unlock">
       <span class="unlock-symbol"><PhLockKey :size="28" /></span>
-      <h2 id="unlock-title">解锁 WebNav</h2>
-      <p id="unlock-description">输入主密码，继续使用工作台。</p>
-      <label class="form-field"><span>主密码</span><input v-model="password" type="password" autocomplete="current-password" maxlength="1024" autofocus required :disabled="busy || connectionState !== 'locked'" /></label>
+      <h2 id="unlock-title">{{ i18nT('m6e9469d786b9') }}</h2>
+      <p id="unlock-description">{{ i18nT('mb68db5d30dc2') }}</p>
+      <label class="form-field"><span>{{ i18nT('mf36f5f11edef') }}</span><input v-model="password" type="password" autocomplete="current-password" maxlength="1024" autofocus required :disabled="busy || connectionState !== 'locked'" /></label>
       <p v-if="error" class="field-error" role="alert">{{ error }}</p>
-      <p v-if="connectionState !== 'locked'" class="field-hint" role="status">{{ connectionState === 'offline' ? '本地服务已断开，正在等待重连…' : '正在连接本地服务…' }}</p>
-      <button type="submit" class="button primary" :disabled="busy || connectionState !== 'locked'">{{ busy ? '正在解锁…' : '解锁' }}</button>
+      <p v-if="connectionState !== 'locked'" class="field-hint" role="status">{{ connectionState === 'offline' ? i18nT('mbf93376094fd') : i18nT('mb224e54783af') }}</p>
+      <button type="submit" class="button primary" :disabled="busy || connectionState !== 'locked'">{{ busy ? i18nT('mf797426ff1cc') : i18nT('m70fba17fffb7') }}</button>
     </form>
   </dialog>
 </template>

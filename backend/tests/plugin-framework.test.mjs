@@ -1,3 +1,4 @@
+import * as i18n from '../../frontend/src/i18n.ts'
 // Regression coverage converted from the audit. Synthetic releases and isolated local data only.
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -32,12 +33,13 @@ function gate() { let release; const promise = new Promise(resolve => { release 
 function frontendHarness(assets, modules, providers = {}) {
   const state = { assets, providers }, registry = { pluginConnectors: vue.shallowReactive({}) }
   const exports = {}, imports = {
-    vue, './plugin-lifecycle.ts': lifecycle,
+    vue, './i18n.ts': i18n, './plugin-lifecycle.ts': lifecycle,
     './plugin-builtins': { builtinFrontend: () => undefined },
     './backend': { connectionState: vue.ref('ready'), rpc: async method => {
+      if (method === 'plugins.locales') return null
       if (method === 'plugins.themes') return []
       if (method === 'plugins.assets') return { revision: 1, ...state }
-      if (method === 'plugins.state') return { runningProviders: state.providers }
+      if (method === 'plugins.state') return { installed: [], builtins: [], runningProviders: state.providers }
       throw new Error('Unexpected RPC: ' + method)
     } },
     './theme-market': { installedThemes: vue.ref([]) }, './plugin-registry.ts': registry,
@@ -102,6 +104,7 @@ function asset(id, capabilities = []) { return { id, entry: id, commit: 'a'.repe
 }
 
 const base = JSON.parse(await readFile(join(repository, 'examples/plugins/midnight-themes/webnav.plugin.json'), 'utf8'))
+delete base.i18n
 const root = await mkdtemp(join(tmpdir(), 'webnav-framework-audit-'))
 const importGate = gate(), importEntered = gate(), importKey = Symbol.for('webnav.isolated.audit.module-gate')
 globalThis[importKey] = { promise: importGate.promise, entered: importEntered.release }

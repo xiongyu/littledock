@@ -1,3 +1,4 @@
+import * as i18n from '../src/i18n.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -7,7 +8,7 @@ import { parsePluginContributions, parsePluginMenuContext } from '@webnav/shared
 const require = createRequire(import.meta.url), ts = require('typescript')
 function load(file) {
   const exports = {}
-  runInNewContext(ts.transpileModule(readFileSync('src/' + file + '.ts', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, { exports, require, structuredClone, AbortController, setTimeout, clearTimeout })
+  runInNewContext(ts.transpileModule(readFileSync('src/' + file + '.ts', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, { exports, require: name => name === './i18n.ts' ? i18n : require(name), structuredClone, AbortController, setTimeout, clearTimeout })
   return exports
 }
 const { PluginMenuRegistry } = load('plugin-menus'), { PluginUiRegistry } = load('plugin-ui')

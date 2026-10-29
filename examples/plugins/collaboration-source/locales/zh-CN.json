@@ -1,0 +1,14 @@
+{
+  "m394be2aae7b9": "计数器标题",
+  "mb3ff92049bec": "读取当前值",
+  "mdf3d58c7d84b": "设置",
+  "m7873c4d026fd": "计数器设置",
+  "m5201427b3831": "协作计数器",
+  "metadata.name": "协作计数器",
+  "metadata.description": "演示工具、设置、字体与服务注册",
+  "configFields.label.label": "计数器标题",
+  "tools.main.title": "协作计数器",
+  "fonts.value.name": "当前计数",
+  "fonts.value.group": "主面板",
+  "settings.title": "计数器设置"
+}

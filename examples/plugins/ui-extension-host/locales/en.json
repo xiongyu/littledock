@@ -1,0 +1,14 @@
+{
+  "m0842b32a1d81": "Right-click to open example menu",
+  "m9723dfceb0f0": "Default content from this plugin",
+  "m2b195835111e": "Default tab",
+  "m1011b8cb289f": "This area is declared by an independent plugin. Install “Process Diagnostics Example” to see content from another plugin.",
+  "m59360a1de3a1": "UI Extension Example",
+  "metadata.name": "UI Extension Example",
+  "metadata.description": "UI extension example demonstrating public UI extensions only; no debugging or process actions",
+  "tools.main.title": "UI Extension Example",
+  "menuPoints.item.title": "Example item menu",
+  "uiPoints.summary.title": "Example summary panel",
+  "uiPoints.actions.title": "Example action bar",
+  "uiPoints.details.title": "Example details tabs"
+}

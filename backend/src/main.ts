@@ -18,7 +18,7 @@ if (!await managedWorker(configuration('start'))) {
   const directory=process.env.WEBNAV_DATA_DIR??join(process.env.LOCALAPPDATA??join(homedir(),'.local','share'),'WebNav')
   const root=resolve(fileURLToPath(new URL('../../frontend/dist/',import.meta.url)))
   const ctx=await startApplication({directory,port,frontendRoot:root,bundledPluginsDirectory:fileURLToPath(new URL('../../plugins/',import.meta.url)),...(process.env.WEBNAV_INSTALL_ROOT?{updateControl:workerUpdateControl()}:{}),...(process.env.WEBNAV_DEV==='1'?{devOrigin:'http://127.0.0.1:5173'}:{})})
-  console.log(`WebNav: http://127.0.0.1:${port}/`)
+  console.log(`小站: http://127.0.0.1:${port}/`)
   console.log(`数据目录：${directory}；已载入 ${ctx.status().serverCount ?? '未知'} 台服务器。`)
   let stopping=false
   function stop(){if(stopping)return;stopping=true;void ctx.stop().then(()=>{process.send?.({type:'stopped',nonce:process.env.WEBNAV_WORKER_NONCE},()=>process.exit(0));if(!process.send)process.exit(0)},()=>process.exit(1))}

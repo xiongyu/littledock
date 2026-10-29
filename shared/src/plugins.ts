@@ -1,7 +1,8 @@
 import { parseAutomationDeclaration, type AutomationDeclaration } from './automation.js'
 import { parsePluginContributions, parsePluginInterop, type PluginContributions, type PluginInterop } from './plugin-contributions.js'
+import { localeId, type PluginI18n } from './i18n.js'
 /** Plugin protocol v1. Categories describe discovery; capabilities describe replaceable contracts. */
-export const WEBNAV_VERSION = '0.1.2'
+export const WEBNAV_VERSION = '0.1.3'
 export const PLUGIN_API_VERSION = 1
 export const PLUGIN_MARKET_REPOSITORY = 'https://gitee.com/axisxy/webnavpluginsmarket.git'
 export const pluginCategories = {
@@ -45,6 +46,8 @@ export interface PluginManifest {
   automation?: AutomationDeclaration
   contributes?: PluginContributions
   interop?: PluginInterop
+  /** Static dictionaries owned by the plugin, available even while business code is disabled. */
+  i18n?: PluginI18n
 }
 export interface PluginIndexEntry {
   id: string; name: string; description: string; repository: string; ref?: string
@@ -163,6 +166,19 @@ export function parsePluginManifest(input: unknown, builtin = false): PluginMani
     result.execution = { backend: execution.backend as 'shared' | 'dedicated' }
   }
   if (m.reload !== undefined) { if (m.reload !== 'hot' && m.reload !== 'restart') throw new Error('reload 必须是 hot 或 restart。'); result.reload = m.reload }
+  if (m.i18n !== undefined) {
+    const declaration = object(m.i18n), locales: Record<string, string> = Object.create(null)
+    if (Object.keys(declaration).some(key => !['defaultLocale', 'locales'].includes(key))) throw new Error('Invalid i18n declaration')
+    const fallback = localeId(declaration.defaultLocale), entries = Object.entries(object(declaration.locales))
+    if (!entries.length || entries.length > 32) throw new Error('Invalid locale count')
+    for (const [raw, file] of entries) {
+      const id = localeId(raw), path = pluginRelativePath(file)
+      if (Object.hasOwn(locales, id) || !path.startsWith('locales/') || !path.endsWith('.json')) throw new Error('Locale resources must be unique JSON files in locales/')
+      locales[id] = path
+    }
+    if (!Object.hasOwn(locales, fallback)) throw new Error('Default locale is missing')
+    result.i18n = { defaultLocale: fallback, locales }
+  }
   if (contributes) result.contributes = contributes
   if (m.interop !== undefined) { if (!m.backend) throw new Error('插件通信需要后端入口。'); result.interop = parsePluginInterop(m.interop) }
   if (m.reloadReason !== undefined) result.reloadReason = text(m.reloadReason, '重启原因', 500)

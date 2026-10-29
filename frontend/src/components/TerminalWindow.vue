@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.sessions')
+
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { PhArrowSquareIn, PhX, PhMinus, PhCornersOut } from '@phosphor-icons/vue'
 import type { RdpDisplay, WorkspaceProtocol } from '@webnav/shared'
@@ -122,13 +125,13 @@ onBeforeUnmount(() => { cancelAnimationFrame(sizeFrame); resize?.disconnect(); w
 </script>
 
 <template>
-  <section ref="windowElement" v-show="active || floating || detached" :id="`terminal-pane-${sessionId}`" class="terminal-window" :class="{ 'is-floating': floating, 'is-detached':detached, 'is-split':split, 'is-focused':focused, 'is-minimized':minimized, 'collapsed-rail':collapsedRail }" :style="windowStyle" role="region" :aria-label="`${(protocol === 'ssh' || protocol === 'local') ? '终端' : '桌面'} ${name}`" @pointerdown.capture="floating ? emit('raise') : emit('select')" @focusin="!floating && emit('select')">
+  <section ref="windowElement" v-show="active || floating || detached" :id="`terminal-pane-${sessionId}`" class="terminal-window" :class="{ 'is-floating': floating, 'is-detached':detached, 'is-split':split, 'is-focused':focused, 'is-minimized':minimized, 'collapsed-rail':collapsedRail }" :style="windowStyle" role="region" :aria-label="`${(protocol === 'ssh' || protocol === 'local') ? i18nT('me2a76ef1f12e') : i18nT('mf48d334495f6')} ${name}`" @pointerdown.capture="floating ? emit('raise') : emit('select')" @focusin="!floating && emit('select')">
     <div v-if="locatePulse" :key="locatePulse" class="terminal-locate-pulse" aria-hidden="true" @animationend.self="locatePulse=0"><span>{{ paneNumber }}</span></div>
-    <header v-if="floating || detached || split" class="floating-terminal-header" tabindex="0" :aria-label="`${name} 窗格标题`" :title="`${name} · 右键管理窗格`" @contextmenu.prevent.stop="emit('menu',$event)" @keydown.shift.f10.prevent.stop="keyboardMenu" @pointerdown="startDrag" @pointermove="moveDrag" @pointerup="stopDrag" @pointercancel="stopDrag" @lostpointercapture="stopDrag">
-      <span v-if="paneNumber" class="terminal-pane-number" :title="'终端 '+paneNumber">{{ paneNumber }}</span><component :is="connectorViews[protocol].icon" :size="17" /><strong :title="name">{{ ai ? 'AI · ' + name : name }}</strong>
-      <button v-if="floating || detached" class="icon-button" title="收回标签页" aria-label="收回标签页" @click="emit('dock')"><PhArrowSquareIn :size="17" /></button>
-      <button v-if="split && !floating && !detached" class="icon-button" :aria-label="minimized ? '还原终端' : '最小化终端'" :title="minimized ? '还原终端' : '最小化终端'" @click="emit('minimize')"><PhCornersOut v-if="minimized" :size="16"/><PhMinus v-else :size="16"/></button>
-      <button class="icon-button" :title="`${(protocol === 'ssh' || protocol === 'local') ? '关闭终端' : '关闭桌面'} ${name}`" :aria-label="`${(protocol === 'ssh' || protocol === 'local') ? '关闭终端' : '关闭桌面'} ${name}`" @click="emit('close')"><PhX :size="17" /></button>
+    <header v-if="floating || detached || split" class="floating-terminal-header" tabindex="0" :aria-label="i18nT('ma13cc856e2a6', { p0: (name) })" :title="i18nT('m4b93c6539b38', { p0: (name) })" @contextmenu.prevent.stop="emit('menu',$event)" @keydown.shift.f10.prevent.stop="keyboardMenu" @pointerdown="startDrag" @pointermove="moveDrag" @pointerup="stopDrag" @pointercancel="stopDrag" @lostpointercapture="stopDrag">
+      <span v-if="paneNumber" class="terminal-pane-number" :title="i18nT('mff0d87521750')+paneNumber">{{ paneNumber }}</span><component :is="connectorViews[protocol].icon" :size="17" /><strong :title="name">{{ ai ? 'AI · ' + name : name }}</strong>
+      <button v-if="floating || detached" class="icon-button" :title="i18nT('mffb257ed3a4b')" :aria-label="i18nT('mffb257ed3a4b')" @click="emit('dock')"><PhArrowSquareIn :size="17" /></button>
+      <button v-if="split && !floating && !detached" class="icon-button" :aria-label="minimized ? i18nT('m5a0c2dc7447c') : i18nT('medb9838be019')" :title="minimized ? i18nT('m5a0c2dc7447c') : i18nT('medb9838be019')" @click="emit('minimize')"><PhCornersOut v-if="minimized" :size="16"/><PhMinus v-else :size="16"/></button>
+      <button class="icon-button" :title="`${(protocol === 'ssh' || protocol === 'local') ? i18nT('m16707b59cf5e') : i18nT('mb5ab4182158d')} ${name}`" :aria-label="`${(protocol === 'ssh' || protocol === 'local') ? i18nT('m16707b59cf5e') : i18nT('mb5ab4182158d')} ${name}`" @click="emit('close')"><PhX :size="17" /></button>
     </header>
     <component :is="ai ? AiTerminalPane : pluginViews.terminal ?? TerminalPane" :key="attachToken" v-show="!minimized" v-if="(protocol === 'ssh' || protocol === 'local')" ref="pane" :session-id="sessionId" :attach-token="attachToken" :active="!minimized && (active || floating || detached)" :floating="floating || detached" :theme-id="themeId" :owner-document="ownerDocument" @reconnect="emit('reconnect')" @configure="emit('configure')" @colors="emit('colors')" @close="emit('close')" @status="emit('status', $event)" @running="emit('running', $event)" @history="emit('history')" @float="emit('float')" />
     <DevicePane :key="attachToken" v-else-if="protocol==='adb'||protocol==='wdb'" ref="pane" :session-id="sessionId" :attach-token="attachToken" :protocol="protocol" :active="active || floating" :floating="floating" @status="emit('status',$event)" @running="emit('running',$event)" @frame="emit('frame',$event)" @float="emit('float')" @reconnect="emit('reconnect')"/>

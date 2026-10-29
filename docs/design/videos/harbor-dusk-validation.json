@@ -1,0 +1,17 @@
+{
+  "asset": "harbor-dusk-loop.mp4",
+  "bytes": 835920,
+  "browser": "156.0.4314.50",
+  "count": 2,
+  "decodedFrameCallbacks": 384,
+  "duration": 8,
+  "width": 1280,
+  "height": 720,
+  "waterMotionMeanDifference": 2.3769711538461538,
+  "loopSeamMeanDifference": 1.0446955128205129,
+  "silentAutoplay": true,
+  "reloadRestoresVideo": true,
+  "simulatedVisibilityPauseResume": true,
+  "independentLeftAndRight": true,
+  "pageErrors": []
+}

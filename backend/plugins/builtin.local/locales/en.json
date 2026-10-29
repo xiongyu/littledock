@@ -1,0 +1,4 @@
+{
+  "metadata.name": "Local Terminal",
+  "metadata.description": "Uses a local interactive terminal in the workspace. Selects the system shell automatically, or choose PowerShell, CMD, Bash, or Zsh."
+}

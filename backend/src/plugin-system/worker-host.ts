@@ -5,13 +5,13 @@ import type { PluginInteropRegistry } from './interop.ts'
 import { bounded, type PluginScope } from './lifecycle.ts'
 import { WorkerRpc } from './worker-rpc.ts'
 import { AppError } from '../core/errors.ts'
-import type { ServiceCapability } from '@webnav/shared'
+import type { ServiceCapability, LocaleBundle } from '@webnav/shared'
 
 /** The coordinator retains authorization, leases and registration generations. No plugin module is imported here. */
-export async function activateDedicated(file: string, api: PluginBackendApi, scope: PluginScope, interop: PluginInteropRegistry, failed: (error: Error) => void) {
+export async function activateDedicated(file: string, api: PluginBackendApi, scope: PluginScope, interop: PluginInteropRegistry, failed: (error: Error) => void, locales?: LocaleBundle) {
   const source = import.meta.url.endsWith('.ts')
   const worker = new Worker(new URL(source ? './worker-entry.ts' : './worker-entry.js', import.meta.url), {
-    workerData: { file, manifest: api.manifest, config: api.config, dataDirectory: api.dataDirectory },
+    workerData: { file, manifest: api.manifest, config: api.config, dataDirectory: api.dataDirectory, locales },
     execArgv: source ? ['--experimental-strip-types'] : [],
     resourceLimits: { maxOldGenerationSizeMb: 256, stackSizeMb: 4 },
   })

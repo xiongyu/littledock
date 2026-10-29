@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n, displayLocale } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.taskManager')
+
 import { computed } from 'vue'
 import { historyPath } from '../task-manager-history'
 import { seriesAreaPath, type SeriesPoint } from '../task-manager'
@@ -13,7 +16,7 @@ const selectedX = computed(() => props.selectedAt === undefined ? undefined : Ma
 const grid = [...Array.from({ length: 11 }, (_, i) => `M${(i + 1) * 50},0V160`), ...Array.from({ length: 9 }, (_, i) => `M0,${(i + 1) * 16}H600`)].join(' ')
 function timeLabel(at: number) {
   const crossDay = new Date(props.from).toDateString() !== new Date(props.to).toDateString()
-  return new Date(at).toLocaleString('zh-CN', { ...(crossDay ? { month: '2-digit', day: '2-digit' } as const : {}), hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  return new Date(at).toLocaleString(displayLocale(), { ...(crossDay ? { month: '2-digit', day: '2-digit' } as const : {}), hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 }
 function select(event: MouseEvent) { const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect(); emit('select', props.from + Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)) * (props.to - props.from)) }
 </script>
@@ -31,7 +34,7 @@ function select(event: MouseEvent) { const bounds = (event.currentTarget as HTML
         <circle v-if="singleSecondary" :cx="pointX(singleSecondary.at)" :cy="pointY(singleSecondary.value)" r="2" fill="var(--tm-chart-secondary)"/>
         <path v-if="selectedX !== undefined" :d="`M${selectedX},0V160`" class="cursor"/>
       </svg>
-      <span v-if="!any">此范围内没有可用指标</span>
+      <span v-if="!any">{{ i18nT('meb65fcae2c4c') }}</span>
     </div>
     <footer><time :datetime="new Date(from).toISOString()">{{ timeLabel(from) }}</time><time :datetime="new Date(to).toISOString()">{{ timeLabel(to) }}</time></footer>
   </div>

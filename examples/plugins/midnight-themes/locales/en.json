@@ -1,0 +1,15 @@
+{
+  "m86b6d0d63062": "Reading…",
+  "md00bfe7c685c": "Back to settings",
+  "m0335851b1bc0": "Save theme",
+  "mefbf9b7f716b": "Warm Paper",
+  "mbdf7aab1f621": "Graphite",
+  "me63f8aeeffd7": "Midnight Blue",
+  "m9230ef5911bb": "Quiet Forest",
+  "m9e407b1749b0": "Default terminal theme",
+  "m67b17be4b4c7": "Midnight theme · Independent plugin view. Existing schemes and connection references are preserved.",
+  "m93860d3b6733": "Save failed. Close and reopen the page.",
+  "m2980abd49c0f": "Theme unavailable right now.",
+  "metadata.name": "Midnight Themes Example",
+  "metadata.description": "An independently installable example plugin that uses Midnight Blue as the initial default theme and replaces the theme service and settings view. Data is stored in the plugin directory."
+}

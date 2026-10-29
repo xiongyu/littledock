@@ -1,0 +1,22 @@
+{
+  "md79b1d0e5c61": "Ended",
+  "m1f0eb99b7ed0": "Running",
+  "maee887434131": "Refresh",
+  "m5215599023ee": "Failed to read.",
+  "mbcbad9f60bdf": "This server has no saved SSH output yet.",
+  "m8a8542f69648": "Next page",
+  "mc9b9ae7a6144": "Previous page",
+  "mf7187884fa8b": "No matches in this section. Continue searching on the next page.",
+  "m0fc37868a28f": "No records or matches.",
+  "m346ff60e6c7c": "Reading…",
+  "m4ba7c9267827": "Some output was not saved or has been removed. These records may be incomplete.",
+  "m83a1c8b3daed": "Fixed through {p0}",
+  "m3003318e729a": "Find",
+  "m964a7955e668": "Search historical output",
+  "ma63280253f17": "Session",
+  "me713c9f1cbae": "Only output saved when opened is shown. Refresh to include new content.",
+  "mab55f6b7bcd4": "Query failed.",
+  "m78d13342b569": "Unable to open history.",
+  "metadata.name": "Terminal Output History",
+  "metadata.description": "Saves plain-text SSH output for per-session queries, search, and pagination within a fixed range. New output is included only after a manual refresh."
+}

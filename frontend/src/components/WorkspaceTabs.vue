@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('core')
+
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { PhActivity, PhHardDrives, PhArrowSquareOut, PhX } from '@phosphor-icons/vue'
 import { workbenchFonts } from '../plugin-fonts'
@@ -62,13 +65,13 @@ onBeforeUnmount(() => { cancelAnimationFrame(resizeFrame); observer?.disconnect(
 </script>
 
 <template>
-  <div ref="list" class="workspace-tabs" :class="{ 'icons-only': iconOnly }" role="tablist" aria-label="工作区标签" :style="{ '--tab-width': `${tabWidth}px`, '--tab-font-size': `${fontSize}px` }" @keydown="keyboard">
-    <button id="workspace-tab-catalog" class="directory-tab" :class="{ active: !activeId }" role="tab" :aria-selected="!activeId" :tabindex="activeId ? -1 : 0" aria-controls="workspace-catalog" :aria-label="`服务器目录 · ${directoryName}`" :title="`服务器目录 · ${directoryName}`" @click="emit('select', '')"><PhHardDrives :size="18" /></button>
+  <div ref="list" class="workspace-tabs" :class="{ 'icons-only': iconOnly }" role="tablist" :aria-label="i18nT('md941a5df33c1')" :style="{ '--tab-width': `${tabWidth}px`, '--tab-font-size': `${fontSize}px` }" @keydown="keyboard">
+    <button id="workspace-tab-catalog" class="directory-tab" :class="{ active: !activeId }" role="tab" :aria-selected="!activeId" :tabindex="activeId ? -1 : 0" aria-controls="workspace-catalog" :aria-label="i18nT('m30885115f789', { p0: (directoryName) })" :title="i18nT('m30885115f789', { p0: (directoryName) })" @click="emit('select', '')"><PhHardDrives :size="18" /></button>
     <div v-for="item in terminals" :key="item.sessionId" class="workspace-tab" :class="{ active: activeId === item.sessionId }" role="presentation" @contextmenu.prevent="item.protocol !== 'plugin' && emit('menu', item.sessionId, $event)" @keydown.shift.f10.prevent="keyboardMenu(item.sessionId,$event)">
       <button :id="`workspace-tab-${item.sessionId}`" class="workspace-tab-select" role="tab" :aria-selected="activeId === item.sessionId" :tabindex="activeId === item.sessionId ? 0 : -1" :aria-controls="`workspace-panel-${item.sessionId}`" :aria-label="`${item.name} · ${item.status}`" :title="`${item.name} · ${item.status}`" @click="emit('select', item.sessionId)">
-        <span v-if="item.ai" class="ai-badge" title="AI 发起的终端">AI</span><PhArrowSquareOut v-else-if="item.floating" :size="17" /><PhActivity v-else-if="item.protocol === 'plugin'" :size="17" /><component v-else :is="connectorViews[item.protocol].icon" :size="17" /><span class="workspace-tab-name">{{ item.name }}</span><small v-if="item.paneCount>1" class="workspace-pane-count" :title="`${item.paneCount} 个终端`">{{ item.paneCount }}</small>
+        <span v-if="item.ai" class="ai-badge" :title="i18nT('m57f656a8200a')">AI</span><PhArrowSquareOut v-else-if="item.floating" :size="17" /><PhActivity v-else-if="item.protocol === 'plugin'" :size="17" /><component v-else :is="connectorViews[item.protocol].icon" :size="17" /><span class="workspace-tab-name">{{ item.name }}</span><small v-if="item.paneCount>1" class="workspace-pane-count" :title="i18nT('m189d1d065cf7', { p0: (item.paneCount) })">{{ item.paneCount }}</small>
       </button>
-      <button class="workspace-tab-close" :aria-label="`${item.paneCount>1 ? '关闭整组终端' : item.protocol === 'plugin' ? '关闭插件页面' : item.protocol === 'ssh' ? '关闭终端' : '关闭桌面'} ${item.name}`" :title="`${item.paneCount>1 ? '关闭整组终端' : item.protocol === 'plugin' ? '关闭插件页面' : item.protocol === 'ssh' ? '关闭终端' : '关闭桌面'} ${item.name}`" @click="emit('close', item.sessionId)"><PhX :size="12" /></button>
+      <button class="workspace-tab-close" :aria-label="`${item.paneCount>1 ? i18nT('m73db853631ba') : item.protocol === 'plugin' ? i18nT('mac9fda025b21') : item.protocol === 'ssh' ? i18nT('m16707b59cf5e') : i18nT('mb5ab4182158d')} ${item.name}`" :title="`${item.paneCount>1 ? i18nT('m73db853631ba') : item.protocol === 'plugin' ? i18nT('mac9fda025b21') : item.protocol === 'ssh' ? i18nT('m16707b59cf5e') : i18nT('mb5ab4182158d')} ${item.name}`" @click="emit('close', item.sessionId)"><PhX :size="12" /></button>
     </div>
   </div>
 </template>

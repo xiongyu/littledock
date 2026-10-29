@@ -1,5 +1,9 @@
 # 通用插件 SDK v1
 
+## 多语言（宿主 0.1.3 起）
+
+业务与独立设置入口使用 `api.i18n.t(key, params)`、只读 `locale`、`number`、`date` 和 `message`；共享与独占 Worker 使用 `api.i18n.message/text/error`。语言资源由插件作者随包提供，当前插件默认中文并提供完整英文。清单声明、动态切换、消息引用、回退和校验规则见 [插件多语言](plugin-i18n.md)。使用这些接口声明 `webnav: "^0.1.3"`。
+
 ## 后端线程（宿主 0.1.2 起）
 
 后端默认共享 Worker；`execution: { "backend": "dedicated" }` 声明专用 Worker，导入和回调均在对应线程执行，主线程不加载插件业务。两种模式均支持 `await api.host.vaultStatus()` 和 `await api.host.acquireResource()`，后者返回幂等释放函数。任务管理器与系统优化各声明独占线程，其他现有插件默认共享。已删除 `api.services`、同步 `api.acquireResource()` 及 `registerService(name, inject, factory)`；服务改为 `registerService(name, implementation)`，跨插件协作使用 interop，不保留旧接口适配层。线程之间不传递 Cordis 对象或活动流。完整边界见 [插件 Worker](plugin-workers.md)。使用新接口或声明时设置 `webnav: "^0.1.2"`。

@@ -14,17 +14,19 @@ for (const target of ['chrome', 'edge', 'firefox']) {
   await mkdir(outdir, { recursive: true })
   await build({ entryPoints: [join(root, 'src/background.ts'), join(root, 'src/content.ts'), join(root, 'src/popup.ts')], outdir, bundle: true, format: 'iife', platform: 'browser', target: ['chrome121', 'firefox128'], legalComments: 'none' })
   for (const name of ['popup.html', 'popup.css']) await copyFile(join(root, 'public', name), join(outdir, name))
+  for (const name of ['littledock-otter.png', 'littledock-otter-icon.png']) await copyFile(join(root, '../frontend/public/brand', name), join(outdir, name))
   const manifest = {
-    manifest_version: 3, name: 'WebNav 自动填写', version: '0.2.0', description: '连接本机 WebNav，自动填写账号密码，也可将当前网页和账密保存为收藏。',
+    manifest_version: 3, name: '小站 自动填写', version: '0.2.0', description: '连接本机 小站，自动填写账号密码，也可将当前网页和账密保存为收藏。',
     permissions: ['activeTab', 'scripting'], host_permissions: ['http://127.0.0.1/*'], optional_host_permissions: ['https://*/*', 'http://*/*'],
-    action: { default_popup: 'popup.html', default_title: 'WebNav 自动填写' },
+    icons: { '128': 'littledock-otter-icon.png' },
+    action: { default_icon: 'littledock-otter-icon.png', default_popup: 'popup.html', default_title: '小站 自动填写' },
     background: target === 'firefox' ? { scripts: ['background.js'] } : { service_worker: 'background.js' },
     content_security_policy: { extension_pages: "default-src 'self'; script-src 'self'; object-src 'none'; connect-src ws://127.0.0.1:*; style-src 'self'; base-uri 'none'" },
     ...(target === 'firefox' ? { browser_specific_settings: { gecko: { id: 'autofill@webnav.local', strict_min_version: '142.0', data_collection_permissions: { required: ['none'] } } } } : { minimum_chrome_version: '121' }),
   }
   await writeFile(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
   const zip = new ZipFile(), archive = join(root, 'dist', `webnav-${target}.zip`)
-  for (const name of ['background.js', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'manifest.json']) zip.addFile(join(outdir, name), name)
+  for (const name of ['background.js', 'content.js', 'popup.js', 'popup.html', 'popup.css', 'manifest.json', 'littledock-otter-icon.png', 'littledock-otter.png']) zip.addFile(join(outdir, name), name)
   const written = pipeline(zip.outputStream, createWriteStream(archive)); zip.end(); await written
   await copyFile(archive, join(downloads, `webnav-${target}.zip`))
 }

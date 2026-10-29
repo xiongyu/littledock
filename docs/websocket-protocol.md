@@ -154,7 +154,7 @@ sessions.close / desktops.close 对已经释放的资源幂等返回；仍存在
 | `editor.status` | id | 所属任务状态、进度、平台、版本；ready 时包含本机页面 URL，不含令牌 |
 | `editor.stop`（写） | id | 停止任务，释放代理、启动通道与临时文件；保留安装和编辑器数据 |
 
-写方法携带 operationId，超时不自动重放。方法校验所属会话和主密码；准备/安装还校验 SSH 存活。客户端在面板打开时每 1.5 秒通过 WS 查询状态，状态范围见 [远程编辑器](remote-editor.md)。第三方编辑器自身 HTTP / WS 经独立回环代理，不作为 WebNav RPC 暴露。
+写方法携带 operationId，超时不自动重放。方法校验所属会话和主密码；准备/安装还校验 SSH 存活。客户端在面板打开时每 1.5 秒通过 WS 查询状态，状态范围见 [远程编辑器](remote-editor.md)。第三方编辑器自身 HTTP / WS 经独立回环代理，不作为小站 RPC 暴露。
 
 ### SFTP 文件 RPC
 

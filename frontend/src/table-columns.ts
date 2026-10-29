@@ -1,3 +1,6 @@
+
+import { pluginI18n } from './i18n.ts'
+const { t: i18nT } = pluginI18n('core')
 import type { Directive } from 'vue'
 
 interface ColumnOptions { id: string; widths: readonly number[]; minimums?: readonly number[]; fill?: number }
@@ -43,10 +46,10 @@ function createColumns(table: HTMLTableElement, options: ColumnOptions) {
     if (old.grip.hasPointerCapture(old.pointer)) old.grip.releasePointerCapture(old.pointer)
   }
   headers.forEach((header, index) => {
-    const grip = document.createElement('span'), label = header.textContent?.trim().replace(/[↑↓]/g, '').trim() || `第 ${index + 1}`
+    const grip = document.createElement('span'), label = header.textContent?.trim().replace(/[↑↓]/g, '').trim() || i18nT('m33ba1bf3154d', { p0: (index + 1) })
     grip.className = 'table-column-grip'; grip.tabIndex = 0; grip.setAttribute('role', 'separator'); grip.setAttribute('aria-orientation', 'vertical')
-    grip.setAttribute('aria-label', `调整${label}列宽`); grip.setAttribute('aria-valuemin', String(minimums[index])); grip.setAttribute('aria-valuemax', String(maximum))
-    grip.title = '拖动调宽 · 双击恢复此列 · 方向键微调'
+    grip.setAttribute('aria-label', i18nT('m32c206dbc133', { p0: (label) })); grip.setAttribute('aria-valuemin', String(minimums[index])); grip.setAttribute('aria-valuemax', String(maximum))
+    grip.title = i18nT('me0e2d4b246ba')
     const down = (event: PointerEvent) => {
       if (event.button !== 0 || drag) return
       event.preventDefault(); event.stopPropagation(); grip.focus({ preventScroll: true })

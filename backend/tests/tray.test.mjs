@@ -104,7 +104,7 @@ test('native tray owns both services, rejects unauthenticated control, deduplica
   await waitFor(async()=>(await request(config,'status')).sessionSummary==='暂无运行')
   const changed = configuration('start',{...process.env,...config.environment,WEBNAV_DATA_DIR:join(config.directory,'unused-data'),WEBNAV_PORT:String(await freePort())})
   for(const entry of ['scripts/start.mjs','scripts/dev-worker.mjs','backend/src/main.ts','backend/dist/main.js']){
-    const repeated=await repeatLaunch(changed,entry);assert.equal(repeated.code,0,repeated.output);assert.match(repeated.output,/已打开正在运行的 WebNav/)
+    const repeated=await repeatLaunch(changed,entry);assert.equal(repeated.code,0,repeated.output);assert.match(repeated.output,/已打开正在运行的小站/)
     assert.equal((await request(config,'status')).workerPid,initial.workerPid)
   }
   const opened=(await readFile(join(config.runtimeDirectory,'opened-pages.jsonl'),'utf8')).trim().split('\n').map(JSON.parse)
@@ -170,7 +170,7 @@ test('a foreground production owner is reused by tray and console launches, then
   t.after(async()=>{if(child.exitCode===null&&child.signalCode===null){if(child.connected)child.send('shutdown');const timer=setTimeout(()=>child.kill(),8000);await exited;clearTimeout(timer)}})
   const [initial]=await once(child,'message');assert.equal(initial.state,'running');assert.equal(initial.presentation,'console')
   for(const entry of ['scripts/dev.mjs','scripts/dev-worker.mjs']){
-    const result=await repeatLaunch(dev,entry);assert.equal(result.code,0,result.output);assert.match(result.output,/已打开正在运行的 WebNav/)
+    const result=await repeatLaunch(dev,entry);assert.equal(result.code,0,result.output);assert.match(result.output,/已打开正在运行的小站/)
   }
   const opened=(await readFile(join(config.runtimeDirectory,'opened-pages.jsonl'),'utf8')).trim().split('\n').map(JSON.parse)
   assert.equal(opened.length,2);assert.ok(opened.every(value=>value.url===config.url))

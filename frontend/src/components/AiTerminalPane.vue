@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.mcp')
+
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
@@ -10,19 +13,19 @@ import { menuBinding } from '../plugin-menus'
 import '@xterm/xterm/css/xterm.css'
 const props=defineProps<{sessionId:string;active:boolean;floating?:boolean;themeId?:string;ownerDocument?:Document}>()
 const emit=defineEmits<{status:[text:string];running:[value:boolean];history:[];float:[];close:[];colors:[]}>()
-const canvas=ref<HTMLElement>(),notice=ref('正在同步 AI 终端…'),writable=ref(false),connected=ref(false),ended=ref(false),controller=ref('ai')
+const canvas=ref<HTMLElement>(),notice=ref(i18nT('m0ce8f0e12131')),writable=ref(false),connected=ref(false),ended=ref(false),controller=ref('ai')
 const observing=ref(false),attaching=ref(false)
 const hostKey=ref<{fingerprint:string;previous:string;changed:boolean;host:string;port:number}>(),verified=ref(false)
 const menu=ref<{x:number;y:number}>(),selection=ref('')
 const menuExtension = menuBinding('builtin.mcp', 'terminal', () => ({ sessionId: props.sessionId, connected: connected.value, writable: writable.value, hasSelection: !!selection.value }), () => !disposed && props.active && !!menu.value)
 const palette=computed(()=>resolveTerminalTheme(terminalThemes.value,props.themeId).colors)
 let terminal:Terminal,fit:FitAddon,socket:WebSocket|undefined,observer:ResizeObserver|undefined,disposed=false,epoch=0,seq=0,parsed=0,queued=0,frame=0,generation=0,remoteCols=100,remoteRows=30
-const items=computed(()=>[{id:'copy',label:'复制',disabled:!selection.value},{id:'paste',label:'粘贴',disabled:!writable.value},{id:'interrupt',label:'中断命令',disabled:!writable.value},{id:'select',label:'全选'},{id:'bottom',label:'回到底部'},{id:'history',label:'查看历史',separator:true},{id:'colors',label:'终端配色'},{id:'close',label:'关闭终端',danger:true}])
+const items=computed(()=>[{id:'copy',label:i18nT('m63d90d977348'),disabled:!selection.value},{id:'paste',label:i18nT('m335179267471'),disabled:!writable.value},{id:'interrupt',label:i18nT('mb44d0a6ed86f'),disabled:!writable.value},{id:'select',label:i18nT('m3a5040b68abf')},{id:'bottom',label:i18nT('m2fdb6c468166')},{id:'history',label:i18nT('ma5783b941d7d'),separator:true},{id:'colors',label:i18nT('m3e7571c83eac')},{id:'close',label:i18nT('m16707b59cf5e'),danger:true}])
 function send(p:Record<string,unknown>){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(p))}
 function input(text:string){
   if(!writable.value)return
   const bytes=new TextEncoder().encode(text)
-  if(bytes.length>128*1024){notice.value='请分段粘贴，每次最多 128 KiB。';return}
+  if(bytes.length>128*1024){notice.value=i18nT('m568e56ae18e9');return}
   // Split at characters, never inside UTF-8 or a surrogate pair.
   let chunk='',size=0
   for(const character of text){const length=new TextEncoder().encode(character).length;if(size+length>16384){send({type:'terminal.input',controlEpoch:epoch,seq:++seq,text:chunk});chunk='';size=0}chunk+=character;size+=length}
@@ -51,7 +54,7 @@ async function action(id:string){
     if(id==='history')emit('history')
     if(id==='colors')emit('colors')
     if(id==='close')emit('close')
-  }catch{notice.value='剪贴板暂时不可用，请使用键盘快捷键。'}
+  }catch{notice.value=i18nT('mc4d3eba1b734')}
 }
 function decide(accept:boolean){if(hostKey.value)send({type:'terminal.hostkeyDecision',accept,fingerprint:hostKey.value.fingerprint,verifiedChange:verified.value});hostKey.value=undefined}
 async function attach(reset=false){
@@ -69,7 +72,7 @@ async function attach(reset=false){
       if(disposed||attempt!==generation)return
       if(e.data instanceof ArrayBuffer){
         const bytes=new Uint8Array(e.data);queued+=bytes.length
-        if(queued>256*1024||bytes.length>16384){socket?.close();notice.value='画面同步中断，请重新查看。';return}
+        if(queued>256*1024||bytes.length>16384){socket?.close();notice.value=i18nT('m21430e3dcb2e');return}
         terminal.write(bytes,()=>{if(disposed||attempt!==generation)return;queued-=bytes.length;parsed+=bytes.length;send({type:'terminal.ack',parsedBytes:parsed})});return
       }
       const p=JSON.parse(String(e.data)) as Record<string,unknown>
@@ -80,14 +83,14 @@ async function attach(reset=false){
         terminal.options.disableStdin=!writable.value
         remoteCols=Number(p.cols);remoteRows=Number(p.rows)
         if(!writable.value)terminal.resize(remoteCols,remoteRows)
-        notice.value=ended.value?(connected.value?'AI 已结束，人工仍在使用':String(p.message??'任务已结束，连接已释放。')):writable.value?'人工接管中 · AI 输入已暂停':connected.value?(controller.value==='none'?'等待交还控制权':'只读查看 · '+(controller.value==='user'?'其他页面正在操作':'AI 正在工作')):'正在连接'
+        notice.value=ended.value?(connected.value?i18nT('m64a620b0a1a0'):String(p.message??i18nT('mb3bd5fbe29a4'))):writable.value?i18nT('mad216d37054e'):connected.value?(controller.value==='none'?i18nT('ma952018f849e'):i18nT('mbc73ed97182d')+(controller.value==='user'?i18nT('m62450cd9ff41'):i18nT('mccc261cd98a5'))):i18nT('m694186911ae3')
         emit('status',notice.value);emit('running',connected.value);if(writable.value){schedule();focus()}
-      }else if(p.type==='terminal.hostkey'){hostKey.value=p as typeof hostKey.value;notice.value='等待确认主机指纹'}
+      }else if(p.type==='terminal.hostkey'){hostKey.value=p as typeof hostKey.value;notice.value=i18nT('mf9555e99abca')}
       else if(p.type==='terminal.exit'){notice.value=String(p.message);ended.value=true;connected.value=false;writable.value=false;terminal.options.disableStdin=true;emit('running',false)}
       else if(p.type==='terminal.notice'||p.type==='terminal.error')notice.value=String(p.message)
     }
-    socket.onclose=()=>{if(disposed||attempt!==generation)return;observing.value=false;writable.value=false;terminal.options.disableStdin=true;if(!ended.value)notice.value='观察已断开，任务仍由后台管理。';emit('running',connected.value)}
-    socket.onerror=()=>{if(disposed||attempt!==generation)return;notice.value='观察通道连接失败。'}
+    socket.onclose=()=>{if(disposed||attempt!==generation)return;observing.value=false;writable.value=false;terminal.options.disableStdin=true;if(!ended.value)notice.value=i18nT('mee673df8b356');emit('running',connected.value)}
+    socket.onerror=()=>{if(disposed||attempt!==generation)return;notice.value=i18nT('m36e2356dc6f1')}
   }catch(e){if(!disposed&&attempt===generation)notice.value=(e as Error).message}
   finally{if(attempt===generation)attaching.value=false}
 }
@@ -117,13 +120,13 @@ onBeforeUnmount(()=>{disposed=true;cancelAnimationFrame(frame);observer?.disconn
 <template>
   <div class="terminal-pane ai-terminal-pane" :style="{background:palette.background,color:palette.foreground}">
     <div class="terminal-status"><span><b class="ai-badge">AI</b> {{ notice }}</span><div class="terminal-actions">
-      <button v-if="observing && connected && !writable && controller !== 'user' && !ended" class="icon-button" aria-label="解锁并人工接管" title="解锁并人工接管，暂停 AI 输入" @click="send({type:'terminal.takeover'})"><PhLockKey :size="18"/></button>
-      <button v-if="observing && (writable || (connected && controller === 'none'))" class="icon-button" aria-label="锁定并交还 AI" title="锁定并交还 AI；已结束任务将释放连接" @click="release"><PhLockKeyOpen :size="18"/></button>
-      <button v-if="!observing && !attaching && !ended" class="button" @click="reattach">重新查看</button>
-      <button class="icon-button" title="查看历史" aria-label="查看历史" @click="emit('history')"><PhClock :size="17"/></button><button v-if="!floating" class="icon-button" title="悬浮终端" aria-label="悬浮终端" @click="emit('float')"><PhArrowSquareOut :size="17"/></button>
+      <button v-if="observing && connected && !writable && controller !== 'user' && !ended" class="icon-button" :aria-label="i18nT('m4ed49b1231d0')" :title="i18nT('m8a6953fe0f41')" @click="send({type:'terminal.takeover'})"><PhLockKey :size="18"/></button>
+      <button v-if="observing && (writable || (connected && controller === 'none'))" class="icon-button" :aria-label="i18nT('mb40192805375')" :title="i18nT('mb1a89e75be2b')" @click="release"><PhLockKeyOpen :size="18"/></button>
+      <button v-if="!observing && !attaching && !ended" class="button" @click="reattach">{{ i18nT('m7c4b06e07cb4') }}</button>
+      <button class="icon-button" :title="i18nT('ma5783b941d7d')" :aria-label="i18nT('ma5783b941d7d')" @click="emit('history')"><PhClock :size="17"/></button><button v-if="!floating" class="icon-button" :title="i18nT('m710238fe310c')" :aria-label="i18nT('m710238fe310c')" @click="emit('float')"><PhArrowSquareOut :size="17"/></button>
     </div></div>
-    <section v-if="hostKey" class="host-key-prompt" role="alert"><strong>{{ hostKey.changed?'主机指纹发生变化':'AI 等待确认主机指纹' }}</strong><p>{{ hostKey.host }}:{{ hostKey.port }}</p><code>{{ hostKey.fingerprint }}</code><p v-if="hostKey.changed">已保存：{{ hostKey.previous }}</p><label v-if="hostKey.changed"><input v-model="verified" type="checkbox"/>已核验新指纹</label><div class="form-actions"><button class="button" @click="decide(false)">拒绝</button><button class="button primary" :disabled="hostKey.changed && !verified" @click="decide(true)">信任并连接</button></div></section>
+    <section v-if="hostKey" class="host-key-prompt" role="alert"><strong>{{ hostKey.changed?i18nT('m473acb4f7a8f'):i18nT('m49302e40ce7f') }}</strong><p>{{ hostKey.host }}:{{ hostKey.port }}</p><code>{{ hostKey.fingerprint }}</code><p v-if="hostKey.changed">{{ i18nT('mdacc8e7b3baf', { p0: (hostKey.previous) }) }}</p><label v-if="hostKey.changed"><input v-model="verified" type="checkbox"/>{{ i18nT('m53a8b3f5fff7') }}</label><div class="form-actions"><button class="button" @click="decide(false)">{{ i18nT('m136de7a8c46f') }}</button><button class="button primary" :disabled="hostKey.changed && !verified" @click="decide(true)">{{ i18nT('m60d8fbd14c9c') }}</button></div></section>
     <div ref="canvas" class="terminal-canvas" :inert="!!hostKey || undefined" @contextmenu.prevent="selection=terminal.getSelection();menu={x:$event.clientX,y:$event.clientY}"></div>
-    <ContextMenu v-if="menu" :x="menu.x" :y="menu.y" :owner="ownerDocument" :items="items" label="AI 终端菜单" :extension="menuExtension" :execute="action" @close="menu=undefined"/>
+    <ContextMenu v-if="menu" :x="menu.x" :y="menu.y" :owner="ownerDocument" :items="items" :label="i18nT('m9fa9fb83a03d')" :extension="menuExtension" :execute="action" @close="menu=undefined"/>
   </div>
 </template>

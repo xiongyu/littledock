@@ -1,0 +1,17 @@
+{
+  "m6bf7d902ff0e": "Tab content provided by another plugin",
+  "ma6ffab078764": "Example action {p0}",
+  "m03719879130a": "Cross-plugin panel: {p0}",
+  "m7d799f0a638f": "Completed: menu → find current details instance → open extension tab. This example does not attach a debugger.",
+  "mba398612bb32": "Target: {p0} · {p1}",
+  "mb708d75911ca": "Process Diagnostics Example",
+  "m335abbda3f50": "Process details are no longer valid. Select a process again.",
+  "metadata.name": "Process Diagnostics Example",
+  "metadata.description": "Process diagnostics example demonstrating public UI extensions only; no debugging or process actions",
+  "menuItems.inspect.title": "Open extension diagnostics",
+  "menuItems.host-inspect.title": "Open extension details",
+  "uiItems.process-details.title": "Extension diagnostics",
+  "uiItems.host-summary.title": "Cross-plugin content",
+  "uiItems.host-action.title": "Example action",
+  "uiItems.host-details.title": "Extension details"
+}

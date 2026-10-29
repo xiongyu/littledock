@@ -4,12 +4,12 @@
   "name": "协作观察器",
   "version": "1.0.0",
   "description": "演示跨插件调用与状态订阅",
-  "author": "WebNav",
+  "author": "LittleDock",
   "license": "MIT",
   "category": "development",
   "secondaryCategories": [],
   "apiVersion": 1,
-  "webnav": "^0.1.2",
+  "webnav": "^0.1.3",
   "node": ">=22.12.0",
   "platforms": [
     {
@@ -80,5 +80,12 @@
         "optional": true
       }
     ]
+  },
+  "i18n": {
+    "defaultLocale": "zh-CN",
+    "locales": {
+      "zh-CN": "locales/zh-CN.json",
+      "en": "locales/en.json"
+    }
   }
 }

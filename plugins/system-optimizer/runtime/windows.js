@@ -1,3 +1,4 @@
+import { i18n } from "./localization.js";
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -7,42 +8,43 @@ import { release } from 'node:os';
 import { parseSnapshot, registryValue } from "./model.js";
 const script = fileURLToPath(new URL('../windows/bridge.ps1', import.meta.url));
 const rules = fileURLToPath(new URL('../windows/rules.json', import.meta.url));
-const scriptHash = '0bc45303174ba6b23647a74d9a307160676eb98542d8060ee0df54a0dc7cb1f3';
+const scriptHash = 'a8389638520156808b70ab637ac65306eea37663ee0d5f5a9dd608c33ac6c15f';
 export class NativeWindowsAdapter {
     children = new Set();
     closed = false;
     async call(request, timeout = 30000) {
         if (this.closed || process.platform !== 'win32' || process.arch !== 'x64' || Number(release().split('.')[2]) < 22000)
-            throw new Error('首版仅支持本机 Windows 11 x64。');
+            throw i18n.error('PLUGIN_FAILED', 'm0c2fb1d38793');
         if (createHash('sha256').update(await readFile(script)).update('\0').update(await readFile(rules)).digest('hex') !== scriptHash)
-            throw new Error('Windows 助手或规则校验失败，请重新构建或安装插件。');
+            throw i18n.error('PLUGIN_FAILED', 'm227194214286');
         if (this.children.size >= 2)
-            throw new Error('Windows 助手正在处理其他请求。');
+            throw i18n.error('PLUGIN_FAILED', 'm972c4f2ea57c');
         const payload = JSON.stringify(request);
         if (Buffer.byteLength(payload) > 2 * 1024 * 1024)
-            throw new Error('助手请求过大。');
+            throw i18n.error('PLUGIN_FAILED', 'mb689d9ba11dc');
         const executable = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
         return new Promise((resolve, reject) => {
             const child = spawn(executable, ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
             this.children.add(child);
-            let output = Buffer.alloc(0), failed = '', exited = false;
-            const timer = setTimeout(() => { failed = 'Windows 助手超时；如有写入请通过恢复记录核对。'; child.kill(); }, timeout);
+            let output = Buffer.alloc(0), exited = false;
+            let failed;
+            const timer = setTimeout(() => { failed = i18n.error('PLUGIN_FAILED', 'm065abab4e59f'); child.kill(); }, timeout);
             child.stdout.on('data', (chunk) => { if (output.length + chunk.length > 4 * 1024 * 1024) {
-                failed = '助手输出超限。';
+                failed = i18n.error('PLUGIN_FAILED', 'me03be814a137');
                 child.kill();
             }
             else
                 output = Buffer.concat([output, chunk]); });
             child.stderr.resume(); // Never surface registry commands or values through logs.
-            child.on('error', () => { failed = '无法启动 Windows 助手。'; });
+            child.on('error', () => { failed = i18n.error('PLUGIN_FAILED', 'mdce99a7f4f2e'); });
             child.on('close', code => {
                 exited = true;
                 clearTimeout(timer);
                 this.children.delete(child);
                 if (failed)
-                    return reject(new Error(failed));
+                    return reject(failed);
                 if (code !== 0)
-                    return reject(new Error('Windows 助手执行失败，请核对当前状态。'));
+                    return reject(i18n.error('PLUGIN_FAILED', 'm5cd73c6ab899'));
                 try {
                     const result = JSON.parse(output.toString('utf8').replace(/^\uFEFF/, ''));
                     if (!result || typeof result !== 'object' || !('ok' in result) || result.ok !== true || !('data' in result))
@@ -50,11 +52,11 @@ export class NativeWindowsAdapter {
                     resolve(result.data);
                 }
                 catch {
-                    reject(new Error('Windows 助手未返回有效结果。'));
+                    reject(i18n.error('PLUGIN_FAILED', 'md5af417fff45'));
                 }
             });
             child.stdin.on('error', () => { if (!exited) {
-                failed = 'Windows 助手输入失败。';
+                failed = i18n.error('PLUGIN_FAILED', 'm3d0799b13c4c');
                 child.kill();
             } });
             child.stdin.end(payload);
@@ -67,13 +69,13 @@ export class NativeWindowsAdapter {
     async apply(target, expected, desired) {
         const result = await this.call({ op: 'apply', target, expected, desired });
         if (!result || typeof result !== 'object' || !('status' in result) || !['applied', 'conflict'].includes(String(result.status)) || !('current' in result))
-            throw new Error('写入结果格式无效，请通过恢复记录核对。');
+            throw i18n.error('PLUGIN_FAILED', 'm4231a32bc21a');
         return { status: result.status, current: registryValue(result.current) };
     }
     async protectedText(op, value) {
         const result = await this.call({ op, value });
         if (typeof result !== 'string' || result.length > 2 * 1024 * 1024)
-            throw new Error('恢复材料格式无效。');
+            throw i18n.error('PLUGIN_FAILED', 'm0e84173fe5b8');
         return result;
     }
     protect(value) { return this.protectedText('protect', value); }

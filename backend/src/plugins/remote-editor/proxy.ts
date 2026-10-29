@@ -32,7 +32,7 @@ export async function editorGateway(client:Client,remotePort:number,token:string
     return {host:'127.0.0.1',port:remotePort,path:url.pathname+url.search,method:req.method,headers,createConnection:()=>channel}
   }
   const server:Server=createServer((req,res)=>{
-    if(!allowed(req)){res.writeHead(403,{'content-type':'text/plain; charset=utf-8'}).end('编辑器连接已关闭或尚未解锁，请从 WebNav 重新打开。');return}
+    if(!allowed(req)){res.writeHead(403,{'content-type':'text/plain; charset=utf-8'}).end('编辑器连接已关闭或尚未解锁，请从小站重新打开。');return}
     if(token&&marketplace.handle(req,res,new URL(req.url??'/',origin).pathname))return
     upstream(req,(error,channel)=>{
       if(error||!channel){res.writeHead(502,{'content-type':'text/plain; charset=utf-8'}).end('SSH 转发不可用。');return}

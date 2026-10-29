@@ -51,7 +51,7 @@ if (!values['skip-build']) await run(pnpmCommand[0], [...pnpmCommand[1], 'build'
 if (!values['skip-build']) await run(pnpmCommand[0], [...pnpmCommand[1], 'collector:build'])
 await run(process.execPath, [join(root, 'scripts/task-manager-build.mjs'), '--verify'])
 await mkdir(dirname(output), { recursive: true }); await mkdir(output, { recursive: false })
-const portable = join(output, 'WebNav'), release = join(portable, 'releases', version), backend = join(release, 'backend')
+const portable = join(output, 'LittleDock'), release = join(portable, 'releases', version), backend = join(release, 'backend')
 await mkdir(release, { recursive: true })
 await mkdir(backend,{recursive:true})
 await cp(join(root,'backend/package.json'),join(backend,'package.json'))
@@ -86,7 +86,7 @@ if (manifest.notes.length > 4000) throw new Error('更新说明不能超过 4000
 const payload = Buffer.from(JSON.stringify(manifest)), signature = sign(null, Buffer.concat([Buffer.from('webnav-update-v1\0'), payload]), privateKey).toString('base64')
 const envelope = { payload: payload.toString('base64'), signature }
 await atomicJson(join(output, 'feed.json'), envelope)
-if (giteeRepository) await writeFile(join(output, 'release-description.md'), `WebNav ${version}\n\n${manifest.notes}\n\n下载便携包后解压，双击 WebNav.vbs。已有安装版可在全局设置中更新。\n\n自动更新校验信息（请完整保留此代码块）：\n\n\`\`\`text\nWEBNAV_UPDATE_V1:${Buffer.from(JSON.stringify(envelope)).toString('base64')}\n\`\`\`\n`)
+if (giteeRepository) await writeFile(join(output, 'release-description.md'), `小站 LittleDock ${version}\n\n${manifest.notes}\n\n下载便携包后解压，双击 LittleDock.vbs。已有安装版可在全局设置中更新。\n\n自动更新校验信息（请完整保留此代码块）：\n\n\`\`\`text\nWEBNAV_UPDATE_V1:${Buffer.from(JSON.stringify(envelope)).toString('base64')}\n\`\`\`\n`)
 await atomicJson(join(portable, 'installation.json'), { schemaVersion: 1, current: version })
 await atomicJson(join(portable, 'update-source.json'), source)
 await mkdir(join(portable, 'runtime')); await cp(process.execPath, join(portable, 'runtime/node.exe'))
@@ -94,10 +94,10 @@ await atomicJson(join(portable, 'runtime/initial.json'), { version, sha256: awai
 // The initial portable ZIP needs one copy of Node. Bootstrap materializes the first release's runtime atomically.
 await unlink(join(release, 'runtime/node.exe'))
 await cp(join(root, 'backend/src/desktop/windows'), join(portable, 'launcher/windows'), { recursive: true })
-for (const name of ['launch.mjs', 'Start-WebNav.ps1', 'WebNav.vbs']) await cp(join(root, 'scripts/distribution', name), join(portable, name))
-await writeFile(join(portable, '使用说明.txt'), '双击 WebNav.vbs 启动。退出请使用托盘。开机启动需在托盘显式勾选；已有勾选会迁移到此固定入口。\r\n安装更新在网页全局设置 → 工作台更新中操作。请勿移动正在运行的目录。\r\n首次从源码版迁移，请先完整退出旧工作台。用户数据继续使用原数据目录。\r\n')
-const portableName = `WebNav-${version}-windows-x64-portable.zip`
+for (const name of ['launch.mjs', 'Start-WebNav.ps1', 'WebNav.vbs', 'LittleDock.vbs']) await cp(join(root, 'scripts/distribution', name), join(portable, name))
+await writeFile(join(portable, '使用说明.txt'), '双击 LittleDock.vbs 启动。退出请使用托盘。开机启动需在托盘显式勾选；已有勾选会迁移到此固定入口。\r\n安装更新在网页全局设置 → 工作台更新中操作。请勿移动正在运行的目录。\r\n首次从源码版迁移，请先完整退出旧工作台。用户数据继续使用原数据目录。\r\n')
+const portableName = `LittleDock-${version}-windows-x64-portable.zip`
 await zipDirectory(portable, join(output, portableName))
 if (giteeRepository && (size > 100_000_000 || (await lstat(join(output, portableName))).size > 100_000_000)) throw new Error('附件超过 Gitee 普通仓库 100 MB 限制，请先减小发布包。')
-await atomicJson(join(output, 'publish-plan.json'), { version, artifacts: [artifactName, `WebNav-${version}-windows-x64-portable.zip`], feed: source.feed, order: ['版本包', 'feed.json'], uploaded: false })
+await atomicJson(join(output, 'publish-plan.json'), { version, artifacts: [artifactName, `LittleDock-${version}-windows-x64-portable.zip`], feed: source.feed, order: ['版本包', 'feed.json'], uploaded: false })
 console.log('正式版目录、便携安装包、签名更新包及发布清单已生成。尚未上传。')

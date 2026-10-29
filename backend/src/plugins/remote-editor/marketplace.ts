@@ -39,7 +39,7 @@ export function marketplaceProxy(fetcher: typeof fetch = fetch, timeoutMs = 20_0
       let input: unknown
       try { input = JSON.parse(body) } catch { reply(res, 400, '扩展市场查询格式无效。'); return }
       if (!input || typeof input !== 'object' || Array.isArray(input)) { reply(res, 400, '扩展市场查询格式无效。'); return }
-      // No WebNav cookie, editor token, client Authorization or remote address
+      // No 小站 cookie, editor token, client Authorization or remote address
       // leaves the local gateway. Keep Microsoft as the configured gallery.
       const response = await fetcher(queryUrl, {
         method: 'POST', redirect: 'error', signal: controller.signal,

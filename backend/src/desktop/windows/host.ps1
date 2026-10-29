@@ -4,4 +4,4 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -Path (Join-Path $PSScriptRoot 'tray.cs') -ReferencedAssemblies System.Windows.Forms, System.Drawing, System.Web.Extensions
-[WebNav.TrayHost]::Run()
+[WebNav.TrayHost]::Run((Join-Path $PSScriptRoot 'littledock-otter-icon.png'))

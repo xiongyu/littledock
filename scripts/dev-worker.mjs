@@ -16,7 +16,7 @@ if (!await managedWorker(configuration('dev'))) {
   const backendPort = Number(process.env.WEBNAV_PORT ?? 3030)
   const uiPort = Number(process.env.WEBNAV_UI_PORT ?? 5173)
   for (const port of [backendPort, uiPort]) {
-    if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('WebNav 端口须为 1024–65535 的整数。')
+    if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('小站 端口须为 1024–65535 的整数。')
   }
   if (backendPort === uiPort) throw new Error('前后端开发端口不能相同。')
   const backendOrigin = `http://127.0.0.1:${backendPort}`
@@ -52,12 +52,12 @@ if (!await managedWorker(configuration('dev'))) {
     const { createServer } = await import(pathToFileURL(frontendRequire.resolve('vite')).href)
     vite = await createServer({ root: join(root, 'frontend'), configFile: join(root, 'frontend/vite.config.ts') })
     await vite.listen()
-    console.log(`WebNav 前后端已就绪：${uiOrigin}`)
+    console.log(`小站前后端已就绪：${uiOrigin}`)
     vite.printUrls()
     process.send?.({ type: 'ready' })
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'WebNav 启动失败。')
-    process.send?.({ type: 'failed', message: error instanceof Error ? error.message : 'WebNav 启动失败。' })
+    console.error(error instanceof Error ? error.message : '小站 启动失败。')
+    process.send?.({ type: 'failed', message: error instanceof Error ? error.message : '小站 启动失败。' })
     await stop()
     process.exitCode = 1
   }

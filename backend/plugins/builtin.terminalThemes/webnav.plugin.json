@@ -4,12 +4,12 @@
   "name": "终端配色",
   "version": "0.1.0",
   "description": "为所有 SSH 终端统一管理默认配色、自定义方案与入口级引用，更新颜色无需重连终端。",
-  "author": "WebNav",
-  "license": "随 WebNav 项目许可证",
+  "author": "LittleDock",
+  "license": "随小站项目许可证",
   "category": "appearance",
   "secondaryCategories": [],
   "apiVersion": 1,
-  "webnav": "^0.1.0",
+  "webnav": "^0.1.3",
   "node": ">=22.12.0",
   "platforms": [
     {
@@ -81,5 +81,12 @@
         }
       }
     ]
+  },
+  "i18n": {
+    "defaultLocale": "zh-CN",
+    "locales": {
+      "zh-CN": "locales/zh-CN.json",
+      "en": "locales/en.json"
+    }
   }
 }

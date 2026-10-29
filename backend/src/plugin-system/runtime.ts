@@ -11,6 +11,7 @@ import { PluginManager } from './manager.ts'
 import { PluginScope, ServiceBridge, bounded } from './lifecycle.ts'
 import { PluginInteropRegistry, validateInteropDeclarations, type PluginInteropApi, type InteropUnit } from './interop.ts'
 import { activateDedicated } from './worker-host.ts'
+import { readPluginLocales } from './locales.ts'
 
 export interface PluginRpc { mutate: boolean; /** Permits read-only inspection or finishing existing work during maintenance. New resource leases remain blocked. */ maintenance?: 'read' | 'finish'; handler: (owner: string, params: Record<string, unknown>) => unknown }
 export interface AutomationCall { clientId:string; signal:AbortSignal }
@@ -18,6 +19,7 @@ export type AutomationHandler = (params:Record<string,unknown>,call:AutomationCa
 export interface PluginBackendApi {
   apiVersion: 1; manifest: PluginManifest; config: InstalledPlugin['config']; dataDirectory: string
   shared: typeof shared
+  i18n: shared.PluginMessages
   interop: PluginInteropApi
   registerService(name: ServiceCapability, implementation: object): void
   registerRpc(name: string, rpc: PluginRpc): void
@@ -130,8 +132,10 @@ export class PluginService extends Service {
       if (plugin.manifest.backend) {
         const entry = plugin.manifest.backend
         await bounded((async () => {
+        const locales = await readPluginLocales(this.manager.path(plugin), plugin.manifest)
         const api: PluginBackendApi = {
           apiVersion: 1, manifest: structuredClone(plugin.manifest), config: structuredClone(plugin.config), dataDirectory, shared, interop: this.interop.api(unit.interop),
+          i18n: shared.createPluginMessages(id, locales),
           host: { vaultStatus: async () => ({ unlocked: scope.ctx.credentials.status().unlocked }), acquireResource: async () => { if (scope.resources >= 64) throw new AppError('LIMIT_EXCEEDED', '插件资源租约超限。'); return scope.acquire(true) } },
           registerService: (name, implementation) => {
             requireRegistration()
@@ -172,7 +176,7 @@ export class PluginService extends Service {
             this.failed.set(id, this.manager.registry.revision)
             void scope.dispose().catch(() => { this.cleanupPending.add(id) })
             this.manager.runtimeRevision++; this.publish()
-          })
+          }, locales)
         } else {
           const module: unknown = await import(pathToFileURL(file).href)
           scope.requireActive()
@@ -336,6 +340,7 @@ export class PluginService extends Service {
     return()=>{for(const release of releases)release()}
   }
   async dispatch(owner: string, method: string, params: Record<string, unknown>) {
+    if (method === 'plugins.locales') return (await this.manager.locales(String(params.id), typeof params.commit === 'string' ? params.commit : undefined)) ?? null
     if (method === 'plugins.settings') {
       const id = String(params.id), installed = this.manager.registry.installed.find(p => p.manifest.id === id), running = this.manager.running.get(id)
       const builtin = this.manager.builtinDetails.find(p => p.id === id)

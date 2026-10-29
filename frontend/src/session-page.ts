@@ -1,3 +1,6 @@
+
+import { pluginI18n } from './i18n.ts'
+const { t: i18nT } = pluginI18n('core')
 export interface SessionPage { window: Window; mount: HTMLElement; dispose(): void }
 /** Move the existing view into another same-origin document, without replacing its socket. */
 export async function openSessionPage(name: string, onReturn: () => void): Promise<SessionPage | undefined> {
@@ -5,7 +8,7 @@ export async function openSessionPage(name: string, onReturn: () => void): Promi
   let child: Window | null = null
   let cancel = () => {}
   const loaded = new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => { cancel(); reject(new Error('独立页面未能加载，请重试。')) }, 10000)
+    const timeout = setTimeout(() => { cancel(); reject(new Error(i18nT('mdf82b6697057'))) }, 10000)
     const listener = (event: MessageEvent) => {
       if (event.source === child && event.origin === location.origin && event.data?.type === 'webnav-session-page-ready' && event.data.requestId === requestId) { cancel(); resolve() }
     }
@@ -16,7 +19,7 @@ export async function openSessionPage(name: string, onReturn: () => void): Promi
   if (!child) { cancel(); return }
   try { await loaded } catch (cause) { child.close(); throw cause }
   const doc = child.document
-  doc.title = `${name} · WebNav`
+  doc.title = `${name} · LittleDock`
   doc.documentElement.lang = 'zh-CN'
   doc.documentElement.style.cssText = document.documentElement.style.cssText
   doc.documentElement.dataset.theme = document.documentElement.dataset.theme ?? 'light'

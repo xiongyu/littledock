@@ -1,3 +1,7 @@
+import { createPluginMessages } from '@webnav/shared'
+import { initializeMessages } from '../../plugins/system-optimizer/src/localization.ts'
+import zh from '../../plugins/system-optimizer/locales/zh-CN.json' with { type: 'json' }
+initializeMessages(createPluginMessages('webnav.system-optimizer', { defaultLocale: 'zh-CN', locales: { 'zh-CN': zh } }))
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'

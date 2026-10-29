@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('core')
+
 import { computed } from 'vue'
 import { PhArrowCounterClockwise } from '@phosphor-icons/vue'
 import { registeredFonts, setPluginFontSize, fontStorageError } from '../plugin-fonts'
@@ -9,17 +12,17 @@ function change(key: string, event: Event) { const value = Number((event.target 
 </script>
 <template>
   <div class="plugin-font-settings">
-    <p class="field-hint">即时预览，保存在当前浏览器。选择插件与字体名称后调整。</p>
+    <p class="field-hint">{{ i18nT('m4f7caf03e964') }}</p>
     <section v-for="group in groups" :key="group.id" class="font-plugin-card">
-      <header><h3>{{ group.name }}</h3><span>{{ group.fonts.length }} 种字体</span></header>
+      <header><h3>{{ group.name }}</h3><span>{{ i18nT('m42bf56b7bfb2', { p0: (group.fonts.length) }) }}</span></header>
       <div v-for="font in group.fonts" :key="font.key" class="font-setting-row">
         <label :for="`font-${font.key}`"><strong>{{ group.name }} · {{ font.name }}</strong><small>{{ font.group }}</small></label>
-        <span class="font-preview" :style="{ fontSize: `${font.size}px` }">文字预览 Aa 123</span>
-        <input :id="`font-${font.key}`" type="range" :min="font.minSize" :max="font.maxSize" step="1" :value="font.size" :aria-label="`${group.name} · ${font.name} 字号`" @input="change(font.key, $event)" />
-        <output>{{ font.size }}px</output><button class="icon-button" :aria-label="`恢复 ${group.name} · ${font.name} 默认字号`" title="恢复默认字号" @click="setPluginFontSize(font.key)"><PhArrowCounterClockwise :size="18" /></button>
+        <span class="font-preview" :style="{ fontSize: `${font.size}px` }">{{ i18nT('m42b7f4b2a4b8') }}</span>
+        <input :id="`font-${font.key}`" type="range" :min="font.minSize" :max="font.maxSize" step="1" :value="font.size" :aria-label="i18nT('mf936cdeda363', { p0: (group.name), p1: (font.name) })" @input="change(font.key, $event)" />
+        <output>{{ font.size }}px</output><button class="icon-button" :aria-label="i18nT('mdc63e5e86cee', { p0: (group.name), p1: (font.name) })" :title="i18nT('m7aa5d86bfdc4')" @click="setPluginFontSize(font.key)"><PhArrowCounterClockwise :size="18" /></button>
       </div>
     </section>
-    <p v-if="!fonts.length" class="field-hint">此插件尚未注册可调整的字体。</p>
+    <p v-if="!fonts.length" class="field-hint">{{ i18nT('m0618d2401492') }}</p>
     <p v-if="fontStorageError" class="field-error" role="alert">{{ fontStorageError }}</p>
   </div>
 </template>

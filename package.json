@@ -1,5 +1,6 @@
 {
-  "name": "webnav",
+  "name": "littledock",
+  "description": "小站 LittleDock — 本地连接与工具工作台",
   "private": true,
   "packageManager": "pnpm@12.4.2",
   "engines": {
@@ -16,7 +17,7 @@
     "dev:console": "node --experimental-strip-types scripts/dev-worker.mjs",
     "dev:ui": "pnpm --filter @webnav/frontend dev:ui",
     "plugins:build": "node scripts/build-bundled-plugins.mjs",
-    "build": "pnpm --filter @webnav/shared build && pnpm plugins:build && pnpm --filter @webnav/backend build && pnpm --filter @webnav/extension build && pnpm --filter @webnav/frontend build",
+    "build": "pnpm i18n:check && pnpm --filter @webnav/shared build && pnpm plugins:build && pnpm --filter @webnav/backend build && pnpm --filter @webnav/extension build && pnpm --filter @webnav/frontend build",
     "extension:build": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/extension build",
     "typecheck": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend typecheck && pnpm --filter @webnav/frontend typecheck && pnpm --filter @webnav/extension typecheck",
     "test": "pnpm --filter @webnav/shared build && pnpm --filter @webnav/backend test && pnpm --filter @webnav/frontend test && pnpm --filter @webnav/extension test",
@@ -24,6 +25,8 @@
     "start:console": "pnpm --filter @webnav/backend start",
     "preview": "pnpm --filter @webnav/frontend preview",
     "plugins:catalog": "node scripts/plugin-ui-catalog.mjs",
-    "plugins:catalog:check": "node scripts/plugin-ui-catalog.mjs --check"
+    "plugins:catalog:check": "node scripts/plugin-ui-catalog.mjs --check",
+    "i18n:generate": "node --experimental-strip-types scripts/i18n-catalog.mjs --write",
+    "i18n:check": "node --experimental-strip-types scripts/i18n-catalog.mjs && node scripts/i18n-source-check.mjs"
   }
 }

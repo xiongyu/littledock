@@ -1,6 +1,7 @@
 import type { MessagePort, Worker } from 'node:worker_threads'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { AppError } from '../core/errors.ts'
+import { errorMessageRef } from '@webnav/shared'
 
 type Port = Pick<MessagePort | Worker, 'on' | 'off' | 'postMessage'>
 type Pending = { resolve: (value: unknown) => void; reject: (error: Error) => void; context?: unknown; cleanup?: () => void }
@@ -61,7 +62,7 @@ export class WorkerRpc {
       pending.cleanup?.()
       if (packet.error && typeof packet.error === 'object') {
         const error = packet.error as Record<string, unknown>
-        pending.reject(new AppError(typeof error.code === 'string' ? error.code : 'PLUGIN_FAILED', typeof error.message === 'string' ? error.message : '插件调用失败。'))
+        pending.reject(Object.assign(new AppError(typeof error.code === 'string' ? error.code : 'PLUGIN_FAILED', typeof error.message === 'string' ? error.message : '插件调用失败。'), { messageRef: errorMessageRef(error) }))
       } else pending.resolve(packet.value)
       return
     }
@@ -69,7 +70,7 @@ export class WorkerRpc {
     const replyError = (error: unknown) => {
       if (this.closed) return
       const code = error instanceof Error && 'code' in error && typeof error.code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code) ? error.code : 'PLUGIN_FAILED'
-      try { this.send({ type: 'result', id, error: { code, message: error instanceof Error ? error.message.slice(0, 1000) : '插件调用失败。' } }) } catch { this.close(new Error('插件线程响应失败。')) }
+      try { this.send({ type: 'result', id, error: { code, message: error instanceof Error ? error.message.slice(0, 1000) : '插件调用失败。', messageRef: errorMessageRef(error) } }) } catch { this.close(new Error('插件线程响应失败。')) }
     }
     if (this.incoming >= MAX_PENDING) { replyError(new AppError('BUSY', '插件线程并发请求超限。')); return }
     this.incoming++

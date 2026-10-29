@@ -1,5 +1,7 @@
 # WebNav 品牌标识
 
+> 历史设计记录。当前品牌与标志见[小站 · LittleDock](littledock-brand.md)，本页保留原始 W 标志与生成过程。
+
 生成方式：内置 image_gen，2026-10-26。最终资产为 [透明 PNG](../../frontend/public/brand/webnav-mark.png)，1254 × 1254，约 547 KiB。保留原始透明通道，没有裁剪、描摹或二次绘制。
 
 ## 设计

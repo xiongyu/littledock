@@ -4,7 +4,7 @@
 
 ## 使用与行为
 
-- 正式版解压后双击 `WebNav.vbs`，使用包内 Node，不依赖电脑上的 Node、pnpm 或源码。`Start-WebNav.ps1 -Console` 保留前台诊断。
+- 正式版解压后双击 `LittleDock.vbs`（保留 `WebNav.vbs` 兼容入口），使用包内 Node，不依赖电脑上的 Node、pnpm 或源码。`Start-WebNav.ps1 -Console` 保留前台诊断。
 - 每用户只运行一个工作台，重复运行打开原实例网页。首次从源码迁移须先退出旧实例；默认数据位置不变，自定义目录通过 `WEBNAV_DATA_DIR` 保留。
 - 只自动检查，下载和安装由用户触发。关闭网页、关闭面板、普通退出不会额外触发安装。
 - 下载可取消。安装默认等待 SSH、本地终端、桌面、设备及插件/AI 资源结束，同时阻止新任务；取消等待恢复接收任务，下载包保留。
@@ -28,8 +28,8 @@
 ## 安装布局
 
 ```text
-WebNav/
-  WebNav.vbs / Start-WebNav.ps1 / launch.mjs
+LittleDock/
+  LittleDock.vbs / WebNav.vbs / Start-WebNav.ps1 / launch.mjs
   runtime/node.exe / initial.json    # 固定控制层运行时与初始摘要
   launcher/windows/                 # 固定托盘、自启引导
   installation.json                 # current / previous / pending

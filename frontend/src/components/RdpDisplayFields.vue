@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.freeRdp')
+
 import { computed, ref, watch } from 'vue'
 import type { RdpDisplay } from '../catalog'
 
@@ -12,7 +15,7 @@ const width = ref(display.value?.mode === 'windowed' ? display.value.width : 192
 const height = ref(display.value?.mode === 'windowed' ? display.value.height : 1080)
 const presetValue = () => resolutions.some(([w, h]) => w === width.value && h === height.value) ? `${width.value}x${height.value}` : 'custom'
 const resolution = ref(presetValue())
-const label = computed(() => `入口 ${props.entryNumber}`)
+const label = computed(() => i18nT('me7cbaf94bfdb', { p0: (props.entryNumber) }))
 const mode = computed({
   get: () => display.value?.mode ?? 'default',
   set: (value: string) => {
@@ -33,28 +36,28 @@ watch([width, height], ([w, h]) => {
 
 <template>
   <div class="rdp-display-fields">
-    <label class="form-field"><span>显示模式</span>
-      <select v-model="mode" :aria-label="`${label} 显示模式`">
-        <option value="default">{{ browser ? '默认 · 1920 × 1080' : '跟随客户端' }}</option>
-        <option value="windowed">窗口 · 指定分辨率</option>
-        <option value="fullscreen">全屏 · 单个显示器</option>
-        <option value="multimon" :disabled="browser">全屏 · 所有显示器{{ browser ? '（仅系统客户端）' : '' }}</option>
+    <label class="form-field"><span>{{ i18nT('m8b91a131263f') }}</span>
+      <select v-model="mode" :aria-label="i18nT('m944b7388586a', { p0: (label) })">
+        <option value="default">{{ browser ? i18nT('mf084a16e0f5b') : i18nT('m17bb25bce60b') }}</option>
+        <option value="windowed">{{ i18nT('m04ee16aad8b8') }}</option>
+        <option value="fullscreen">{{ i18nT('m96e7161d7c16') }}</option>
+        <option value="multimon" :disabled="browser">{{ i18nT('m57d6404c7626', { p0: (browser ? i18nT('me4164510790a') : '') }) }}</option>
       </select>
     </label>
     <template v-if="mode === 'windowed'">
-      <label class="form-field"><span>分辨率</span>
-        <select v-model="resolution" :aria-label="`${label} 分辨率`">
+      <label class="form-field"><span>{{ i18nT('mb92421822c21') }}</span>
+        <select v-model="resolution" :aria-label="i18nT('m5ca04f2f26b3', { p0: (label) })">
           <option v-for="[w, h] in resolutions" :key="`${w}x${h}`" :value="`${w}x${h}`">{{ w }} × {{ h }}</option>
-          <option value="custom">自定义</option>
+          <option value="custom">{{ i18nT('m4eafa9e925b3') }}</option>
         </select>
       </label>
       <div v-if="resolution === 'custom'" class="rdp-custom-resolution">
-        <label class="form-field"><span>宽度 <small>px</small></span><input v-model.number="width" :aria-label="`${label} 分辨率宽度`" type="number" min="200" :max="browser ? 4096 : 8192" step="1" required /></label>
-        <label class="form-field"><span>高度 <small>px</small></span><input v-model.number="height" :aria-label="`${label} 分辨率高度`" type="number" min="200" :max="browser ? 2160 : 8192" step="1" required /></label>
+        <label class="form-field"><span>{{ i18nT('m3b730da0ad1a') }}<small>px</small></span><input v-model.number="width" :aria-label="i18nT('m003450a65c61', { p0: (label) })" type="number" min="200" :max="browser ? 4096 : 8192" step="1" required /></label>
+        <label class="form-field"><span>{{ i18nT('m968dd036cbb1') }}<small>px</small></span><input v-model.number="height" :aria-label="i18nT('mab25d231af01', { p0: (label) })" type="number" min="200" :max="browser ? 2160 : 8192" step="1" required /></label>
       </div>
     </template>
-    <p v-if="browser" class="rdp-display-hint">网页桌面最大 4096 × 2160；连接后可点全屏按钮。多屏模式请使用系统客户端。</p>
-    <p v-else-if="mode === 'fullscreen' || mode === 'multimon'" class="rdp-display-hint">分辨率跟随{{ mode === 'multimon' ? '各个' : '所在' }}显示器。</p>
+    <p v-if="browser" class="rdp-display-hint">{{ i18nT('m31cfcf280ca0') }}</p>
+    <p v-else-if="mode === 'fullscreen' || mode === 'multimon'" class="rdp-display-hint">{{ i18nT('m0378f35ddc2b', { p0: (mode === 'multimon' ? i18nT('m391187daccde') : i18nT('me9c23189db5a')) }) }}</p>
   </div>
 </template>
 

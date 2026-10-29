@@ -34,7 +34,7 @@ async function launch(directory, backendPort, uiPort, cwd) {
   }
   try {
     const deadline = Date.now() + 25_000
-    while (!output.includes('WebNav 前后端已就绪')) {
+    while (!output.includes('小站前后端已就绪')) {
       if (child.exitCode !== null || Date.now() > deadline) throw new Error('Dev launcher failed: ' + output)
       await new Promise(resolve => setTimeout(resolve, 50))
     }

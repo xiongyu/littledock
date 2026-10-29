@@ -192,7 +192,7 @@ export class BrowserExtensionService extends Service {
       if (websiteOrigin(bookmark.url) !== site.origin) throw new AppError('INVALID_ARGUMENT', '只能保存当前网页所属网站。')
       const operation = `${peer.pairId}/save/${string(params.operationId, 100)}`
       this.prune()
-      if (this.usedOperations.has(operation)) throw new AppError('ALREADY_REQUESTED', '此保存操作已经接收，请在 WebNav 核对结果。')
+      if (this.usedOperations.has(operation)) throw new AppError('ALREADY_REQUESTED', '此保存操作已经接收，请在小站核对结果。')
       const expectedVersion = integer(params.expectedVersion, 0, Number.MAX_SAFE_INTEGER)
       const existing = this.ctx.webBookmarks.snapshot().bookmarks.find(b => b.id === bookmark.id)
       if (expectedVersion > 0 && !targets.some(b => b.id === bookmark.id)) throw new AppError('NOT_FOUND', '只能更新当前网站的已有收藏。')

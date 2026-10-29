@@ -33,7 +33,7 @@ public static class WebNavCredential {
     try {
       Marshal.Copy(bytes, 0, blob, bytes.Length);
       Credential value = new Credential {
-        Type = 1, TargetName = target, Comment = "WebNav RDP",
+        Type = 1, TargetName = target, Comment = "小站 RDP",
         CredentialBlobSize = (uint)bytes.Length, CredentialBlob = blob,
         Persist = 1, UserName = username
       };

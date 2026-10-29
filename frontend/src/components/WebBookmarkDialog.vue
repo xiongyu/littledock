@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { pluginI18n } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.webBookmarks')
+
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { PhX, PhCheck, PhTrash, PhCopy, PhKey } from '@phosphor-icons/vue'
 import { validateBookmark, type BookmarkSnapshot, type WebBookmark, type WebsiteLogin } from '@webnav/shared'
@@ -46,8 +49,8 @@ async function save() {
       ...(username.value ? { username: username.value } : {}), ...(password.value ? { password: password.value } : {}),
     } : undefined
     const result = await rpc<BookmarkSnapshot>('bookmarks.save', { bookmark: { ...draft, url: draft.url.trim() }, expectedVersion: props.bookmark?.version ?? 0, ...(update !== undefined ? { login: update } : {}) }, true)
-    applyBookmarks(result); emit('notify', '网页收藏已保存。'); emit('close')
-  } catch (cause) { error.value = cause instanceof Error ? cause.message : '保存失败。'; void synchronizeBookmarks() }
+    applyBookmarks(result); emit('notify', i18nT('m1781426c3dde')); emit('close')
+  } catch (cause) { error.value = cause instanceof Error ? cause.message : i18nT('mcf1487e7aa89'); void synchronizeBookmarks() }
   finally { busy.value = false }
 }
 async function remove() {
@@ -56,8 +59,8 @@ async function remove() {
   busy.value = true; error.value = ''
   try {
     applyBookmarks(await rpc<BookmarkSnapshot>('bookmarks.remove', { id: draft.id, expectedVersion: props.bookmark.version }, true))
-    emit('notify', '网页收藏已删除。'); emit('close')
-  } catch (cause) { error.value = cause instanceof Error ? cause.message : '删除失败。'; void synchronizeBookmarks() }
+    emit('notify', i18nT('m13947c4b7163')); emit('close')
+  } catch (cause) { error.value = cause instanceof Error ? cause.message : i18nT('mf06e4127fc8b'); void synchronizeBookmarks() }
   finally { busy.value = false }
 }
 async function revealLogin() {
@@ -67,49 +70,49 @@ async function revealLogin() {
   try {
     const result = await rpc<WebsiteLogin>('bookmarks.reveal', { id: draft.id, version: props.bookmark.version, masterPassword: masterPassword.value })
     if (generation === attempt && ready.value) login.value = result
-  } catch (cause) { if (generation === attempt) error.value = cause instanceof Error ? cause.message : '读取失败。' }
+  } catch (cause) { if (generation === attempt) error.value = cause instanceof Error ? cause.message : i18nT('m5215599023ee') }
   finally { masterPassword.value = ''; busy.value = false }
 }
 async function copy(value: string) {
-  try { await navigator.clipboard.writeText(value); emit('notify', '已复制。') }
-  catch { error.value = '无法写入剪贴板，请选中文字复制。' }
+  try { await navigator.clipboard.writeText(value); emit('notify', i18nT('m591b281ea790')) }
+  catch { error.value = i18nT('mb037180f72b1') }
 }
 watch(confirmClose, async value => { if (value) { await nextTick(); dialog.value?.querySelector<HTMLButtonElement>('[data-continue]')?.focus() } })
 </script>
 
 <template>
   <dialog ref="dialog" class="management-dialog bookmark-dialog" aria-labelledby="bookmark-dialog-title" v-on="backdropEvents" @cancel.prevent="close">
-    <header><h2 id="bookmark-dialog-title">{{ reveal ? bookmark?.name + ' · 账号密码' : bookmark ? '编辑网页收藏' : '添加网页收藏' }}</h2><button class="icon-button" aria-label="关闭网页收藏面板" :disabled="busy && !reveal" @click="close"><PhX :size="20" /></button></header>
+    <header><h2 id="bookmark-dialog-title">{{ reveal ? bookmark?.name + i18nT('m0a00c0e32f52') : bookmark ? i18nT('m8823cd555cde') : i18nT('me02fe0c55fe3') }}</h2><button class="icon-button" :aria-label="i18nT('m8ec741ca5697')" :disabled="busy && !reveal" @click="close"><PhX :size="20" /></button></header>
     <template v-if="reveal">
       <div v-if="login" class="bookmark-login">
-        <label class="form-field"><span>账号</span><div class="bookmark-copy-row"><input :value="login.username" aria-label="已保存的网站账号" readonly autocomplete="off" /><button class="icon-button" title="复制账号" aria-label="复制网站账号" @click="copy(login.username)"><PhCopy :size="18" /></button></div></label>
-        <label class="form-field"><span>密码</span><div class="bookmark-copy-row"><input :value="login.password" aria-label="已保存的网站密码" readonly autocomplete="off" /><button class="icon-button" title="复制密码" aria-label="复制网站密码" @click="copy(login.password)"><PhCopy :size="18" /></button></div></label>
+        <label class="form-field"><span>{{ i18nT('m311bb313fdec') }}</span><div class="bookmark-copy-row"><input :value="login.username" :aria-label="i18nT('m3479de591fd9')" readonly autocomplete="off" /><button class="icon-button" :title="i18nT('m80056420fe73')" :aria-label="i18nT('meb2cd8f7e992')" @click="copy(login.username)"><PhCopy :size="18" /></button></div></label>
+        <label class="form-field"><span>{{ i18nT('ma621ab606db2') }}</span><div class="bookmark-copy-row"><input :value="login.password" :aria-label="i18nT('m91365ef688ae')" readonly autocomplete="off" /><button class="icon-button" :title="i18nT('mc49aca3e41e2')" :aria-label="i18nT('mdf2ac2c0ab14')" @click="copy(login.password)"><PhCopy :size="18" /></button></div></label>
       </div>
       <form v-else @submit.prevent="revealLogin">
-        <p v-if="master" class="bookmark-help">查看此网站的账密，请再次输入主密码。</p>
-        <label v-if="master" class="form-field"><span>主密码</span><input v-model="masterPassword" type="password" autocomplete="current-password" required maxlength="1024" autofocus :disabled="busy" /></label>
-        <p v-if="busy && !master" role="status">正在读取…</p>
-        <button class="button primary" :disabled="busy || !ready"><PhKey :size="17" />{{ busy ? '正在验证…' : '查看账号密码' }}</button>
+        <p v-if="master" class="bookmark-help">{{ i18nT('m165d1740deac') }}</p>
+        <label v-if="master" class="form-field"><span>{{ i18nT('mf36f5f11edef') }}</span><input v-model="masterPassword" type="password" autocomplete="current-password" required maxlength="1024" autofocus :disabled="busy" /></label>
+        <p v-if="busy && !master" role="status">{{ i18nT('m86b6d0d63062') }}</p>
+        <button class="button primary" :disabled="busy || !ready"><PhKey :size="17" />{{ busy ? i18nT('mc725500abce1') : i18nT('m08c3d6fbbb52') }}</button>
       </form>
       <p v-if="error" class="field-error" role="alert">{{ error }}</p>
     </template>
     <form v-else ref="form" @submit.prevent="save">
       <fieldset :disabled="busy || !ready" class="editor-fields">
-        <label class="form-field"><span>网站名称</span><input v-model="draft.name" required maxlength="60" autofocus /></label>
-        <label class="form-field"><span>网址</span><input v-model="draft.url" type="url" required maxlength="2048" placeholder="https://example.com/" autocapitalize="off" spellcheck="false" /></label>
-        <label class="form-field"><span>账号 <small v-if="bookmark?.hasLogin">账密已保存</small></span><input v-model="username" maxlength="256" autocomplete="off" :disabled="clearLogin" :placeholder="bookmark?.hasLogin ? '留空保持原账号' : '可选'" /></label>
-        <label class="form-field"><span>密码</span><input v-model="password" type="password" maxlength="4096" autocomplete="new-password" :disabled="clearLogin" :placeholder="bookmark?.hasLogin ? '留空保持原密码' : '可选'" /></label>
-        <label v-if="bookmark?.hasLogin" class="check-label"><input v-model="clearLogin" type="checkbox" />清除已保存的账号密码</label>
-        <p class="bookmark-help">截图使用未登录的页面，可在卡片上手动刷新。</p>
+        <label class="form-field"><span>{{ i18nT('m5a632d88aad2') }}</span><input v-model="draft.name" required maxlength="60" autofocus /></label>
+        <label class="form-field"><span>{{ i18nT('ma8ecb4b6dabe') }}</span><input v-model="draft.url" type="url" required maxlength="2048" placeholder="https://example.com/" autocapitalize="off" spellcheck="false" /></label>
+        <label class="form-field"><span>{{ i18nT('m311bb313fdec') }}<small v-if="bookmark?.hasLogin">{{ i18nT('m03972021b92f') }}</small></span><input v-model="username" maxlength="256" autocomplete="off" :disabled="clearLogin" :placeholder="bookmark?.hasLogin ? i18nT('mdaab1630bae1') : i18nT('m537352400c49')" /></label>
+        <label class="form-field"><span>{{ i18nT('ma621ab606db2') }}</span><input v-model="password" type="password" maxlength="4096" autocomplete="new-password" :disabled="clearLogin" :placeholder="bookmark?.hasLogin ? i18nT('m93e91a4b0a7d') : i18nT('m537352400c49')" /></label>
+        <label v-if="bookmark?.hasLogin" class="check-label"><input v-model="clearLogin" type="checkbox" />{{ i18nT('mbfce8a6870cf') }}</label>
+        <p class="bookmark-help">{{ i18nT('m04076a178e32') }}</p>
         <p v-if="error" class="field-error" role="alert">{{ error }}</p>
       </fieldset>
         <div v-if="confirmClose" class="bookmark-unsaved" role="alert">
-          <p>有未保存的修改，要保存吗？</p>
-          <div class="bookmark-dialog-actions"><button data-continue type="button" class="button" @click="confirmClose = false">继续编辑</button><button type="button" class="button" @click="emit('close')">不保存</button><button class="button primary" :disabled="busy || !ready">保存</button></div>
+          <p>{{ i18nT('m5c3ce8a53ae6') }}</p>
+          <div class="bookmark-dialog-actions"><button data-continue type="button" class="button" @click="confirmClose = false">{{ i18nT('mfd4b9e3b6c68') }}</button><button type="button" class="button" @click="emit('close')">{{ i18nT('m8bcc3e177f5f') }}</button><button class="button primary" :disabled="busy || !ready">{{ i18nT('ma3030bf8f16d') }}</button></div>
         </div>
         <div v-else class="form-actions">
-          <button v-if="bookmark" type="button" class="button danger-button" :disabled="busy || !ready" @click="remove"><PhTrash :size="17" />{{ confirmDelete ? '确认删除' : '删除' }}</button><span class="action-spacer"></span>
-          <button type="button" class="button" :disabled="busy" @click="close">取消</button><button class="button primary" :disabled="busy || !ready"><PhCheck :size="17" />{{ busy ? '保存中…' : '保存' }}</button>
+          <button v-if="bookmark" type="button" class="button danger-button" :disabled="busy || !ready" @click="remove"><PhTrash :size="17" />{{ confirmDelete ? i18nT('ma3ea3c17b401') : i18nT('m2f9daa828907') }}</button><span class="action-spacer"></span>
+          <button type="button" class="button" :disabled="busy" @click="close">{{ i18nT('m2cd0f3be8738') }}</button><button class="button primary" :disabled="busy || !ready"><PhCheck :size="17" />{{ busy ? i18nT('mff509c9ba052') : i18nT('ma3030bf8f16d') }}</button>
         </div>
     </form>
   </dialog>

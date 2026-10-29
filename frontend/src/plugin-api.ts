@@ -1,10 +1,15 @@
 import type { Component, Ref } from 'vue'
 import type { FrontendSlot, PluginFontInfo } from '@webnav/shared'
 import type { PluginMenusApi, PluginUiApi } from './plugin-menu-api'
+import type { PluginLocaleApi } from './i18n.ts'
+export type { PluginLocaleApi } from './i18n.ts'
+export type { MessageRef, MessageParams, PluginI18n, LocaleBundle } from '@webnav/shared'
 export type * from './plugin-menu-api'
 export type { PluginMenuContext, PluginMenuPoint, PluginMenuContribution, PluginUiPoint, PluginUiContribution } from '@webnav/shared'
 export interface PluginFrontendApi {
   apiVersion: 1
+  /** Framework-owned translator, scoped to this plugin's declared dictionaries. */
+  i18n: PluginLocaleApi
   vue: typeof import('vue')
   hostState: Readonly<Ref<'connecting' | 'offline' | 'locked' | 'ready'>>
   config: Record<string, unknown>
@@ -26,6 +31,7 @@ export type PluginActivate = (api: PluginFrontendApi) => void | Promise<void>
 /** Separate entry is available while the business plugin is disabled. config is the host's shared draft. */
 export interface PluginSettingsApi {
   apiVersion: 1
+  i18n: PluginLocaleApi
   vue: typeof import('vue')
   hostState: PluginFrontendApi['hostState']
   config: Record<string, string | number | boolean>

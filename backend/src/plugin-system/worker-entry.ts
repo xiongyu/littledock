@@ -17,6 +17,7 @@ const flush = async () => { while (pending.size) await Promise.all([...pending])
 const requireRegistration = () => { if (!registering || closed) throw new Error('插件注册阶段已经结束。') }
 const api: PluginBackendApi = {
   apiVersion: 1, manifest: workerData.manifest, config: workerData.config, dataDirectory: workerData.dataDirectory, shared,
+  i18n: shared.createPluginMessages(workerData.manifest.id, workerData.locales),
   registerService: (name, implementation) => {
     requireRegistration()
     const methods: Record<string, number> = {}, values: Record<string, unknown> = {}

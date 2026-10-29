@@ -1,3 +1,6 @@
+
+import { pluginI18n, pluginText } from './i18n.ts'
+const { t: i18nT } = pluginI18n('core')
 import { markRaw, ref, shallowReactive, type Component } from 'vue'
 
 export interface PluginToolView { key: string; pluginId: string; id: string; title: string; icon?: string; component: Component }
@@ -7,18 +10,18 @@ export const pluginTabs = shallowReactive<PluginWorkspaceTab[]>([])
 export const activePluginTab = ref('')
 let settingsOpener: ((pluginId: string, section?: string) => void) | undefined
 export function setPluginSettingsOpener(open: typeof settingsOpener) { settingsOpener = open }
-export function openPluginSettings(pluginId: string, section?: string) { if (!settingsOpener) throw new Error('插件设置尚未就绪。'); settingsOpener(pluginId, section) }
+export function openPluginSettings(pluginId: string, section?: string) { if (!settingsOpener) throw new Error(i18nT('m83ff96f95813')); settingsOpener(pluginId, section) }
 export function openPluginTool(key: string) {
   const tool = pluginTools[key]
-  if (!tool) throw new Error('插件工具尚未运行。')
-  if (!pluginTabs.some(tab => tab.key === key)) pluginTabs.push({ key, pluginId: tool.pluginId, title: tool.title, kind: 'tool', status: '' })
+  if (!tool) throw new Error(i18nT('md5749ba83555'))
+  if (!pluginTabs.some(tab => tab.key === key)) pluginTabs.push({ key, pluginId: tool.pluginId, get title() { return pluginTools[key]?.title ?? tool.title }, kind: 'tool', status: '' })
   activePluginTab.value = key
 }
 export function openSettingsTab(pluginId: string, name: string, component: Component, section?: string) {
   const key = `plugin-settings:${pluginId}`
   const previous = pluginTabs.find(tab => tab.key === key)
-  if (previous) { if (section) pluginTabs.splice(pluginTabs.indexOf(previous), 1, { ...previous, section }) }
-  else pluginTabs.push({ key, pluginId, title: `${name} · 设置`, kind: 'settings', status: '', component: markRaw(component), ...(section ? { section } : {}) })
+  if (previous) { if (section) previous.section = section }
+  else pluginTabs.push({ key, pluginId, get title() { return i18nT('m2dd28051d44c', { p0: pluginText(pluginId, 'metadata.name', name) }) }, kind: 'settings', status: '', component: markRaw(component), ...(section ? { section } : {}) })
   activePluginTab.value = key
 }
 export const pluginCloseGuards = new Map<string, () => boolean | Promise<boolean>>()

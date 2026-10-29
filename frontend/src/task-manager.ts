@@ -1,3 +1,6 @@
+
+import { pluginI18n } from './i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.taskManager')
 import type { TaskManagerProcess, TaskManagerTarget } from '@webnav/shared'
 
 export function targetKey(target: TaskManagerTarget): string { return target.kind === 'local' ? 'local' : JSON.stringify([target.serverId, target.connectionId]) }
@@ -73,7 +76,7 @@ export function usageHeat(percent: number | null | undefined): HeatLevel {
 }
 export function memoryShare(bytes: number, total: number | undefined): number | null { return total && total > 0 ? bytes / total * 100 : null }
 export function formatRate(bytes: number | null | undefined): string {
-  if (bytes == null) return '不可用'
+  if (bytes == null) return i18nT('m460b3574e4bd')
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GiB/s`
   if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MiB/s`
   return `${(bytes / 1024).toFixed(1)} KiB/s`
@@ -113,30 +116,30 @@ export function seriesAreaPath(points: readonly SeriesPoint[], from: number, to:
 }
 export function performanceReason(reason: string): string {
   const [category, condition] = reason.split(':')
-  const name = ({ cpuLogical: '逻辑处理器', 'cpu-logical': '逻辑处理器', disks: '磁盘', gpus: 'GPU', gpu: 'GPU' } as Record<string, string>)[category ?? ''] ?? '部分性能指标'
+  const name = ({ cpuLogical: i18nT('me6f3fc975d0d'), 'cpu-logical': i18nT('me6f3fc975d0d'), disks: i18nT('mde7b72a3f852'), gpus: 'GPU', gpu: 'GPU' } as Record<string, string>)[category ?? ''] ?? i18nT('m4e06fc7c22f5')
   const specific: Record<string, string> = {
-    'unsupported-id': '部分逻辑处理器编号无法识别，未显示对应数据。', 'duplicate-id': '系统返回了重复的逻辑处理器编号，已省略重复记录。',
-    'io-unavailable': '磁盘读写速率暂不可用，其他已提供的指标仍可查看。', 'active-unavailable': '此平台没有提供磁盘活动时间；已提供的读写速率仍可查看。',
-    'no-supported-driver': '没有检测到可读取性能指标的 GPU 驱动。', 'no-supported-adapter': '没有检测到支持采集的显示适配器。', 'unsupported-platform': '此平台暂未提供 GPU 性能采集。',
-    'dxgi-unavailable': '显示适配器信息不可用。', 'pdh-unavailable': 'Windows GPU 性能计数器不可用。', 'adapter-enumeration-failed': '未能读取显示适配器列表。', 'adapter-description-unavailable': '部分显示适配器信息无法读取。', 'driver-counters-unavailable': 'GPU 驱动未提供可读取的性能计数器。',
-    'utilization-warming-up': 'GPU 利用率正在建立采样基线，下一次更新后显示。', 'utilization-unavailable': 'GPU 利用率不可用，其他已提供的指标仍可查看。', 'memory-used-unavailable': '已用专用显存暂不可用。', 'memory-total-unavailable': '专用显存总量暂不可用，无法计算占比。',
-    'nvidia-compute-unavailable': 'NVIDIA 计算模式指标暂不可用。', 'nvidia-unavailable': 'NVIDIA 驱动指标暂不可用。', 'nvidia-partial': '仅获取到部分 NVIDIA 适配器指标。', 'nvidia-invalid': 'NVIDIA 驱动返回的设备信息无效，未采用。', 'nvidia-invalid-output': 'NVIDIA 驱动返回的指标无效，未采用。', 'nvidia-output-limit': 'NVIDIA 驱动响应超出读取上限。', 'nvidia-invalid-identity': 'NVIDIA 适配器标识无效，未采用对应指标。', 'nvidia-memory-invalid': 'NVIDIA 显存统计无效，未采用对应指标。', 'amdgpu-partial': '仅获取到部分 AMD 适配器指标。',
-    'shared-memory-unavailable': '共享系统内存指标暂不可用，未用主机内存推算。',
-    'ioreg-unavailable': 'macOS 驱动信息暂不可用。', 'ioreg-output-limit': 'macOS 驱动响应超出读取上限。', 'ioreg-invalid-output': 'macOS 驱动返回的指标无效，未采用。', 'ioreg-invalid-identity': 'macOS 显示适配器标识无效，未采用对应指标。', 'ioreg-no-supported-driver': 'macOS 驱动未提供支持采集的 GPU 指标。',
-    'ioreg-permission-denied': '当前用户没有读取 macOS GPU 驱动信息的权限。', 'ioreg-inventory-unavailable': 'macOS 显示适配器清单暂不可用。', 'ioreg-duplicate-identity': 'macOS 驱动返回了重复适配器标识，已省略重复记录。', 'ioreg-statistics-unavailable': 'macOS 驱动未提供此适配器的性能指标。', 'ioreg-memory-invalid': 'macOS 驱动返回的显存统计无效，未采用对应指标。',
-    'intel-visible-clients': 'Intel GPU 利用率只覆盖当前用户可读取的客户端，不代表整个设备。', 'intel-no-visible-clients': '未找到当前用户可读取的 Intel GPU 客户端，无法判断设备是否空闲。', 'intel-engine-counters-unavailable': 'Intel GPU 客户端未提供可读取的引擎计数。', 'intel-warming-up': 'Intel GPU 利用率正在建立采样基线。', 'intel-counter-reset': 'Intel GPU 计数发生重置，正在重新建立采样基线。', 'intel-fdinfo-permission-denied': '部分 Intel GPU 客户端没有读取权限，利用率覆盖不完整。', 'intel-fdinfo-truncated': 'Intel GPU 客户端采样达到上限，利用率覆盖不完整。', 'intel-memory-permission-denied': '当前用户没有读取 Intel GPU 内存统计的权限。', 'intel-memory-query-unavailable': 'Intel GPU 驱动没有提供可读取的设备内存统计。', 'intel-render-node-unavailable': 'Intel GPU 渲染设备不可访问。', 'nvidia-tool-missing': '未找到 NVIDIA 驱动提供的性能查询工具。', 'driver-unavailable': '显示适配器驱动指标不可用。',
-    'intel-fdinfo-invalid': 'Intel GPU 客户端计数格式无法识别，未采用对应指标。', 'intel-fdinfo-unavailable': 'Intel GPU 客户端计数目录无法读取。', 'intel-shared-memory-unavailable': 'Intel GPU 驱动未提供可核对的整卡共享内存用量，未汇总进程内存推算。',
+    'unsupported-id': i18nT('m72db78d061de'), 'duplicate-id': i18nT('m0d379802bb04'),
+    'io-unavailable': i18nT('m8ee29628b494'), 'active-unavailable': i18nT('m0f127a1460a5'),
+    'no-supported-driver': i18nT('m4eeb7dce1634'), 'no-supported-adapter': i18nT('mc69bd0e61de8'), 'unsupported-platform': i18nT('m9029c24e6941'),
+    'dxgi-unavailable': i18nT('m8fabc0bcf8d0'), 'pdh-unavailable': i18nT('md6ecfe7a29e6'), 'adapter-enumeration-failed': i18nT('m741019dc7abe'), 'adapter-description-unavailable': i18nT('m0a2da842f18d'), 'driver-counters-unavailable': i18nT('mcc73414c4186'),
+    'utilization-warming-up': i18nT('m93c19ca7d9af'), 'utilization-unavailable': i18nT('m021a28fd9505'), 'memory-used-unavailable': i18nT('m8c6e8fdc855f'), 'memory-total-unavailable': i18nT('ma1f2378bcb9f'),
+    'nvidia-compute-unavailable': i18nT('mff5079cc5849'), 'nvidia-unavailable': i18nT('m6ecdd29ebc15'), 'nvidia-partial': i18nT('md3aff84f8f86'), 'nvidia-invalid': i18nT('me216523cc6dc'), 'nvidia-invalid-output': i18nT('m33bac03605e3'), 'nvidia-output-limit': i18nT('m6dfa2301cde3'), 'nvidia-invalid-identity': i18nT('md906040b07d9'), 'nvidia-memory-invalid': i18nT('ma627ad1f45ff'), 'amdgpu-partial': i18nT('m0a3276749092'),
+    'shared-memory-unavailable': i18nT('mdc0fe47cc315'),
+    'ioreg-unavailable': i18nT('m4ab75fee65b0'), 'ioreg-output-limit': i18nT('mb291b73c32f6'), 'ioreg-invalid-output': i18nT('mcd6fed8a692b'), 'ioreg-invalid-identity': i18nT('md843cc5d04e7'), 'ioreg-no-supported-driver': i18nT('mfba6901b5ff6'),
+    'ioreg-permission-denied': i18nT('md19ea9cb687a'), 'ioreg-inventory-unavailable': i18nT('m67491f16594f'), 'ioreg-duplicate-identity': i18nT('mfe41532f4036'), 'ioreg-statistics-unavailable': i18nT('m3db21cfc9237'), 'ioreg-memory-invalid': i18nT('m8f819d08226f'),
+    'intel-visible-clients': i18nT('m64ca1155cd2a'), 'intel-no-visible-clients': i18nT('md8dd884e6782'), 'intel-engine-counters-unavailable': i18nT('mf4bca1d92f01'), 'intel-warming-up': i18nT('m8515cf252d02'), 'intel-counter-reset': i18nT('ma73ae2ed7149'), 'intel-fdinfo-permission-denied': i18nT('m0be717397943'), 'intel-fdinfo-truncated': i18nT('mbe181d0b0fb2'), 'intel-memory-permission-denied': i18nT('m7624c9658d61'), 'intel-memory-query-unavailable': i18nT('m779689cc799b'), 'intel-render-node-unavailable': i18nT('m189e1a120582'), 'nvidia-tool-missing': i18nT('m48a3a8ca3026'), 'driver-unavailable': i18nT('m994dafae2f8f'),
+    'intel-fdinfo-invalid': i18nT('ma9cccaade42f'), 'intel-fdinfo-unavailable': i18nT('m7dfdb4b3f1f0'), 'intel-shared-memory-unavailable': i18nT('m8fb952180f44'),
   }
   if (condition && specific[condition]) return specific[condition]!
-  if (condition === 'truncated') return `${name}超过采集上限，仅显示部分设备。`
-  if (condition === 'warming-up' || condition === 'initial-sample') return `${name}正在建立采样基线，下一次更新后显示速率。`
-  if (condition === 'permission') return `当前用户没有读取${name}指标所需的权限。`
-  if (condition === 'timeout' || condition === 'timed-out') return `${name}采集超时，暂时没有新指标；请核对设备采样时间。`
-  if (condition === 'stopped') return `${name}采集已停止。`
-  if (condition === 'partial') return `${name}仅完成部分采样，未取得的指标保持不可用。`
-  return `${name}在此平台、驱动或当前权限下不可用。`
+  if (condition === 'truncated') return i18nT('mccdde99527e7', { p0: (name) })
+  if (condition === 'warming-up' || condition === 'initial-sample') return i18nT('me486f5d0f893', { p0: (name) })
+  if (condition === 'permission') return i18nT('mc42da4804b2b', { p0: (name) })
+  if (condition === 'timeout' || condition === 'timed-out') return i18nT('md724b1fd0563', { p0: (name) })
+  if (condition === 'stopped') return i18nT('m7abe25e1be64', { p0: (name) })
+  if (condition === 'partial') return i18nT('mf460a276f008', { p0: (name) })
+  return i18nT('m9c8485cca330', { p0: (name) })
 }
 
 export function gpuSource(source: string): string {
-  return ({ 'windows-pdh-dxgi': 'Windows 性能计数器 / 显示适配器', 'nvidia-smi': 'NVIDIA 驱动', 'nvidia-smi-tcc': 'NVIDIA 计算模式驱动', 'nvidia-smi-compute': 'NVIDIA 计算模式驱动', 'amdgpu-sysfs': 'AMD 内核驱动', 'macos-ioreg': 'macOS 驱动信息', 'intel-drm-fdinfo': 'Intel GPU 客户端统计', 'linux-pci': 'Linux 显示适配器清单' } as Record<string, string>)[source] ?? source
+  return ({ 'windows-pdh-dxgi': i18nT('mef2dc25719d9'), 'nvidia-smi': i18nT('m1635a0fba850'), 'nvidia-smi-tcc': i18nT('m04330d87a24e'), 'nvidia-smi-compute': i18nT('m04330d87a24e'), 'amdgpu-sysfs': i18nT('ma0006ac8e9ff'), 'macos-ioreg': i18nT('m19534232fbe0'), 'intel-drm-fdinfo': i18nT('md715585d9b64'), 'linux-pci': i18nT('m7fdea25a4970') } as Record<string, string>)[source] ?? source
 }

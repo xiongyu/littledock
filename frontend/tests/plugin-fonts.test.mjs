@@ -1,3 +1,4 @@
+import * as i18n from '../src/i18n.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -6,7 +7,7 @@ import { runInNewContext } from 'node:vm'
 const require = createRequire(import.meta.url), ts = require('typescript'), vue = require('vue')
 function fixture() {
   const exports = {}, saved = new Map()
-  runInNewContext(ts.transpileModule(readFileSync('src/plugin-fonts.ts', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, { exports, require: name => name === 'vue' ? vue : require(name), localStorage: { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } })
+  runInNewContext(ts.transpileModule(readFileSync('src/plugin-fonts.ts', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, { exports, require: name => name === 'vue' ? vue : name === './i18n.ts' ? i18n : require(name), localStorage: { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } })
   return exports
 }
 const definition = { flag: 'table', name: '进程表格', group: '进程列表', defaultSize: 16, minSize: 12, maxSize: 28 }

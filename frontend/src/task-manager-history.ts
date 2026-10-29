@@ -1,3 +1,6 @@
+
+import { pluginI18n } from './i18n.ts'
+const { t: i18nT } = pluginI18n('builtin.taskManager')
 import type { TaskManagerHistoryPage, TaskManagerHistorySummary } from '@webnav/shared'
 import type { SeriesPoint } from './task-manager'
 
@@ -34,7 +37,7 @@ export function historyPath(points: readonly SeriesPoint[], from: number, to: nu
   }).join(' ')
 }
 export function historyGapReason(reason: string) {
-  if (reason === 'clock-change') return '系统时钟发生变化，此处不连接曲线'
-  const conditions: Record<string, string> = { 'capture-failed': '未能完成采样', 'sampling-delayed': '采样延迟', 'recorder-interrupted': '记录进程曾中断', 'storage-failed': '记录未能写入存储', 'history-corrupt': '这段历史记录无法读取', 'query-limit': '历史扫描达到读取上限', 'not-recording': '这段时间没有记录', stopped: '记录已停止', restart: '目标或记录进程重新启动', reboot: '目标系统重启', 'boot-changed': '目标系统重启', 'missing-samples': '采样间断', 'sampling-gap': '采样间断', 'collection-failed': '未能完成采样', retained: '较早记录已清理', retention: '记录已按保留设置清理', truncated: '历史扫描达到读取上限' }
-  return conditions[reason] ?? '这段时间没有连续采样记录'
+  if (reason === 'clock-change') return i18nT('m0d4ce9018e20')
+  const conditions: Record<string, string> = { 'capture-failed': i18nT('m6b7b90382164'), 'sampling-delayed': i18nT('m87dea5fab225'), 'recorder-interrupted': i18nT('m98e937801a5d'), 'storage-failed': i18nT('maef807c34a25'), 'history-corrupt': i18nT('ma3c778518864'), 'query-limit': i18nT('m1bdf06b2f7ce'), 'not-recording': i18nT('me2943ac08c3e'), stopped: i18nT('mad5d5fc7795b'), restart: i18nT('m861936b5e1db'), reboot: i18nT('mb21300f80e10'), 'boot-changed': i18nT('mb21300f80e10'), 'missing-samples': i18nT('mfc8ad1c54df9'), 'sampling-gap': i18nT('mfc8ad1c54df9'), 'collection-failed': i18nT('m6b7b90382164'), retained: i18nT('m218e18fb2409'), retention: i18nT('mb9d0f208b4a2'), truncated: i18nT('m1bdf06b2f7ce') }
+  return conditions[reason] ?? i18nT('mca9f8371c7be')
 }

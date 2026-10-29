@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { pluginI18n, pluginText, localizedManifest, currentLocale } from '../i18n.ts'
+const { t: i18nT } = pluginI18n('core')
+
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { PhArrowClockwise, PhArrowSquareOut, PhCheckCircle, PhDownloadSimple, PhGitBranch, PhGearSix, PhInfo, PhPower, PhTrash, PhMagnifyingGlass, PhPuzzlePiece, PhShieldCheck, PhX } from '@phosphor-icons/vue'
-import { pluginCategories, pluginRisk, serviceCapabilities, type PluginCategory, type PluginManifest, type PluginMarket, type PluginState, type PluginDetails, type PluginPreview } from '@webnav/shared'
+import { pluginCategories as categoryDefaults, pluginRisk as riskDefaults, serviceCapabilities as capabilityDefaults, type PluginCategory, type PluginManifest, type PluginMarket, type PluginState, type PluginDetails, type PluginPreview } from '@webnav/shared'
 import { connectionState, rpc } from '../backend'
 import { pluginState, pluginLoadErrors, refreshThemes, loadPlugins } from '../plugins'
 import { applyMarketTheme } from '../theme-market'
@@ -30,18 +33,22 @@ const details = ref<Card>(), detailDialog = ref<HTMLDialogElement>(), detailLoad
 const metadata = ref<Record<string, PluginDetails>>({}), failedMetadata = new Set<string>()
 const config = ref<Record<string, string | number | boolean>>({}), uninstallId = ref('')
 let disposed = false, metadataVersion = 0
-const timestamp = (value: number | null) => value ? new Date(value).toLocaleString('zh-CN') : '尚未读取'
+const timestamp = (value: number | null) => value ? new Date(value).toLocaleString(currentLocale.value) : i18nT('mc4cf69f358b6')
 const platformName = (os: string) => ({ win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[os] ?? os)
 const platformsText = (platforms: PluginManifest['platforms']) => platforms.map(p => `${platformName(p.os)} ${p.arch}`).join(' · ')
-const categoriesText = (manifest: PluginManifest) => [manifest.category, ...manifest.secondaryCategories].map(c => pluginCategories[c]).join(' / ')
-const capabilityName = (id: string) => id === 'theme:appearance' ? '界面主题' : id.startsWith('service:') ? serviceCapabilities[id.slice(8) as keyof typeof serviceCapabilities] ?? id : id.startsWith('connector:') ? `${id.slice(10)} 连接器` : id.slice(10)
+const pluginCategories = computed(() => Object.fromEntries(Object.entries(categoryDefaults).map(([id, label]) => [id, pluginText('core', `categories.${id}`, label)])))
+const pluginRisk = computed(() => Object.fromEntries(Object.entries(riskDefaults).map(([id, label]) => [id, pluginText('core', `risk.${id}`, label)])))
+const serviceCapabilities = computed(() => Object.fromEntries(Object.entries(capabilityDefaults).map(([id, label]) => [id, pluginText('core', `capabilities.${id}`, label)])))
+const categoriesText = (manifest: PluginManifest) => [manifest.category, ...manifest.secondaryCategories].map(c => pluginCategories.value[c]).join(' / ')
+const capabilityName = (id: string) => id === 'theme:appearance' ? i18nT('m8f29293906e7') : id.startsWith('service:') ? serviceCapabilities.value[id.slice(8)] ?? id : id.startsWith('connector:') ? i18nT('m83b3bd340c24', { p0: (id.slice(10)) }) : id.slice(10)
 const installed = computed(() => state.value?.installed ?? [])
 const cards = computed<Card[]>(() => {
   const builtin = (state.value?.builtins ?? []).map(p => ({ ...p.manifest, id: p.id, publisher: 'builtin' as const, iconDataUrl: p.iconDataUrl, manifest: p.manifest, readme: p.readme }))
   const bundled = (state.value?.bundled ?? []).filter(p => !installed.value.some(item => item.manifest.id === p.manifest.id && item.source !== 'bundled')).map(p => ({ ...p.manifest, publisher: 'official' as const, bundled: true, manifest: p.manifest, iconDataUrl: p.iconDataUrl, readme: p.readme }))
   const remotes = (market.value?.index.plugins ?? []).filter(p => !bundled.some(local => local.id === p.id)).map(entry => ({ ...entry, ...(metadata.value[entry.repository] ? { ...metadata.value[entry.repository]!.manifest, manifest: metadata.value[entry.repository]!.manifest, iconDataUrl: metadata.value[entry.repository]!.iconDataUrl, readme: metadata.value[entry.repository]!.readme } : {}) }))
   const extras = installed.value.filter(p => !remotes.some(r => r.id === p.manifest.id) && !bundled.some(r => r.id === p.manifest.id)).map(p => ({ ...p.manifest, ...(p.source === 'bundled' ? { bundled: true } : { repository: p.repository, ref: p.ref }), publisher: p.source === 'bundled' ? 'official' as const : 'community' as const, manifest: p.manifest, iconDataUrl: metadata.value[p.repository]?.iconDataUrl }))
-  return tab.value === 'installed' ? [...bundled.filter(card => installed.value.some(p => p.manifest.id === card.id)), ...extras, ...remotes.filter(card => installed.value.some(p => p.manifest.id === card.id)), ...builtin] : [...bundled, ...builtin, ...remotes, ...extras]
+  const result = tab.value === 'installed' ? [...bundled.filter(card => installed.value.some(p => p.manifest.id === card.id)), ...extras, ...remotes.filter(card => installed.value.some(p => p.manifest.id === card.id)), ...builtin] : [...bundled, ...builtin, ...remotes, ...extras]
+  return result.map(card => ({ ...card, name: pluginText(card.id, 'metadata.name', card.name), description: pluginText(card.id, 'metadata.description', card.description), ...(card.manifest ? { manifest: localizedManifest(card.manifest) } : {}) }))
 })
 const isCompatible = (card: Card) => !state.value || card.platforms.some(p => p.os === state.value!.host.os && p.arch === state.value!.host.arch)
 const filtered = computed(() => cards.value.filter(card => {
@@ -50,27 +57,27 @@ const filtered = computed(() => cards.value.filter(card => {
 }))
 const visible = computed(() => filtered.value.slice(0, visibleLimit.value))
 const current = computed(() => installed.value.find(p => p.manifest.id === details.value?.id))
-const selectedManifest = computed(() => preview.value?.manifest ?? current.value?.manifest ?? details.value?.manifest)
+const selectedManifest = computed(() => { const manifest = preview.value?.manifest ?? current.value?.manifest ?? details.value?.manifest; return manifest ? localizedManifest(manifest) : undefined })
 const selectedRuntime = computed(() => current.value?.runtime ?? state.value?.builtins.find(p => p.id === details.value?.id)?.runtime)
 const selectedIcon = computed(() => preview.value?.iconDataUrl ?? details.value?.iconDataUrl)
 const selectedReadme = computed(() => preview.value?.readme ?? details.value?.readme ?? '')
 const canWrite = computed(() => connectionState.value === 'ready' && !busy.value)
 const previewStale = computed(() => !!preview.value && preview.value.registryRevision !== state.value?.revision)
-const changeLabels = { install: '安装新插件', current: '已安装此提交', upgrade: '升级版本', rebuild: '版本号相同，代码提交有变化', downgrade: '目标版本较旧，将回退安装' }
+const changeLabels = { get install() { return i18nT('m1d50c750fc47') }, get current() { return i18nT('m48794ae77e97') }, get upgrade() { return i18nT('mbc975d6b0733') }, get rebuild() { return i18nT('m5096d3d5dc44') }, get downgrade() { return i18nT('m0fdee8d7c0af') } }
 function status(card: Card) {
   const pending = state.value?.pending.find(p => p.id === card.id)
-  if(pending)return pending.kind==='restart'?'待重启':pending.kind==='waiting'?'等待使用结束':'更新未生效'
-  if (card.manifest?.theme && card.publisher === 'builtin') return '内置主题'
-  if (card.publisher === 'builtin') return card.manifest?.capabilities.some(cap => state.value?.providers[cap.id]) ? '备用实现' : '随宿主运行'
+  if(pending)return pending.kind==='restart'?i18nT('m4ae418c95643'):pending.kind==='waiting'?i18nT('mbbd6faa39ade'):i18nT('mc552117c20f1')
+  if (card.manifest?.theme && card.publisher === 'builtin') return i18nT('m79144fb50781')
+  if (card.publisher === 'builtin') return card.manifest?.capabilities.some(cap => state.value?.providers[cap.id]) ? i18nT('mbae1f8f8bf68') : i18nT('mdaa0be513325')
   const plugin = installed.value.find(p => p.manifest.id === card.id)
-  if (!plugin) return '查看插件'
-  if (card.manifest?.theme) return '主题已安装'
-  if (plugin.error || plugin.reasons.length) return '不可用'
-  return plugin.enabled ? plugin.running ? '已启用' : '尚未加载' : '未启用'
+  if (!plugin) return i18nT('mcb5fd27c41e9')
+  if (card.manifest?.theme) return i18nT('m3a81d6463403')
+  if (plugin.error || plugin.reasons.length) return i18nT('m460b3574e4bd')
+  return plugin.enabled ? plugin.running ? i18nT('mdfb802238b38') : i18nT('m63c1fe8533a0') : i18nT('mf95ea7f4c063')
 }
 function resultNotice(id?: string) {
   const pending=state.value?.pending.find(p=>p.id===id)
-  return pending ? `${pending.kind==='restart'?'待重启':pending.kind==='waiting'?'等待使用结束':'更新未生效'}：${pending.reason}` : '设置已生效，无需重启。'
+  return pending ? `${pending.kind==='restart'?i18nT('m4ae418c95643'):pending.kind==='waiting'?i18nT('mbbd6faa39ade'):i18nT('mc552117c20f1')}：${pending.reason}` : i18nT('m64351c5cf3fb')
 }
 async function refreshState() { state.value = await rpc<PluginState>('plugins.state'); pluginState.value = state.value }
 async function refreshMarket(refresh = false) {
@@ -83,7 +90,7 @@ async function metadataFor(card: Card, refresh = false) {
   if (card.bundled || !card.repository || (!refresh && (metadata.value[card.repository] || failedMetadata.has(card.repository)))) return
   try {
     const data = await rpc<PluginDetails>('plugins.details', { repository: card.repository, ref: card.ref ?? 'HEAD', refresh }, false, 150_000)
-    if (data.manifest.id !== card.id) throw new Error('仓库中的插件 ID 与索引不一致。')
+    if (data.manifest.id !== card.id) throw new Error(i18nT('me64480423399'))
     metadata.value[card.repository] = data
   } catch (cause) { failedMetadata.add(card.repository); if (details.value?.id === card.id) error.value = (cause as Error).message }
 }
@@ -109,11 +116,11 @@ async function job<T>(method: string, params: Record<string, unknown>): Promise<
     if (result.state === 'failed') throw new Error(result.error)
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
-  throw new Error('页面已关闭。操作可在插件中心重新核对。')
+  throw new Error(i18nT('m02719be37005'))
 }
 async function prepare(url = repository.value, refName = gitRef.value, expectedId?: string) {
   if (!canWrite.value) return
-  busy.value = '正在读取安装说明…'; error.value = ''; accepted.value = false; preview.value = undefined
+  busy.value = i18nT('mbcbe73357845'); error.value = ''; accepted.value = false; preview.value = undefined
   try {
     await refreshState()
     const value = await job<PluginPreview>('plugins.prepare', { repository: url, ref: refName || 'HEAD', ...(expectedId ? { expectedId } : {}) })
@@ -125,24 +132,24 @@ async function prepare(url = repository.value, refName = gitRef.value, expectedI
 }
 async function install() {
   if (!preview.value || !accepted.value || !canWrite.value || previewStale.value) return
-  busy.value = '正在安装…'; error.value = ''
+  busy.value = i18nT('mfc08f57a54c0'); error.value = ''
   try {
     state.value = await job<PluginState>('plugins.install', { token: preview.value.token, commit: preview.value.commit, acceptRisk: true, expectedRevision: preview.value.registryRevision })
-    pluginState.value = state.value; await loadPlugins(); const isTheme = !!preview.value?.manifest.theme, id = preview.value?.manifest.id; preview.value = undefined; accepted.value = false; notice.value = isTheme ? '主题已安装，可以立即应用；也能在右上角外观设置中选择。' : state.value.installed.find(p=>p.manifest.id===id)?.enabled ? '安装完成。' + resultNotice(id) + ' 替换内置功能请选择“设为默认实现”。' : '安装完成，请填写插件必需的配置后启用。'; tab.value = 'installed'
+    pluginState.value = state.value; await loadPlugins(); const isTheme = !!preview.value?.manifest.theme, id = preview.value?.manifest.id; preview.value = undefined; accepted.value = false; notice.value = isTheme ? i18nT('m551040030236') : state.value.installed.find(p=>p.manifest.id===id)?.enabled ? i18nT('m1d53fec8eb98') + resultNotice(id) + i18nT('mb855b73c74a3') : i18nT('m07102c8f1e5c'); tab.value = 'installed'
   } catch (cause) { error.value = (cause as Error).message }
   finally { busy.value = '' }
 }
 async function change(id: string, action: string) {
   if (!canWrite.value) return
   if (action === 'uninstall' && pluginTabs.some(tab => tab.key === `plugin-settings:${id}`) && !await closePluginTab(`plugin-settings:${id}`)) return
-  busy.value = '正在保存插件设置…'; error.value = ''; notice.value = ''
+  busy.value = i18nT('mabf77612145b'); error.value = ''; notice.value = ''
   try {
-    if (action === 'select' && selectedManifest.value?.theme) { await refreshThemes(); applyMarketTheme(id==='builtin.appearance'?id:'plugin:'+id); notice.value='主题已应用到当前浏览器，无需重启。可在右上角外观设置恢复默认。'; return }
+    if (action === 'select' && selectedManifest.value?.theme) { await refreshThemes(); applyMarketTheme(id==='builtin.appearance'?id:'plugin:'+id); notice.value=i18nT('m9a7cecfce8a8'); return }
     const isTheme = !!selectedManifest.value?.theme
     state.value = await rpc<PluginState>('plugins.change', { id, action, expectedRevision: state.value!.revision, ...(action === 'configure' ? { config: config.value } : {}) }, true)
     pluginState.value = state.value; await loadPlugins()
     if (action === 'restore-bundled') tab.value = 'installed'
-    notice.value = action === 'uninstall' ? '卸载设置已保存，数据与仓库缓存保留。' + resultNotice(id) : isTheme ? '主题设置已保存，无需重启。重新应用后使用所选版本。' : resultNotice(id); uninstallId.value = ''
+    notice.value = action === 'uninstall' ? i18nT('m58b0f2a803cc') + resultNotice(id) : isTheme ? i18nT('me398bc16dc4a') : resultNotice(id); uninstallId.value = ''
   }
   catch (cause) { error.value = (cause as Error).message }
   finally { busy.value = '' }
@@ -153,56 +160,56 @@ onBeforeUnmount(() => { disposed = true; metadataVersion++ })
 </script>
 
 <template>
-  <section class="plugin-center" aria-label="插件中心">
-    <header class="plugin-hero"><img src="/plugin-market-logo.png" alt="" class="plugin-market-logo" /><div><span class="plugin-eyebrow">WEBNAV · EXTENSIONS</span><h1>{{ tab === 'installed' ? '已安装的插件' : '发现新能力' }}</h1><p>查看运行状态，打开工具与设置。</p></div><button class="button primary" :aria-expanded="gitOpen" @click="gitOpen = !gitOpen"><PhGitBranch :size="18" />从 Git 安装</button></header>
-    <p v-for="pending in state?.pending ?? []" :key="pending.id" class="plugin-notice" role="status"><strong>{{ pending.kind==='restart'?'待重启':pending.kind==='waiting'?'等待使用结束':'更新未生效' }} · {{ state?.installed.find(p=>p.manifest.id===pending.id)?.manifest.name ?? pending.id }}</strong><br />{{ pending.reason }}<span v-if="pending.kind==='restart'"> 可稍后从 WebNav 托盘重启，已有网页连接届时会断开。</span></p>
+  <section class="plugin-center" :aria-label="i18nT('mb1e1262a1205')">
+    <header class="plugin-hero"><img src="/plugin-market-logo.png" alt="" class="plugin-market-logo" /><div><span class="plugin-eyebrow">WEBNAV · EXTENSIONS</span><h1>{{ tab === 'installed' ? i18nT('m7e58a7fa3def') : i18nT('m810e3924c3ab') }}</h1><p>{{ i18nT('m83de121e6daa') }}</p></div><button class="button primary" :aria-expanded="gitOpen" @click="gitOpen = !gitOpen"><PhGitBranch :size="18" />{{ i18nT('m4eb33f143984') }}</button></header>
+    <p v-for="pending in state?.pending ?? []" :key="pending.id" class="plugin-notice" role="status"><strong>{{ pending.kind==='restart'?i18nT('m4ae418c95643'):pending.kind==='waiting'?i18nT('mbbd6faa39ade'):i18nT('mc552117c20f1') }} · {{ state?.installed.find(p=>p.manifest.id===pending.id)?.manifest.name ?? pending.id }}</strong><br />{{ pending.reason }}<span v-if="pending.kind==='restart'">{{ i18nT('mcf71f81513ec') }}</span></p>
     <p v-for="message in state?.bundledErrors ?? []" :key="message" class="plugin-notice">{{ message }}</p>
-    <p v-if="state?.safeMode" class="plugin-notice">当前处于恢复模式，第三方插件未加载。可在此修改默认实现和启用状态。</p>
+    <p v-if="state?.safeMode" class="plugin-notice">{{ i18nT('ma1dbcb6e87ad') }}</p>
     <p v-for="message in pluginLoadErrors" :key="message" class="form-error">{{ message }}</p>
-    <form v-if="gitOpen" class="plugin-git" @submit.prevent="prepare()"><label class="form-field"><span>公开 Git 仓库地址</span><input v-model="repository" required type="url" placeholder="https://gitee.com/作者/插件.git" /></label><label class="form-field"><span>分支、标签或提交</span><input v-model="gitRef" placeholder="HEAD" /></label><button class="button" :disabled="!canWrite">读取安装说明</button></form>
-    <div class="plugin-toolbar"><div class="segmented"><button :class="{active:tab==='market'}" @click="tab='market'">发现插件</button><button :class="{active:tab==='installed'}" @click="tab='installed'">已安装 <small>{{ installed.length + (state?.builtins.length ?? 0) }}</small></button></div><span class="plugin-spacer"></span><button class="icon-button" aria-label="刷新市场索引" title="刷新市场索引（保留插件详情缓存）" :disabled="loadingMarket" @click="refreshMarket(true)"><PhArrowClockwise :size="20" :class="{spinning:loadingMarket}" /></button></div>
-    <div class="plugin-filters"><label class="plugin-search"><PhMagnifyingGlass :size="18" /><input v-model="search" aria-label="搜索插件" placeholder="搜索插件名称、能力或作者" /></label><select v-model="category" aria-label="插件分类"><option value="">全部分类</option><option v-for="(label,id) in pluginCategories" :key="id" :value="id">{{ label }}</option></select><select v-model="source" aria-label="插件来源"><option value="">全部来源</option><option value="builtin">内置 / 官方</option><option value="official">官方扩展</option><option value="community">第三方</option></select><label v-if="tab === 'market'" class="check-label"><input v-model="compatibleOnly" type="checkbox" />适合本机</label></div>
-    <div class="plugin-source"><span>{{ state ? `${platformName(state.host.os)} / ${state.host.arch}` : '正在读取宿主平台…' }}<span v-if="market"> · 索引{{ market.cached ? '缓存' : '更新' }} {{ timestamp(market.fetchedAt) }}</span></span><a href="https://gitee.com/axisxy/webnavpluginsmarket" target="_blank" rel="noopener noreferrer">公开索引仓库 <PhArrowSquareOut :size="13" /></a></div>
+    <form v-if="gitOpen" class="plugin-git" @submit.prevent="prepare()"><label class="form-field"><span>{{ i18nT('m02c0c245fb8e') }}</span><input v-model="repository" required type="url" :placeholder="i18nT('md458d3eed80d')" /></label><label class="form-field"><span>{{ i18nT('m0fa9920a5b5f') }}</span><input v-model="gitRef" placeholder="HEAD" /></label><button class="button" :disabled="!canWrite">{{ i18nT('m7f1b2bd011d4') }}</button></form>
+    <div class="plugin-toolbar"><div class="segmented"><button :class="{active:tab==='market'}" @click="tab='market'">{{ i18nT('mc28fc3f4689d') }}</button><button :class="{active:tab==='installed'}" @click="tab='installed'">{{ i18nT('ma8b6c39dcabf') }}<small>{{ installed.length + (state?.builtins.length ?? 0) }}</small></button></div><span class="plugin-spacer"></span><button class="icon-button" :aria-label="i18nT('mc01d3f2887f7')" :title="i18nT('mf3ce46fbdceb')" :disabled="loadingMarket" @click="refreshMarket(true)"><PhArrowClockwise :size="20" :class="{spinning:loadingMarket}" /></button></div>
+    <div class="plugin-filters"><label class="plugin-search"><PhMagnifyingGlass :size="18" /><input v-model="search" :aria-label="i18nT('m44891fe35f04')" :placeholder="i18nT('m61a6dbc0d5ab')" /></label><select v-model="category" :aria-label="i18nT('m0e280a6bf437')"><option value="">{{ i18nT('ma1054434857f') }}</option><option v-for="(label,id) in pluginCategories" :key="id" :value="id">{{ label }}</option></select><select v-model="source" :aria-label="i18nT('m39c12f146533')"><option value="">{{ i18nT('m9f357adb6100') }}</option><option value="builtin">{{ i18nT('me8526b0d97fb') }}</option><option value="official">{{ i18nT('m8306ae9f03c7') }}</option><option value="community">{{ i18nT('m376cbd8cfc85') }}</option></select><label v-if="tab === 'market'" class="check-label"><input v-model="compatibleOnly" type="checkbox" />{{ i18nT('m4cfeba0c990f') }}</label></div>
+    <div class="plugin-source"><span>{{ state ? `${platformName(state.host.os)} / ${state.host.arch}` : i18nT('m266a323a961d') }}<span v-if="market">{{ i18nT('m3c684427bbdb', { p0: (market.cached ? i18nT('me3ca04a9cb13') : i18nT('m3055a035f0eb')), p1: (timestamp(market.fetchedAt)) }) }}</span></span><a href="https://gitee.com/axisxy/webnavpluginsmarket" target="_blank" rel="noopener noreferrer">{{ i18nT('mb31759760dab') }}<PhArrowSquareOut :size="13" /></a></div>
     <p v-if="market?.error" class="plugin-notice">{{ market.error }}</p><p v-if="busy" class="plugin-notice" role="status">{{ busy }}</p><p v-if="error && !details" role="alert" class="form-error">{{ error }}</p>
     <div class="plugin-grid"><article v-for="card in visible" :key="card.id" class="plugin-card">
-      <header class="plugin-card-heading"><img v-if="card.iconDataUrl" :src="card.iconDataUrl" alt="" /><PhPuzzlePiece v-else :size="28" /><div><h2>{{ card.name }}</h2><span>{{ card.bundled ? '官方 · 内置' : card.publisher === 'builtin' ? '内置' : card.publisher === 'official' ? '官方扩展' : '第三方' }} · {{ card.manifest?.version ?? '查看版本' }}</span></div></header>
-      <div class="plugin-card-body"><p>{{ card.description }}</p><span class="plugin-run-state">{{ status(card) }}</span><footer><button v-if="card.bundled && !installedFor(card)" class="button primary" :disabled="!canWrite" @click="change(card.id, 'restore-bundled')">恢复安装</button><button class="icon-button" :aria-label="card.name + '详情'" :title="card.name + '详情'" @click="open(card)"><PhInfo :size="20" /></button><button v-if="toolFor(card)" class="button primary" @click="launch(card)">打开</button><button v-if="hasSettings(card) && (card.publisher === 'builtin' || installed.some(p => p.manifest.id === card.id))" class="icon-button" :aria-label="card.name + '设置'" :title="card.name + '设置'" @click="settings(card)"><PhGearSix :size="20" /></button><button v-if="installedFor(card) && !card.manifest?.theme" class="icon-button" :disabled="!canWrite" :aria-label="(installedFor(card)?.enabled ? '停用 ' : '启用 ') + card.name" :title="installedFor(card)?.enabled ? '停用插件' : '启用插件'" @click="change(card.id, installedFor(card)?.enabled ? 'disable' : 'enable')"><PhPower :size="18" /></button><button v-if="installedFor(card)" class="icon-button" :disabled="!canWrite" :aria-label="'卸载 ' + card.name" title="卸载插件，保留本地文件和配置" @click="askUninstall(card)"><PhTrash :size="18" /></button></footer></div>
+      <header class="plugin-card-heading"><img v-if="card.iconDataUrl" :src="card.iconDataUrl" alt="" /><PhPuzzlePiece v-else :size="28" /><div><h2>{{ card.name }}</h2><span>{{ card.bundled ? i18nT('mad37a7de374c') : card.publisher === 'builtin' ? i18nT('m95e35aabd9a9') : card.publisher === 'official' ? i18nT('m8306ae9f03c7') : i18nT('m376cbd8cfc85') }} · {{ card.manifest?.version ?? i18nT('m9b28f62eacdf') }}</span></div></header>
+      <div class="plugin-card-body"><p>{{ card.description }}</p><span class="plugin-run-state">{{ status(card) }}</span><footer><button v-if="card.bundled && !installedFor(card)" class="button primary" :disabled="!canWrite" @click="change(card.id, 'restore-bundled')">{{ i18nT('m54c8408ea343') }}</button><button class="icon-button" :aria-label="i18nT('pluginCard.details', { name: card.name })" :title="i18nT('pluginCard.details', { name: card.name })" @click="open(card)"><PhInfo :size="20" /></button><button v-if="toolFor(card)" class="button primary" @click="launch(card)">{{ i18nT('mc771248e511f') }}</button><button v-if="hasSettings(card) && (card.publisher === 'builtin' || installed.some(p => p.manifest.id === card.id))" class="icon-button" :aria-label="i18nT('pluginCard.settings', { name: card.name })" :title="i18nT('pluginCard.settings', { name: card.name })" @click="settings(card)"><PhGearSix :size="20" /></button><button v-if="installedFor(card) && !card.manifest?.theme" class="icon-button" :disabled="!canWrite" :aria-label="(installedFor(card)?.enabled ? i18nT('md4bc3529f56f') : i18nT('m99d63ea41429')) + card.name" :title="installedFor(card)?.enabled ? i18nT('m079b5363199b') : i18nT('m6ee356116241')" @click="change(card.id, installedFor(card)?.enabled ? 'disable' : 'enable')"><PhPower :size="18" /></button><button v-if="installedFor(card)" class="icon-button" :disabled="!canWrite" :aria-label="i18nT('mf2d2f0ff36de') + card.name" :title="i18nT('m8159886199ad')" @click="askUninstall(card)"><PhTrash :size="18" /></button></footer></div>
     </article></div>
-    <p v-if="!visible.length" class="plugin-empty">{{ state ? '没有符合筛选条件的插件。可以调整分类，或通过 Git 地址安装。' : '正在读取插件列表…' }}</p>
-    <p v-if="visible.length < filtered.length"><button class="button" @click="visibleLimit += 48">显示更多（已显示 {{ visible.length }} / {{ filtered.length }}）</button></p>
-    <p class="plugin-footnote">内置插件的图标与说明来自当前项目。其他插件详情首次从各自仓库读取并保存在本机；重新打开直接使用缓存，详情页可手动更新。来源标记不代表安全审核。</p>
+    <p v-if="!visible.length" class="plugin-empty">{{ state ? i18nT('m11bb004c3db8') : i18nT('mfb76ec7c9c31') }}</p>
+    <p v-if="visible.length < filtered.length"><button class="button" @click="visibleLimit += 48">{{ i18nT('m8673fd6169e0', { p0: (visible.length), p1: (filtered.length) }) }}</button></p>
+    <p class="plugin-footnote">{{ i18nT('m91668aad4206') }}</p>
 
     <dialog ref="detailDialog" class="plugin-detail-dialog" aria-labelledby="plugin-detail-title" @cancel.prevent="close"><div class="plugin-detail">
-      <header><img v-if="selectedIcon" :src="selectedIcon" alt="" /><div><span class="plugin-badge" :class="details?.publisher">{{ details?.bundled?'官方 · 内置':details?.publisher==='builtin'?'内置 · 官方':details?.publisher==='official'?'官方':'第三方' }}</span><h2 id="plugin-detail-title">{{ selectedManifest?.name ?? details?.name }}</h2><p>{{ selectedManifest?.author }} <span v-if="selectedManifest">· v{{ selectedManifest.version }}</span></p></div><button class="icon-button" aria-label="关闭插件详情" :disabled="!!busy" @click="close"><PhX :size="22" /></button></header>
-      <p v-if="detailLoading">正在读取仓库说明…</p><p>{{ selectedManifest?.description ?? details?.description }}</p>
-      <p v-if="selectedRuntime" class="plugin-notice"><strong>运行位置：</strong>{{ selectedRuntime.backend === 'dedicated' ? '独占插件线程' : '共享插件线程' }}。{{ selectedRuntime.backend === 'dedicated' ? '该插件拥有独立执行线程。' : '与其他共享插件一起运行；其中一个无响应时可能影响同组插件。' }}</p>
-      <p v-if="current" class="plugin-notice plugin-commit">已安装：v{{ current.manifest.version }} · {{ current.commit.slice(0, 12) }}<br /><template v-if="current.activeRelease">正在运行：v{{ current.activeRelease.version }} · {{ current.activeRelease.commit.slice(0, 12) }}</template><template v-else>{{ current.manifest.theme ? '静态主题，应用后生效。' : '当前没有运行实例。' }}</template></p>
-      <p v-if="selectedManifest" class="plugin-notice"><strong>生效方式：</strong>{{ selectedManifest.theme ? '主题应用后立即生效。' : selectedManifest.reload === 'restart' ? '需要重启。' + (selectedManifest.reloadReason ?? '作者声明此插件包含无法在线替换的组件，可安装后稍后重启。') : '支持热插拔与热更新，无需重启。相关任务或连接使用中时，等待结束后自动切换。' }}</p>
-      <section v-if="selectedManifest" class="plugin-risk"><h3>AI 能力</h3><p>{{ selectedManifest.automation?.description ?? '此插件未提供 AI 能力声明，原有功能可正常使用。' }}</p><p v-if="selectedManifest.automation">{{ selectedManifest.automation.tools.length ? selectedManifest.automation.tools.map(t=>t.title).join('、') : '没有开放可调用工具。' }}</p></section><dl v-if="selectedManifest" class="plugin-facts"><div><dt>支持的宿主平台</dt><dd>{{ platformsText(selectedManifest.platforms) }}</dd></div><div><dt>分类</dt><dd>{{ categoriesText(selectedManifest) }}</dd></div><div><dt>提供的能力</dt><dd>{{ selectedManifest.capabilities.map(c=>capabilityName(c.id)).join('、') }}</dd></div><div><dt>运行要求</dt><dd>WebNav {{ selectedManifest.webnav }} · Node {{ selectedManifest.node }}<span v-if="selectedManifest.commands?.length"> · {{ selectedManifest.commands.join('、') }}</span></dd></div><div v-if="selectedManifest.dependencies && Object.keys(selectedManifest.dependencies).length"><dt>插件依赖</dt><dd>{{ Object.entries(selectedManifest.dependencies).map(([id,range])=>`${id} ${range}`).join('、') }}</dd></div><div><dt>许可证</dt><dd>{{ selectedManifest.license }}</dd></div><div v-if="details?.repository"><dt>源码仓库</dt><dd><a :href="details.repository" target="_blank" rel="noopener noreferrer">{{ details.repository }}</a></dd></div></dl>
-      <template v-if="details?.repository"><p class="plugin-cache-note">详情缓存：{{ timestamp(metadata[details.repository]?.fetchedAt ?? null) }} <button class="button" :disabled="!!busy || detailLoading" @click="detailLoading=true; metadataFor(details,true).then(()=>{details=cards.find(c=>c.id===details?.id);detailLoading=false})"><PhArrowClockwise :size="14" />更新说明与图标</button></p></template>
-      <details class="plugin-readme" :open="!preview"><summary>插件使用说明</summary><pre>{{ selectedReadme || '作者尚未提供 README，可在源码仓库查看。' }}</pre></details>
-      <div v-if="selectedManifest?.screenshots?.length" class="plugin-screenshots"><a v-for="url in selectedManifest.screenshots" :key="url" :href="url" target="_blank" rel="noopener noreferrer">查看作者截图 <PhArrowSquareOut :size="13" /></a></div>
+      <header><img v-if="selectedIcon" :src="selectedIcon" alt="" /><div><span class="plugin-badge" :class="details?.publisher">{{ details?.bundled?i18nT('mad37a7de374c'):details?.publisher==='builtin'?i18nT('m37e216a416b2'):details?.publisher==='official'?i18nT('me73e38c1f65d'):i18nT('m376cbd8cfc85') }}</span><h2 id="plugin-detail-title">{{ selectedManifest?.name ?? details?.name }}</h2><p>{{ selectedManifest?.author }} <span v-if="selectedManifest">· v{{ selectedManifest.version }}</span></p></div><button class="icon-button" :aria-label="i18nT('m30c12e9980c0')" :disabled="!!busy" @click="close"><PhX :size="22" /></button></header>
+      <p v-if="detailLoading">{{ i18nT('m0a577d719b81') }}</p><p>{{ selectedManifest?.description ?? details?.description }}</p>
+      <p v-if="selectedRuntime" class="plugin-notice"><strong>{{ i18nT('m5ce89ff191a4') }}</strong>{{ selectedRuntime.backend === 'dedicated' ? i18nT('m3fb174f7ca90') : i18nT('mdfb8387ca7b9') }}。{{ selectedRuntime.backend === 'dedicated' ? i18nT('mb66d50af1d6c') : i18nT('ma2f8cb68077f') }}</p>
+      <p v-if="current" class="plugin-notice plugin-commit">{{ i18nT('m1688a1547e77', { p0: (current.manifest.version), p1: (current.commit.slice(0, 12)) }) }}<br /><template v-if="current.activeRelease">{{ i18nT('m17736b884d3b', { p0: (current.activeRelease.version), p1: (current.activeRelease.commit.slice(0, 12)) }) }}</template><template v-else>{{ current.manifest.theme ? i18nT('m72cb74a14840') : i18nT('m93fdb07ec2ae') }}</template></p>
+      <p v-if="selectedManifest" class="plugin-notice"><strong>{{ i18nT('mb085ca651678') }}</strong>{{ selectedManifest.theme ? i18nT('m0574276a8a47') : selectedManifest.reload === 'restart' ? i18nT('mcbb3aa6daa16') + (selectedManifest.reloadReason ?? i18nT('ma6f4f10c4966')) : i18nT('m2625065e31ca') }}</p>
+      <section v-if="selectedManifest" class="plugin-risk"><h3>{{ i18nT('m809d89459633') }}</h3><p>{{ selectedManifest.automation?.description ?? i18nT('m78d2ce7665f2') }}</p><p v-if="selectedManifest.automation">{{ selectedManifest.automation.tools.length ? selectedManifest.automation.tools.map(t=>t.title).join('、') : i18nT('m5e500b5af885') }}</p></section><dl v-if="selectedManifest" class="plugin-facts"><div><dt>{{ i18nT('m3e31822c57ab') }}</dt><dd>{{ platformsText(selectedManifest.platforms) }}</dd></div><div><dt>{{ i18nT('m515559957fd3') }}</dt><dd>{{ categoriesText(selectedManifest) }}</dd></div><div><dt>{{ i18nT('m19a040d1d8ea') }}</dt><dd>{{ selectedManifest.capabilities.map(c=>capabilityName(c.id)).join('、') }}</dd></div><div><dt>{{ i18nT('m6cb4b77b817b') }}</dt><dd>LittleDock {{ selectedManifest.webnav }} · Node {{ selectedManifest.node }}<span v-if="selectedManifest.commands?.length"> · {{ selectedManifest.commands.join('、') }}</span></dd></div><div v-if="selectedManifest.dependencies && Object.keys(selectedManifest.dependencies).length"><dt>{{ i18nT('m15ce9a546132') }}</dt><dd>{{ Object.entries(selectedManifest.dependencies).map(([id,range])=>`${id} ${range}`).join('、') }}</dd></div><div><dt>{{ i18nT('m1b2ad79bbbda') }}</dt><dd>{{ selectedManifest.license }}</dd></div><div v-if="details?.repository"><dt>{{ i18nT('m908a5a92dc38') }}</dt><dd><a :href="details.repository" target="_blank" rel="noopener noreferrer">{{ details.repository }}</a></dd></div></dl>
+      <template v-if="details?.repository"><p class="plugin-cache-note">{{ i18nT('m37465d251f06', { p0: (timestamp(metadata[details.repository]?.fetchedAt ?? null)) }) }}<button class="button" :disabled="!!busy || detailLoading" @click="detailLoading=true; metadataFor(details,true).then(()=>{details=cards.find(c=>c.id===details?.id);detailLoading=false})"><PhArrowClockwise :size="14" />{{ i18nT('mfb57dff20662') }}</button></p></template>
+      <details class="plugin-readme" :open="!preview"><summary>{{ i18nT('m754bb4d862c8') }}</summary><pre>{{ selectedReadme || i18nT('mb8fbc67a3290') }}</pre></details>
+      <div v-if="selectedManifest?.screenshots?.length" class="plugin-screenshots"><a v-for="url in selectedManifest.screenshots" :key="url" :href="url" target="_blank" rel="noopener noreferrer">{{ i18nT('mcbee431ac1d2') }}<PhArrowSquareOut :size="13" /></a></div>
       <p v-if="current?.error" class="form-error">{{ current.error }}</p><p v-for="reason in current?.reasons ?? []" :key="reason" class="form-error">{{ reason }}</p>
-      <div v-if="details" class="plugin-detail-actions"><button v-if="toolFor(details)" class="button primary" @click="launch(details)">打开工具</button><button v-if="hasSettings(details) && (current || details.publisher === 'builtin')" class="button" @click="settings(details)"><PhGearSix :size="18" />插件设置</button></div>
+      <div v-if="details" class="plugin-detail-actions"><button v-if="toolFor(details)" class="button primary" @click="launch(details)">{{ i18nT('m0101bc1c6e1e') }}</button><button v-if="hasSettings(details) && (current || details.publisher === 'builtin')" class="button" @click="settings(details)"><PhGearSix :size="18" />{{ i18nT('mb1bc554af446') }}</button></div>
       <section v-if="preview" class="plugin-install-review">
-        <h3>{{ preview.change === 'current' ? '已安装此提交，无需重复安装。' : pluginRisk.title }}</h3>
-        <p class="plugin-commit">{{ preview.repository }}<br />{{ changeLabels[preview.change] }}<template v-if="preview.installedRelease"><br />已安装：v{{ preview.installedRelease.version }} · {{ preview.installedRelease.commit }}</template><br />目标：v{{ preview.manifest.version }} · {{ preview.commit }}</p>
+        <h3>{{ preview.change === 'current' ? i18nT('m8b3cfc40563f') : pluginRisk.title }}</h3>
+        <p class="plugin-commit">{{ preview.repository }}<br />{{ changeLabels[preview.change] }}<template v-if="preview.installedRelease"><br />{{ i18nT('m1688a1547e77', { p0: (preview.installedRelease.version), p1: (preview.installedRelease.commit) }) }}</template><br />{{ i18nT('m5e017652d963', { p0: (preview.manifest.version), p1: (preview.commit) }) }}</p>
         <p v-for="reason in preview.reasons" :key="reason" class="form-error">{{ reason }}</p>
-        <p v-if="previewStale" class="form-error" role="alert">插件设置已变化，请重新读取安装说明后确认。</p>
+        <p v-if="previewStale" class="form-error" role="alert">{{ i18nT('mea30b01d1c7a') }}</p>
         <template v-if="preview.change !== 'current'">
           <ul v-if="preview.changes.length"><li v-for="change in preview.changes" :key="change">{{ change }}</li></ul>
           <p>{{ pluginRisk.body }}</p><p>{{ pluginRisk.index }}</p><strong class="plugin-ai-advice">{{ pluginRisk.ai }}</strong><p>{{ pluginRisk.privacy }}</p>
-          <details v-if="preview.manifest.install?.length"><summary>此插件声明的安装步骤</summary><pre>{{ preview.manifest.install.map(s=>`${s.command} ${s.args.join(' ')}`).join('\n') }}</pre></details>
+          <details v-if="preview.manifest.install?.length"><summary>{{ i18nT('mbd3ae5b7d32e') }}</summary><pre>{{ preview.manifest.install.map(s=>`${s.command} ${s.args.join(' ')}`).join('\n') }}</pre></details>
           <label class="check-label"><input v-model="accepted" type="checkbox" :disabled="previewStale || !preview.compatible || !!busy" />{{ pluginRisk.consent }}</label>
         </template>
         <div class="plugin-detail-actions">
-          <button class="button" :disabled="!!busy" @click="preview=undefined;accepted=false">{{ preview.change === 'current' ? '返回详情' : '取消安装' }}</button>
-          <button v-if="previewStale" class="button" :disabled="!canWrite" @click="prepare(preview.repository,preview.ref,preview.manifest.id)">重新读取安装说明</button>
-          <button v-else-if="preview.change !== 'current'" class="button primary" :disabled="!canWrite || !accepted || !preview.compatible" @click="install"><PhDownloadSimple :size="17" />确认风险并{{ preview.change === 'downgrade' ? '回退安装' : preview.upgrading ? '更新' : '安装' }}</button>
+          <button class="button" :disabled="!!busy" @click="preview=undefined;accepted=false">{{ preview.change === 'current' ? i18nT('m6f804505c90f') : i18nT('m191a09e32e31') }}</button>
+          <button v-if="previewStale" class="button" :disabled="!canWrite" @click="prepare(preview.repository,preview.ref,preview.manifest.id)">{{ i18nT('m057930f57805') }}</button>
+          <button v-else-if="preview.change !== 'current'" class="button primary" :disabled="!canWrite || !accepted || !preview.compatible" @click="install"><PhDownloadSimple :size="17" />{{ i18nT('m9a5d6d3a4b81', { p0: (preview.change === 'downgrade' ? i18nT('me20facfd31c0') : preview.upgrading ? i18nT('m3055a035f0eb') : i18nT('me8f88f51ccb0')) }) }}</button>
         </div>
       </section>
-      <div v-else class="plugin-detail-actions"><template v-if="details?.bundled"><button v-if="!current" class="button primary" :disabled="!canWrite" @click="change(details.id, 'restore-bundled')">恢复安装</button><template v-else><button class="button" :disabled="!canWrite" @click="change(current.manifest.id,current.enabled?'disable':'enable')">{{ current.enabled?'禁用':'启用' }}</button><button class="button" :disabled="!canWrite" @click="uninstallId=current.manifest.id">卸载</button></template><small>随 WebNav 提供和更新，无需下载</small></template><template v-else-if="details?.publisher==='builtin'"><button class="button primary" :disabled="!canWrite" @click="change(details.id,'select')"><PhCheckCircle :size="17" />使用内置实现</button><small>随 WebNav 发布，无需下载</small></template><template v-else-if="details"><button v-if="!current" class="button primary" :disabled="!canWrite" @click="prepare(details.repository!,details.ref??'HEAD',details.id)">读取安装说明</button><template v-else><button class="button primary" :disabled="!canWrite" @click="change(current.manifest.id,'select')">{{ selectedManifest?.theme?'应用主题':'设为默认实现' }}</button><button v-if="!selectedManifest?.theme" class="button" :disabled="!canWrite" @click="change(current.manifest.id,current.enabled?'disable':'enable')">{{ current.enabled?'禁用':'启用' }}</button><button class="button" :disabled="!canWrite" @click="prepare(current.repository,current.ref,current.manifest.id)">检查更新</button><button v-if="current.previousCommit" class="button" :disabled="!canWrite" @click="change(current.manifest.id,'rollback')">回退上一版</button><button class="button" :disabled="!canWrite" @click="uninstallId=current.manifest.id">卸载</button></template></template></div>
-      <div v-if="uninstallId" class="plugin-notice"><p>卸载此插件？原有连接配置、插件数据与仓库缓存会保留。能在线卸载的立即停止；使用中的资源结束后自动卸载，无法在线卸载时显示待重启。</p><button class="button" :disabled="!canWrite" @click="uninstallId=''">取消</button> <button class="button" :disabled="!canWrite" @click="change(uninstallId,'uninstall')">确认卸载</button></div>
+      <div v-else class="plugin-detail-actions"><template v-if="details?.bundled"><button v-if="!current" class="button primary" :disabled="!canWrite" @click="change(details.id, 'restore-bundled')">{{ i18nT('m54c8408ea343') }}</button><template v-else><button class="button" :disabled="!canWrite" @click="change(current.manifest.id,current.enabled?'disable':'enable')">{{ current.enabled?i18nT('m7df5c456c765'):i18nT('mf4f0ead1116b') }}</button><button class="button" :disabled="!canWrite" @click="uninstallId=current.manifest.id">{{ i18nT('m06bc14b60f35') }}</button></template><small>{{ i18nT('m33e3c859dbf4') }}</small></template><template v-else-if="details?.publisher==='builtin'"><button class="button primary" :disabled="!canWrite" @click="change(details.id,'select')"><PhCheckCircle :size="17" />{{ i18nT('m59fb8dbd28b7') }}</button><small>{{ i18nT('m3a5b241a37cb') }}</small></template><template v-else-if="details"><button v-if="!current" class="button primary" :disabled="!canWrite" @click="prepare(details.repository!,details.ref??'HEAD',details.id)">{{ i18nT('m7f1b2bd011d4') }}</button><template v-else><button class="button primary" :disabled="!canWrite" @click="change(current.manifest.id,'select')">{{ selectedManifest?.theme?i18nT('m0e61f173997c'):i18nT('m683dffe62e1c') }}</button><button v-if="!selectedManifest?.theme" class="button" :disabled="!canWrite" @click="change(current.manifest.id,current.enabled?'disable':'enable')">{{ current.enabled?i18nT('m7df5c456c765'):i18nT('mf4f0ead1116b') }}</button><button class="button" :disabled="!canWrite" @click="prepare(current.repository,current.ref,current.manifest.id)">{{ i18nT('m7f68ebad19ba') }}</button><button v-if="current.previousCommit" class="button" :disabled="!canWrite" @click="change(current.manifest.id,'rollback')">{{ i18nT('me700bc424c4a') }}</button><button class="button" :disabled="!canWrite" @click="uninstallId=current.manifest.id">{{ i18nT('m06bc14b60f35') }}</button></template></template></div>
+      <div v-if="uninstallId" class="plugin-notice"><p>{{ i18nT('m8de0c7ac6c96') }}</p><button class="button" :disabled="!canWrite" @click="uninstallId=''">{{ i18nT('m2cd0f3be8738') }}</button> <button class="button" :disabled="!canWrite" @click="change(uninstallId,'uninstall')">{{ i18nT('m4fec200ac3f7') }}</button></div>
       <p v-if="busy" role="status" class="plugin-notice">{{ busy }}</p><p v-if="notice" role="status" class="plugin-notice">{{ notice }}</p><p v-if="error" role="alert" class="form-error">{{ error }}</p>
     </div></dialog>
   </section>
