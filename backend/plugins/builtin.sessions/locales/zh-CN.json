@@ -1,4 +1,9 @@
 {
+  "clipboardPermission.title": "首次粘贴：允许剪贴板访问",
+  "clipboardPermission.body": "继续后，请留意浏览器地址栏最左侧的剪贴板提示（“是否共享剪贴板？”），展开后点击“允许”，即可粘贴。",
+  "clipboardPermission.note": "已经允许时会直接粘贴。此说明在当前浏览器仅显示一次。",
+  "clipboardPermission.cancel": "取消",
+  "clipboardPermission.continue": "知道了，继续粘贴",
   "mbfef4ef9f1c3": "终端右键菜单",
   "m60d8fbd14c9c": "信任并连接",
   "m136de7a8c46f": "拒绝",

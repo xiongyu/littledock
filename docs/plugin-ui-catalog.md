@@ -41,6 +41,8 @@ SSH / 本地终端的内容菜单。仅传会话元数据，不公开终端输�
 | `sessionId` | string | 是 | 当前终端会话 ID |
 | `ready` | boolean | 是 | 终端是否就绪 |
 | `hasSelection` | boolean | 是 | 是否选中文本，不包含正文 |
+| `name` | string | 否 | 当前会话的显示名称（可选） |
+| `protocol` | string | 否 | 会话协议 ssh / local；旧实现可省略 |
 
 ## builtin.sessions/workspace
 
@@ -53,6 +55,9 @@ SSH / 本地终端的内容菜单。仅传会话元数据，不公开终端输�
 | `sessionId` | string | 是 | 当前会话 ID |
 | `protocol` | string | 是 | 会话协议 |
 | `groupId` | string | 是 | 分屏组 ID，无则为空 |
+| `name` | string | 否 | 当前会话的显示名称（可选） |
+| `ready` | boolean | 否 | 当前会话是否已连接（可选） |
+| `ai` | boolean | 否 | 是否由 AI 任务持有（可选） |
 
 ## builtin.sshFiles/entry
 

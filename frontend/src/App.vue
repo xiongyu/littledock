@@ -315,7 +315,7 @@ const workspaceTabs = computed(()=>terminalGroups.value.flatMap(group=>{
 const detaching = ref(new Set<string>())
 const allWorkspaceTabs = computed(() => [...workspaceTabs.value, ...pluginTabs.map(tab => ({ sessionId: tab.key, name: tab.title, status: tab.status, protocol: 'plugin' as const, floating: false, paneCount: 1 }))])
 const tabMenu = ref<{id:string;groupId?:string;x:number;y:number;owner?:Document}>()
-const tabMenuExtension = menuBinding('builtin.sessions', 'workspace', () => { const item = terminals.value.find(item => item.sessionId === tabMenu.value?.id); return { sessionId: item?.sessionId ?? '', protocol: item?.protocol ?? '', groupId: tabMenu.value?.groupId ?? '' } }, () => !!tabMenu.value && terminals.value.some(item => item.sessionId === tabMenu.value?.id))
+const tabMenuExtension = menuBinding('builtin.sessions', 'workspace', () => { const item = terminals.value.find(item => item.sessionId === tabMenu.value?.id); return { sessionId: item?.sessionId ?? '', protocol: item?.protocol ?? '', groupId: tabMenu.value?.groupId ?? '', name: item?.name ?? '', ready: item?.running === true, ai: item?.ai === true } }, () => !!tabMenu.value && terminals.value.some(item => item.sessionId === tabMenu.value?.id))
 const splitPicker = ref<{id:string;direction:SplitDirection}>()
 function otherPanes(id:string){const members=groupFor(id);const ids=members?paneIds(members.layout):[id];return terminals.value.filter(item=>item.protocol==='ssh'&&!item.page&&!ids.includes(item.sessionId))}
 const splitCandidates = computed(()=>otherPanes(splitPicker.value?.id??''))

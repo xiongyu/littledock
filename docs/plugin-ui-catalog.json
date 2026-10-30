@@ -63,6 +63,16 @@
           "type": "boolean",
           "required": true,
           "description": "是否选中文本，不包含正文"
+        },
+        "name": {
+          "type": "string",
+          "required": false,
+          "description": "当前会话的显示名称（可选）"
+        },
+        "protocol": {
+          "type": "string",
+          "required": false,
+          "description": "会话协议 ssh / local；旧实现可省略"
         }
       },
       "kind": "menu"
@@ -93,6 +103,21 @@
           "type": "string",
           "required": true,
           "description": "分屏组 ID，无则为空"
+        },
+        "name": {
+          "type": "string",
+          "required": false,
+          "description": "当前会话的显示名称（可选）"
+        },
+        "ready": {
+          "type": "boolean",
+          "required": false,
+          "description": "当前会话是否已连接（可选）"
+        },
+        "ai": {
+          "type": "boolean",
+          "required": false,
+          "description": "是否由 AI 任务持有（可选）"
         }
       },
       "kind": "menu"

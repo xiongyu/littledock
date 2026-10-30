@@ -9,6 +9,7 @@ import { PhLockKey, PhLockKeyOpen, PhClock, PhArrowSquareOut } from '@phosphor-i
 import { resolveTerminalTheme } from '@webnav/shared'
 import { rpc, wsOrigin, terminalThemes } from '../backend'
 import ContextMenu from './ContextMenu.vue'
+import ClipboardPermissionHint from './ClipboardPermissionHint.vue'
 import { menuBinding } from '../plugin-menus'
 import '@xterm/xterm/css/xterm.css'
 const props=defineProps<{sessionId:string;active:boolean;floating?:boolean;themeId?:string;ownerDocument?:Document}>()
@@ -17,6 +18,7 @@ const canvas=ref<HTMLElement>(),notice=ref(i18nT('m0ce8f0e12131')),writable=ref(
 const observing=ref(false),attaching=ref(false)
 const hostKey=ref<{fingerprint:string;previous:string;changed:boolean;host:string;port:number}>(),verified=ref(false)
 const menu=ref<{x:number;y:number}>(),selection=ref('')
+const clipboardHint=ref<InstanceType<typeof ClipboardPermissionHint>>()
 const menuExtension = menuBinding('builtin.mcp', 'terminal', () => ({ sessionId: props.sessionId, connected: connected.value, writable: writable.value, hasSelection: !!selection.value }), () => !disposed && props.active && !!menu.value)
 const palette=computed(()=>resolveTerminalTheme(terminalThemes.value,props.themeId).colors)
 let terminal:Terminal,fit:FitAddon,socket:WebSocket|undefined,observer:ResizeObserver|undefined,disposed=false,epoch=0,seq=0,parsed=0,queued=0,frame=0,generation=0,remoteCols=100,remoteRows=30
@@ -42,12 +44,19 @@ function fitView(){
 function schedule(){cancelAnimationFrame(frame);frame=requestAnimationFrame(fitView)}
 function focus(){if(props.active&&!hostKey.value)terminal?.focus()}
 defineExpose({focus})
+async function pasteClipboard(){
+  if(!writable.value||disposed)return
+  try{
+    const text=await (props.ownerDocument??document).defaultView!.navigator.clipboard.readText()
+    if(writable.value&&!disposed){terminal.paste(text);focus()}
+  }catch{notice.value=i18nT('mc4d3eba1b734')}
+}
 async function action(id:string){
   menu.value=undefined
   try{
     const clipboard=(props.ownerDocument??document).defaultView!.navigator.clipboard
     if(id==='copy')await clipboard.writeText(selection.value)
-    if(id==='paste'&&writable.value){const text=await clipboard.readText();if(writable.value)terminal.paste(text)}
+    if(id==='paste')clipboardHint.value?.requestPaste()
     if(id==='interrupt')input('\x03')
     if(id==='select')terminal.selectAll()
     if(id==='bottom')terminal.scrollToBottom()
@@ -128,5 +137,6 @@ onBeforeUnmount(()=>{disposed=true;cancelAnimationFrame(frame);observer?.disconn
     <section v-if="hostKey" class="host-key-prompt" role="alert"><strong>{{ hostKey.changed?i18nT('m473acb4f7a8f'):i18nT('m49302e40ce7f') }}</strong><p>{{ hostKey.host }}:{{ hostKey.port }}</p><code>{{ hostKey.fingerprint }}</code><p v-if="hostKey.changed">{{ i18nT('mdacc8e7b3baf', { p0: (hostKey.previous) }) }}</p><label v-if="hostKey.changed"><input v-model="verified" type="checkbox"/>{{ i18nT('m53a8b3f5fff7') }}</label><div class="form-actions"><button class="button" @click="decide(false)">{{ i18nT('m136de7a8c46f') }}</button><button class="button primary" :disabled="hostKey.changed && !verified" @click="decide(true)">{{ i18nT('m60d8fbd14c9c') }}</button></div></section>
     <div ref="canvas" class="terminal-canvas" :inert="!!hostKey || undefined" @contextmenu.prevent="selection=terminal.getSelection();menu={x:$event.clientX,y:$event.clientY}"></div>
     <ContextMenu v-if="menu" :x="menu.x" :y="menu.y" :owner="ownerDocument" :items="items" :label="i18nT('m9fa9fb83a03d')" :extension="menuExtension" :execute="action" @close="menu=undefined"/>
+    <ClipboardPermissionHint ref="clipboardHint" :enabled="writable && active" :owner-document="ownerDocument" @paste="pasteClipboard" @dismiss="focus"/>
   </div>
 </template>

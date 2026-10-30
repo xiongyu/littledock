@@ -4,6 +4,7 @@ import { mkdir, rename, rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+import { EnvHttpProxyAgent, fetch } from 'undici'
 import type { EditorPlatform } from '@webnav/shared'
 
 export interface EditorPackage { platform: EditorPlatform; product: string; version: string; file: string; url: string; sha256: string; root: string; licenseUrl?: string }
@@ -32,8 +33,13 @@ export class EditorPackageCache {
     try { if((await stat(path)).isFile()) { if(await fileDigest(path)===pkg.sha256)return path;throw new Error('安装包校验失败，请移除本机缓存中的 '+pkg.file+' 后重试。') } }
     catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error}
     const temp=path+'.'+randomUUID()+'.part',limit=512*1024*1024
+    // Keep proxy routing scoped to this download, including vendor redirects.
+    // A verified cache hit never creates a network dispatcher.
+    let dispatcher:EnvHttpProxyAgent|undefined
     try {
-      const response=await fetch(pkg.url,{signal:AbortSignal.any([signal,AbortSignal.timeout(600_000)])})
+      signal.throwIfAborted()
+      dispatcher=new EnvHttpProxyAgent()
+      const response=await fetch(pkg.url,{dispatcher,signal:AbortSignal.any([signal,AbortSignal.timeout(600_000)])})
       if(!response.ok||!response.body)throw new Error('安装包下载失败（HTTP '+response.status+'）。')
       const total=Number(response.headers.get('content-length'))||0;if(total>limit)throw new Error('安装包超出 512 MiB 限制。')
       let count=0,last=-1;const hash=createHash('sha256')
@@ -42,6 +48,6 @@ export class EditorPackageCache {
       await pipeline(source,new Transform({transform(chunk:Buffer,_encoding,done){count+=chunk.length;if(count>limit){done(new Error('安装包过大。'));return}hash.update(chunk);const percent=total?Math.min(99,Math.floor(count/total*100)):0;if(percent!==last){last=percent;report(percent)}done(null,chunk)}}),createWriteStream(temp,{flags:'wx',mode:0o600}),{signal})
       if(hash.digest('hex')!==pkg.sha256)throw new Error('下载的安装包校验失败，没有安装。')
       await rename(temp,path);report(100);return path
-    }finally{await rm(temp,{force:true})}
+    }finally{try{await dispatcher?.destroy()}finally{await rm(temp,{force:true})}}
   }
 }

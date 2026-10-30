@@ -10,8 +10,9 @@ import '@xterm/xterm/css/xterm.css'
 import { connectionState, rpc, wsOrigin, terminalThemes } from '../backend'
 import { resolveTerminalTheme } from '@webnav/shared'
 import ContextMenu from './ContextMenu.vue'
+import ClipboardPermissionHint from './ClipboardPermissionHint.vue'
 import { menuBinding } from '../plugin-menus'
-const props = defineProps<{ sessionId: string; attachToken: string; active: boolean; floating?: boolean; themeId?: string; ownerDocument?: Document }>()
+const props = defineProps<{ sessionId: string; attachToken: string; active: boolean; protocol?: 'ssh' | 'local'; name?: string; floating?: boolean; themeId?: string; ownerDocument?: Document }>()
 const emit = defineEmits<{ status: [text: string]; running: [value: boolean]; history: []; float: []; reconnect: []; configure: []; colors: []; close: [] }>()
 const container = ref<HTMLElement>(), notice = ref(i18nT('m8be0ea36a9bb')), ready = ref(false), ended = ref(false), newOutput = ref(false), verified = ref(false), error = ref('')
 const hostKey = ref<{fingerprint:string;previous:string;changed:boolean;host:string;port:number}>()
@@ -19,7 +20,8 @@ const detached=ref(false)
 let terminal: Terminal | undefined, socket: WebSocket | undefined, fit: FitAddon | undefined, resize: ResizeObserver | undefined, parsed = 0, queued = 0, disposed = false
 const menu = ref<{x:number;y:number}>()
 const selectedText = ref('')
-const menuExtension = menuBinding('builtin.sessions', 'terminal', () => ({ sessionId: props.sessionId, ready: ready.value, hasSelection: !!selectedText.value }), () => !disposed && props.active && !!menu.value)
+const clipboardHint = ref<InstanceType<typeof ClipboardPermissionHint>>()
+const menuExtension = menuBinding('builtin.sessions', 'terminal', () => ({ sessionId: props.sessionId, ready: ready.value, hasSelection: !!selectedText.value, protocol: props.protocol ?? '', name: props.name ?? '' }), () => !disposed && props.active && !!menu.value)
 const palette = computed(() => resolveTerminalTheme(terminalThemes.value, props.themeId).colors)
 const reconnectHint = computed(() => connectionState.value === 'ready' ? detached.value?i18nT('m0be2a5942630'):i18nT('m676aa750106f') : connectionState.value === 'locked' ? i18nT('m041e4c7634c6') : i18nT('mc9e6fdff9041'))
 const menuItems = computed(() => [
@@ -57,7 +59,7 @@ async function pasteClipboard() {
 }
 function action(id: string) {
   if (id==='copy') void copySelection()
-  else if (id==='paste') void pasteClipboard()
+  else if (id==='paste') clipboardHint.value?.requestPaste()
   else if (id==='select') terminal?.selectAll()
   else if (id==='interrupt' && ready.value) { terminal?.input('\x03',true); focus() }
   else if (id==='bottom') bottom()
@@ -177,5 +179,6 @@ onBeforeUnmount(()=>{disposed=true;cancelAnimationFrame(fitFrame);resize?.discon
     <section v-if="hostKey" class="host-key-prompt" role="alert"><strong>{{ hostKey.changed ? i18nT('m473acb4f7a8f') : i18nT('m76decad3d710') }}</strong><p>{{ hostKey.host }}:{{ hostKey.port }}</p><code>{{ hostKey.fingerprint }}</code><p v-if="hostKey.changed">{{ i18nT('mcfe6f505c0b2') }}<code>{{ hostKey.previous }}</code></p><label v-if="hostKey.changed" class="check-label"><input v-model="verified" type="checkbox" />{{ i18nT('ma581bcfd4993') }}</label><div class="form-actions"><button class="button" @click="decide(false)">{{ i18nT('m136de7a8c46f') }}</button><button class="button primary" :disabled="hostKey.changed && !verified" @click="decide(true)">{{ i18nT('m60d8fbd14c9c') }}</button></div><p v-if="error" class="field-error">{{ error }}</p></section>
     <div ref="container" class="terminal-canvas" :inert="!!hostKey || undefined" @contextmenu.capture="openMenu" @mousedown.capture="($event.button === 2) && $event.stopPropagation()"></div>
     <ContextMenu v-if="menu" :x="menu.x" :y="menu.y" :owner="ownerDocument" :items="menuItems" :label="i18nT('mbfef4ef9f1c3')" :extension="menuExtension" :execute="action" @close="menu=undefined" />
+    <ClipboardPermissionHint ref="clipboardHint" :enabled="ready && active" :owner-document="ownerDocument" @paste="pasteClipboard" @dismiss="focus" />
   </div>
 </template>

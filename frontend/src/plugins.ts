@@ -1,12 +1,14 @@
 
 import * as vue from 'vue'
 import { shallowReactive, ref, markRaw, type Component } from 'vue'
-import type { Connection, FrontendSlot, PluginManifest, PluginState, Protocol, InstalledTheme } from '@webnav/shared'
+import type { Connection, FrontendSlot, PluginState, Protocol, InstalledTheme } from '@webnav/shared'
 import { rpc, connectionState } from './backend'
 import { installedThemes } from './theme-market'
 import { pluginConnectors } from './plugin-registry.ts'
 import { pluginDeadline } from './plugin-lifecycle.ts'
 import { builtinFrontend } from './plugin-builtins'
+import { builtinUiCatalog } from './builtin-ui-catalog'
+import { mergeBuiltinUiAssets, type PluginAsset } from './builtin-ui-assets'
 import { openPluginTool, openPluginSettings, publishPluginTools, pluginTabs, activePluginTab, type PluginToolView } from './plugin-workspace'
 import type { PluginFrontendApi } from './plugin-api'
 import { createPluginFontScope } from './plugin-fonts'
@@ -50,10 +52,10 @@ async function syncPlugins() {
     } catch { /* Retain the previous complete dictionary when a replacement fails validation. */ }
   }
   await refreshThemes()
-  type Asset = { id: string; name?: string; commit: string; capabilities: PluginManifest['capabilities']; entry?: string; builtin?: boolean; contributes?: PluginManifest['contributes']; icon?: string; styles: string[]; config: Record<string, unknown> }
-  const state = await rpc<{ revision: number; assets: Asset[]; providers: Record<string, string> }>('plugins.assets')
-  const desired = new Set(state.assets.filter(p => p.entry || (p.builtin && builtinFrontend(p.id))).map(p => p.id)), candidates = new Map<string, Unit>()
-  for (const asset of state.assets) {
+  const state = await rpc<{ revision: number; assets: PluginAsset[]; providers: Record<string, string> }>('plugins.assets')
+  const assets = mergeBuiltinUiAssets(state.assets, localeState.builtins, builtinUiCatalog, id => !!builtinFrontend(id))
+  const desired = new Set(assets.filter(p => p.entry || (p.builtin && builtinFrontend(p.id))).map(p => p.id)), candidates = new Map<string, Unit>()
+  for (const asset of assets) {
     if (!asset.entry && !(asset.builtin && builtinFrontend(asset.id))) continue
     const entry = asset.entry
     const signature = JSON.stringify([asset, Object.entries(state.providers).filter(([, id]) => id === asset.id).sort()])

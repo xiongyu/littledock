@@ -1,4 +1,9 @@
 {
+  "clipboardPermission.title": "First paste: allow clipboard access",
+  "clipboardPermission.body": "After continuing, look for the clipboard prompt at the far left of the browser’s address bar. Open it and click Allow to paste.",
+  "clipboardPermission.note": "If access is already allowed, pasting starts immediately. This tip appears only once in this browser.",
+  "clipboardPermission.cancel": "Cancel",
+  "clipboardPermission.continue": "Got it, continue pasting",
   "m5be0323e8adc": "Connected",
   "md79b1d0e5c61": "Ended",
   "ma5783b941d7d": "View history",

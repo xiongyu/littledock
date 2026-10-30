@@ -16,5 +16,12 @@
   "mb3b75bd055c0": "操作失败。",
   "m475e8f72b962": "无法准备编辑器。",
   "metadata.name": "远程 VS Code",
-  "metadata.description": "为当前 SSH 目录打开独立远端编辑器，缓存安装包，通过 SSH 转发访问 Linux / Windows 的网页编辑器。"
+  "metadata.description": "为当前 SSH 目录打开独立远端编辑器，缓存安装包，通过 SSH 转发访问 Linux / Windows 的网页编辑器。",
+  "menuItems.open-terminal.title": "用 VS Code 打开当前目录",
+  "menuItems.open-workspace.title": "用 VS Code 打开当前目录",
+  "target.currentSsh": "当前 SSH",
+  "directory.loading": "正在读取当前 SSH 目录…",
+  "directory.unknown": "尚未识别当前 SSH 目录。请等待 Shell 显示含路径的提示符，或从文件栏选择目录打开。",
+  "tab.blocked": "浏览器拦截了新标签页，请点击打开按钮继续。",
+  "install.finishOpen": "完成并打开"
 }

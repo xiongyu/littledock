@@ -44,6 +44,47 @@ test('editor package cache verifies digests, reuses offline packages, coalesces 
   assert.equal((await readdir(root)).some(name=>name.endsWith('.part')),false)
 })
 
+test('editor downloads honor proxy routing, redirects and NO_PROXY, reuse cached files offline and close proxy sockets',async t=>{
+  const root=await temp(t),payload=Buffer.from('proxied editor archive')
+  const origin=createServer((req,res)=>{if(req.url==='/archive'){res.writeHead(302,{location:`http://editor-cdn.invalid:${port}/payload`});res.end()}else res.end(payload)}),port=await listen(origin)
+  t.after(()=>close(origin))
+  const sockets=new Set();let tunnels=0,httpsTunnels=0
+  const proxy=createServer();proxy.on('connect',(req,socket,head)=>{
+    if(req.url==='editor.invalid:443'){httpsTunnels++;socket.end('HTTP/1.1 502 Proxy fixture\r\nContent-Length: 0\r\n\r\n');return}
+    assert.ok([`editor.invalid:${port}`,`editor-cdn.invalid:${port}`].includes(req.url));tunnels++;sockets.add(socket);socket.on('close',()=>sockets.delete(socket))
+    const upstream=connect(port,'127.0.0.1',()=>{socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');if(head.length)upstream.write(head);socket.pipe(upstream);upstream.pipe(socket)})
+    socket.on('close',()=>upstream.destroy());upstream.on('error',()=>socket.destroy());socket.on('error',()=>upstream.destroy())
+  })
+  const proxyPort=await listen(proxy)
+  t.after(async()=>{for(const socket of sockets)socket.destroy();await close(proxy)})
+  const names=['http_proxy','https_proxy','no_proxy','HTTP_PROXY','HTTPS_PROXY','NO_PROXY'],saved=Object.fromEntries(names.map(key=>[key,process.env[key]]))
+  t.after(()=>{for(const key of names){if(saved[key]===undefined)delete process.env[key];else process.env[key]=saved[key]}})
+  for(const key of names)delete process.env[key]
+  process.env.HTTP_PROXY=`http://127.0.0.1:${proxyPort}`;process.env.HTTPS_PROXY=process.env.HTTP_PROXY
+  const cache=new EditorPackageCache(root),signal=AbortSignal.timeout(10000)
+  const pkg={...editorPackages['linux-x64'],file:'proxy.tar.gz',sha256:digest(payload),url:`http://editor.invalid:${port}/archive`}
+  const path=await cache.ensure(pkg,signal);assert.deepEqual(await readFile(path),payload);assert.equal(tunnels,2)
+  await wait(()=>sockets.size===0)
+  process.env.HTTP_PROXY='http://127.0.0.1:1';process.env.HTTPS_PROXY=process.env.HTTP_PROXY
+  assert.equal(await cache.ensure(pkg,signal),path);assert.equal(tunnels,2)
+  process.env.HTTPS_PROXY=`http://127.0.0.1:${proxyPort}`
+  await assert.rejects(cache.ensure({...pkg,file:'https.tar.gz',url:'https://editor.invalid/archive'},signal))
+  assert.equal(httpsTunnels,1);assert.equal((await readdir(root)).some(name=>name.endsWith('.part')),false)
+  process.env.NO_PROXY='127.0.0.1'
+  await cache.ensure({...pkg,file:'direct.tar.gz',url:`http://127.0.0.1:${port}/payload`},signal)
+  assert.equal(tunnels,2)
+})
+
+test('cancelling an editor download removes the partial package and closes the connection',async t=>{
+  const root=await temp(t),sockets=new Set(),controller=new AbortController()
+  const origin=createServer((_req,res)=>{res.writeHead(200,{'content-length':1000000});res.write('partial archive')})
+  origin.on('connection',socket=>{sockets.add(socket);socket.on('close',()=>sockets.delete(socket))})
+  const port=await listen(origin);t.after(()=>close(origin))
+  const pkg={...editorPackages['linux-x64'],file:'cancel.tar.gz',url:`http://127.0.0.1:${port}/archive`}
+  await assert.rejects(new EditorPackageCache(root).ensure(pkg,controller.signal,()=>controller.abort()),{name:'AbortError'})
+  assert.deepEqual(await readdir(root),[]);await wait(()=>sockets.size===0)
+})
+
 test('remote scripts quote paths, use verified archives and bind only loopback with a watchdog',()=>{
   assert.equal(shQuote("/home/a'b$()"),"'/home/a'\\''b$()'");assert.equal(psQuote("C:/a'b"),"'C:/a''b'")
   assert.equal(windowsPath('/C:/Users/用户'),'C:\\Users\\用户')
@@ -169,6 +210,19 @@ test('editor failures retain their stage and explain SFTP status instead of retu
   assert.match(editorErrorMessage(Object.assign(new Error('Permission denied'),{code:3}),'installing'),/安装远端编辑器失败.*权限/)
   assert.match(editorErrorMessage(new Error('Failure'),'checking'),/检查远端环境失败/)
   assert.doesNotMatch(editorErrorMessage(new Error('Failure'),'checking'),/Failure/)
+})
+
+test('package failures distinguish local network and cache errors without leaking proxy secrets',()=>{
+  for(const code of ['ENOTFOUND','ECONNREFUSED','UND_ERR_CONNECT_TIMEOUT','UND_ERR_SOCKET']){
+    const error=new TypeError('fetch failed',{cause:Object.assign(new Error('http://user:secret@proxy.invalid'),{code})})
+    const message=editorErrorMessage(error,'downloading')
+    assert.match(message,/本机.*(网络|代理|服务器)/);assert.doesNotMatch(message,/user|secret|proxy\.invalid|SSH 用户/)
+  }
+  assert.match(editorErrorMessage(Object.assign(new Error('denied'),{code:'EACCES'}),'downloading'),/本机.*缓存.*权限/)
+  assert.match(editorErrorMessage(Object.assign(new Error('full'),{code:'ENOSPC'}),'downloading'),/本机.*磁盘空间/)
+  assert.match(editorErrorMessage(new DOMException('timeout','TimeoutError'),'downloading'),/本机下载超时/)
+  const circular=new Error('fetch failed');circular.cause=circular
+  assert.match(editorErrorMessage(circular,'downloading'),/尚未上传到 SSH/)
 })
 
 test('SSH disconnection stops the editor and cancellation while checking never installs',async t=>{

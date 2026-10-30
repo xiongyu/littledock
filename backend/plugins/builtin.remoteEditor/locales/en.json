@@ -16,5 +16,12 @@
   "mb3b75bd055c0": "Operation failed.",
   "m475e8f72b962": "Unable to prepare the editor.",
   "metadata.name": "Remote VS Code",
-  "metadata.description": "Opens a separate remote editor for the current SSH directory, caches installation packages, and forwards access over SSH to the Linux or Windows web editor."
+  "metadata.description": "Opens a separate remote editor for the current SSH directory, caches installation packages, and forwards access over SSH to the Linux or Windows web editor.",
+  "menuItems.open-terminal.title": "Open current directory with VS Code",
+  "menuItems.open-workspace.title": "Open current directory with VS Code",
+  "target.currentSsh": "Current SSH",
+  "directory.loading": "Reading the current SSH directory…",
+  "directory.unknown": "The current SSH directory has not been detected. Wait for a shell prompt containing the path, or choose a directory in the file panel.",
+  "tab.blocked": "The browser blocked the new tab. Click the open button to continue.",
+  "install.finishOpen": "Finish and open"
 }

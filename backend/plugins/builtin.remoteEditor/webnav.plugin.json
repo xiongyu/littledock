@@ -58,5 +58,31 @@
       "zh-CN": "locales/zh-CN.json",
       "en": "locales/en.json"
     }
+  },
+  "contributes": {
+    "menuItems": [
+      {
+        "id": "open-terminal",
+        "title": "用 VS Code 打开当前目录",
+        "target": {
+          "plugin": "builtin.sessions",
+          "point": "terminal",
+          "version": 1
+        },
+        "access": "write",
+        "order": 105
+      },
+      {
+        "id": "open-workspace",
+        "title": "用 VS Code 打开当前目录",
+        "target": {
+          "plugin": "builtin.sessions",
+          "point": "workspace",
+          "version": 1
+        },
+        "access": "write",
+        "order": 15
+      }
+    ]
   }
 }
